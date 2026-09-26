@@ -17,7 +17,11 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    // KLAP tourne sur MariaDB. Le repli est volontairement "mysql" et non "sqlite" :
+    // si DB_CONNECTION manque, on veut une erreur de connexion explicite plutôt qu'une
+    // bascule silencieuse sur SQLite, où les contraintes CHECK des migrations sont ignorées.
+    // Les tests forcent sqlite via phpunit.xml, ils ne sont pas concernés.
+    'default' => env('DB_CONNECTION', 'mysql'),
 
     /*
     |--------------------------------------------------------------------------
