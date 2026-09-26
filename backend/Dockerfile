@@ -1,13 +1,14 @@
 FROM php:8.3-apache
 
 # Extensions nécessaires à Laravel + MySQL
+# mbstring est déjà fournie par l'image php:8.3-apache : la recompiler fait planter gcc
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpng-dev \
-    libonig-dev \
     unzip \
     git \
-    && docker-php-ext-install pdo pdo_mysql mbstring zip exif bcmath gd
+    && rm -rf /var/lib/apt/lists/* \
+    && docker-php-ext-install pdo pdo_mysql zip exif bcmath gd
 
 # Active le mod_rewrite (Laravel en a besoin pour le routing)
 RUN a2enmod rewrite
