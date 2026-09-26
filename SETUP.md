@@ -116,6 +116,25 @@ Une fois les conteneurs démarrés (laissez 5 à 10 secondes à MariaDB pour son
 
 ### Étape 5 : Vérifier le bon fonctionnement
 
+- **Connexion Laravel vers MariaDB** : c'est la vérification la plus utile, elle échoue explicitement si le `.env` est mal renseigné.
+  ```bash
+  docker compose exec backend php artisan db:monitor
+  ```
+  Vous devez lire `mysql` suivi de `OK`. Si la ligne indique `sqlite`, c'est que `DB_CONNECTION` est absent ou mal défini dans `backend/.env` : Laravel est alors sur un fichier SQLite local et non sur MariaDB.
+
+  Le même contrôle est automatisé côté tests :
+  ```bash
+  # Vérifie la configuration de connexion (tourne sur SQLite, ne touche pas MariaDB)
+  docker compose exec backend php artisan test --filter=DatabaseConnectionTest
+
+  # Interroge en plus la vraie base MariaDB
+  docker compose exec -e DB_DATABASE=klap backend php artisan test --filter=DatabaseConnectionTest
+  ```
+  La suite de tests tourne sur SQLite en mémoire (`phpunit.xml` impose `DB_DATABASE=:memory:`), donc le test de connexion réelle se met en *skipped* dans le premier cas et vous indique comment l'exécuter. La seconde commande rétablit le nom de la base et interroge réellement MariaDB.
+
+  > [!NOTE]
+  > `php artisan db:show`, plus détaillée, n'est pas utilisable en l'état : elle se termine sur `The "intl" PHP extension is required` (code de sortie 1), cette extension n'étant pas installée dans l'image backend.
+
 - **Backend (API Laravel)** : Ouvrez [http://localhost:8080](http://localhost:8080) dans votre navigateur. Vous devez voir la page d'accueil Laravel s'afficher avec succès (statut 200 OK).
 - **Base de données (MariaDB)** : Accessible depuis votre machine sur `localhost:3306`.
   - Hôte : `localhost` (ou `127.0.0.1`)
