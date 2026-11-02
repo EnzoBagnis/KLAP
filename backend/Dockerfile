@@ -31,7 +31,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . /var/www/html
 WORKDIR /var/www/html
 
-RUN composer install --no-interaction --optimize-autoloader
+# Pas de composer install ici : docker-compose monte ./backend sur /var/www/html,
+# donc le vendor/ construit dans l'image serait masqué au démarrage.
+# A faire une fois le conteneur lancé :
+#   docker compose exec backend composer install
+ENV COMPOSER_MEMORY_LIMIT=-1
 
 # Droits requis par Laravel pour écrire dans storage/ et bootstrap/cache/
 RUN chown -R www-data:www-data /var/www/html \
