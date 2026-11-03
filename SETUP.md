@@ -1,6 +1,6 @@
 # Setup du projet KLAP avec Docker
 
-Ce guide vous permet d'installer, configurer et lancer l'environnement de développement du projet **KLAP** (Backend Laravel 12, Base de données MariaDB 11, et Frontend React).
+Ce guide vous permet d'installer, configurer et lancer l'environnement de développement du projet **KLAP** (Backend Laravel 12 sous PHP 8.5, Base de données MariaDB 11, et Frontend React).
 
 ---
 
@@ -190,6 +190,18 @@ docker compose exec backend php artisan migrate
 docker compose exec backend composer require nom-du-package
 ```
 
+### Mettre à jour l'environnement après une modification Docker (ex: passage à PHP 8.5)
+Lorsqu'un `Dockerfile` est mis à jour (nouvelle version de PHP, ajout d'extension...), un simple `git pull` ne suffit pas car Docker réutilise l'image déjà existante en local.
+
+Pour appliquer la mise à jour :
+```bash
+# Reconstruit l'image et relance le conteneur backend
+docker compose up -d --build backend
+
+# Vérifier la version active
+docker compose exec backend php -v
+```
+
 ### Réinitialiser complètement la base de données
 Si vous souhaitez repartir d'une base totalement vierge :
 ```bash
@@ -219,3 +231,4 @@ docker compose exec backend php artisan migrate
 | `No application encryption key has been specified` | La variable `APP_KEY` est vide dans le `.env` | Exécutez : `docker compose exec backend php artisan key:generate` |
 | `port is already allocated` (ex: 8080 ou 3306) | Un autre service local utilise déjà ce port (ex: MySQL local, Wamp, XAMPP, un autre Docker) | Arrêtez le service en conflit ou changez le port hôte dans `docker-compose.yml` (ex: `"8081:80"` ou `"3307:3306"`). |
 | Latence / requêtes lentes vers la BDD | Résolution DNS inverse dans MariaDB | Vérifiez la présence de `command: --skip-name-resolve` sous le service `db` dans `docker-compose.yml`. |
+| PHP est toujours en version 8.3 après un `git pull` | L'image Docker locale n'a pas été reconstruite après la modification du Dockerfile | Exécutez `docker compose up -d --build backend` pour forcer le rebuild sous PHP 8.5. |
