@@ -1,0 +1,24 @@
+:root {
+  --color-primary-red: #D92222;
+  --color-primary-red-hover: #b81919;
+  --color-text-main: #111111;
+  --color-text-secondary: #4A4A4A;
+  --color-text-muted: #6B7280;
+  --color-text-light: #9CA3AF;
+  
+  --color-bg-page: #FFFFFF;
+  --color-bg-card: #FFFFFF;
+  --color-bg-empty-card: #E8E8E8;
+  --color-bg-input: #FFFFFF;
+  
+  --color-border: #E5E7EB;
+  --color-border-strong: #111111;
+  --color-border-input: #D1D5DB;
+  
+  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  
+  --radius-sm: 0px;
+  --radius-md: 2px;
+  --radius-lg: 4px;
+}
