@@ -1,0 +1,285 @@
+/**
+ * @file LayoutStyles.css
+ * @description Feuilles de style pour la structure de page (Shell) et le Footer KLAP.
+ * Inspiré du site officiel de KLAP Maison pour la danse avec une esthétique minimaliste suisse.
+ * 100% sémantique — STRICTEMENT AUCUNE BALISE <div>.
+ */
+
+/* ==========================================================================
+   Conteneur global de page (Sticky Footer)
+   ========================================================================== */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-bg-page);
+}
+
+.app-shell > main {
+  flex: 1 0 auto;
+}
+
+.app-main-content {
+  flex: 1 0 auto;
+  min-height: 40vh;
+}
+
+/* ==========================================================================
+   Composant Footer KLAP
+   ========================================================================== */
+.klap-footer {
+  width: 100%;
+  background-color: #ffffff;
+  border-top: 1px solid var(--color-border);
+  margin-top: auto;
+  font-family: var(--font-main);
+  color: var(--color-text-main);
+}
+
+/* --------------------------------------------------------------------------
+   Bandeau supérieur : Liens rapides & Réseaux sociaux (style officiel KLAP)
+   -------------------------------------------------------------------------- */
+.footer-top-bar {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.footer-top-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.footer-quick-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-quick-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: color 0.15s ease;
+}
+
+.footer-quick-link:hover {
+  color: var(--color-primary-red);
+  text-decoration: underline;
+}
+
+.footer-quick-separator {
+  color: var(--color-text-light);
+  user-select: none;
+}
+
+/* Réseaux sociaux : "Rejoignez-nous sur Facebook X Instagram Linkedin" */
+.footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.socials-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.socials-list {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.social-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.social-link:hover {
+  color: var(--color-primary-red);
+  text-decoration-color: var(--color-primary-red);
+}
+
+/* --------------------------------------------------------------------------
+   Corps intermédiaire : Marque KLAP, Navigation, Ressources
+   -------------------------------------------------------------------------- */
+.footer-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 48px 40px 48px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+/* Marque KLAP épurée (uniquement le mot KLAP avec point rouge) */
+.footer-brand-logo {
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #111111;
+  line-height: 1;
+}
+
+.footer-brand-logo .brand-dot {
+  color: var(--color-primary-red);
+}
+
+/* Titres de colonnes */
+.footer-col-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 18px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Listes de liens de navigation */
+.footer-links-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-link {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  transition: color 0.15s ease, transform 0.15s ease;
+  display: inline-block;
+}
+
+.footer-link:hover {
+  color: var(--color-primary-red);
+  transform: translateX(3px);
+}
+
+/* Séparateur horizontal propre avant le bandeau inférieur */
+.footer-divider {
+  border: none;
+  height: 1px;
+  background-color: var(--color-border);
+  width: 100%;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Ligne inférieure : Liens légaux & copyright (identique à l'image KLAP)
+   -------------------------------------------------------------------------- */
+.footer-bottom {
+  background-color: #FFFFFF;
+}
+
+.footer-bottom-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 48px 28px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.footer-legal-links {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.footer-legal-link {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  transition: color 0.15s ease;
+}
+
+.footer-legal-link:hover {
+  color: var(--color-primary-red);
+}
+
+.footer-copyright {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.footer-copyright strong {
+  color: var(--color-text-main);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+@media (max-width: 900px) {
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+  }
+  
+  .footer-col-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .preview-main-content {
+    padding: 48px 24px;
+  }
+  
+  .footer-top-inner,
+  .footer-main,
+  .footer-bottom-inner {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .footer-top-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .footer-socials {
+    width: 100%;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .footer-bottom-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .footer-legal-links {
+    gap: 14px;
+  }
+}
