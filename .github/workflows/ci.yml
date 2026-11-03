@@ -86,3 +86,35 @@ jobs:
 
       - name: Audit des dépendances
         run: composer audit --no-interaction
+
+  frontend:
+    name: Frontend React
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Même version majeure que l'image Docker du frontend.
+      - name: Installer Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Même logique que composer audit côté backend : une faille publiée bloque la CI.
+      - name: Audit des dépendances
+        run: npm audit

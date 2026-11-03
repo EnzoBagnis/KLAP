@@ -92,7 +92,7 @@ docker compose up -d --build db backend
 *(L'option `-d` lance les conteneurs en tâche de fond pour libérer votre terminal).*
 
 > [!NOTE]
-> Tant que le code de l'application frontend React est en cours de structuration, lancez uniquement `db` et `backend`. Une fois le frontend prêt, `docker compose up -d --build` démarrera l'ensemble des 3 services.
+> Le frontend React se construit aussi : `docker compose up -d --build` démarre les trois services, et l'application est servie sur http://localhost:3000. Pour développer avec rechargement à chaud, lancer plutôt `npm install` puis `npm run dev` dans `frontend/` (Node 22.12 ou plus).
 
 ---
 
