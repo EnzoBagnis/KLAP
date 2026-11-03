@@ -77,6 +77,13 @@ cp .env backend/.env
 Copy-Item .env backend\.env -Force
 ```
 
+> [!IMPORTANT]
+> Cette duplication n'est pas optionnelle : `backend/.env` doit être **complet**, `APP_KEY` comprise. Le conteneur backend ne reçoit plus aucune variable depuis le `.env` de la racine ; la seule chose qui lui est passée est `DB_HOST=db`. Tout le reste (`APP_KEY`, `DB_CONNECTION`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `SESSION_DRIVER`, `CACHE_STORE`…) est lu par Laravel dans `backend/.env`, monté avec le volume `./backend:/var/www/html`.
+>
+> Le `.env` de la racine reste nécessaire : Docker Compose s'en sert pour les mots de passe du service `db` (`${DB_ROOT_PASSWORD}`, `${DB_PASSWORD}`…). Les deux fichiers doivent donc rester cohérents.
+
+C'est ce découpage qui garantit que **la suite de tests tourne sur SQLite en mémoire et ne touche jamais à votre base de développement**. Le bloc `<php>` de `phpunit.xml` (`DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:`, `SESSION_DRIVER=array`, `CACHE_STORE=array`) l'emporte sur un *fichier* `.env`, mais jamais sur une vraie variable d'environnement du conteneur. Si l'on réinjectait le `.env` dans `environment:` ou via `env_file:` dans `docker-compose.yml`, `php artisan test` repasserait sur MariaDB et `RefreshDatabase` viderait la base.
+
 > [!WARNING]
 > Ne commitez jamais votre fichier `.env` sur Git (il est déjà listé dans `.gitignore`).
 
