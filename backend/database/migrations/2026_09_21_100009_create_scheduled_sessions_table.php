@@ -24,6 +24,7 @@ return new class extends Migration
                 'complementary_workshop', 'performance', 'ongoing_project', 'other',
             ]);
             $table->string('session_type_detail', 100)->nullable();  // obligatoire si other
+            $table->boolean('is_transversal')->default(false);        // séance transversale commune à tous les groupes
             $table->enum('status', ['planned', 'done', 'cancelled'])->default('planned');
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();

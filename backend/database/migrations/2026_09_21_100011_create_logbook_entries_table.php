@@ -17,24 +17,43 @@ return new class extends Migration
             $table->foreignId('author_id')->constrained('users');
             $table->enum('status', ['draft', 'submitted', 'locked'])->default('draft')->index();
 
-            // P2
-            $table->string('objectives', 400)->nullable();
-            // P3
-            $table->boolean('adjustment_done')->nullable();          // fait / non fait
-            $table->string('adjustment_detail', 500)->nullable();
-            $table->string('highlights', 200)->nullable();           // temps forts ("rien" accepté)
-            $table->string('tools_resources', 200)->nullable();
-            // P5
-            $table->string('learnings', 200)->nullable();            // les acquis
-            $table->string('artist_review', 200)->nullable();
-            // P6
-            $table->string('next_steps', 500)->nullable();
-            $table->string('dropped_leads', 500)->nullable();        // pistes à abandonner
-            $table->boolean('keep_in_class')->default(false);        // maintien en classe avec les profs
-            $table->string('additional_notes', 500)->nullable();
+            // P1 - Généralités
+            $table->unsignedSmallInteger('attendees_count')->nullable(); // Effectif total (max 999)
+            $table->unsignedSmallInteger('attendees_male')->nullable();  // Garçons (obligatoire à la soumission)
+            $table->unsignedSmallInteger('attendees_female')->nullable(); // Filles (obligatoire à la soumission)
+            $table->string('class_or_age', 50)->nullable();             // Classe ou âge (ex: 2nde — 15-16 ans)
 
-            $table->date('edit_deadline')->nullable();               // date séance + 10j, calculée par l'API
+            // P2 - Objectifs
+            $table->string('objectives', 400)->nullable();              // Objectifs péda & artistiques
+            $table->string('competencies', 200)->nullable();            // Compétences en jeu
+            $table->string('progression', 200)->nullable();             // Progression du projet
+
+            // P3 - La séance
+            $table->string('highlights', 200)->nullable();              // Temps forts & anecdotes
+            $table->string('closing', 100)->nullable();                 // Clôture
+            $table->string('feedback', 500)->nullable();                // Retours
+            $table->string('tools_resources', 200)->nullable();         // Outils / ressources externes
+            $table->boolean('adjustment_done')->nullable();             // Fait / non fait
+            $table->string('adjustment_detail', 500)->nullable();       // Pourquoi (obligatoire si fait)
+
+            // P5 - Les artistes
+            $table->string('what_works', 200)->nullable();              // Ce qui fonctionne
+            $table->string('learnings', 200)->nullable();               // Les acquis
+            $table->string('to_watch', 200)->nullable();                // À surveiller
+            $table->string('to_improve', 200)->nullable();              // À améliorer
+            $table->string('additional_notes', 1000)->nullable();       // Notes complémentaires (1000 car max)
+
+            // P6 - La suite
+            $table->string('next_steps', 500)->nullable();              // À reprendre
+            $table->boolean('keep_in_class')->default(false);           // Maintien en classe avec équipe enseignante
+            $table->string('dropped_leads', 500)->nullable();           // Pistes à abandonner (pourquoi ?)
+            $table->string('participant_wishes', 500)->nullable();      // Idées et envies exprimées par les participants
+
+            // Verrouillage J+10 & Demande de déverrouillage
+            $table->date('edit_deadline')->nullable();                  // Date séance + 10j, calculée par l'API
             $table->timestamp('submitted_at')->nullable();
+            $table->text('unlock_reason')->nullable();                  // Motif de la demande formulée par l'artiste
+            $table->timestamp('unlock_requested_at')->nullable();
             $table->foreignId('unlocked_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('unlocked_at')->nullable();
             $table->timestamps();

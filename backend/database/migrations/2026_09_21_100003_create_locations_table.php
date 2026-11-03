@@ -13,6 +13,7 @@ return new class extends Migration
         Schema::create('locations', function (Blueprint $table) {
             $table->id();
             $table->string('name', 150);
+            $table->string('structure', 150)->nullable(); // établissement ou structure partenaire
             $table->string('address')->nullable();
             $table->char('postal_code', 5);
             $table->string('city', 100);

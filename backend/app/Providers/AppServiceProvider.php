@@ -2,12 +2,17 @@
 
 namespace App\Providers;
 
+use App\Models\LogbookEntry;
+use App\Models\Project;
+use App\Policies\LogbookEntryPolicy;
+use App\Policies\ProjectPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
+     * Enregistre les services de l'application.
      */
     public function register(): void
     {
@@ -15,10 +20,11 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Bootstrap any application services.
+     * Initialise les politiques d'autorisation et services au démarrage.
      */
     public function boot(): void
     {
-        //
+        Gate::policy(Project::class, ProjectPolicy::class);
+        Gate::policy(LogbookEntry::class, LogbookEntryPolicy::class);
     }
 }
