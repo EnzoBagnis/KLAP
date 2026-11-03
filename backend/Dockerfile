@@ -1,4 +1,4 @@
-FROM php:8.3-apache
+FROM php:8.5-apache
 
 # Extensions nécessaires à Laravel + MySQL
 # mbstring est déjà fournie par l'image php:8.3-apache : la recompiler fait planter gcc
