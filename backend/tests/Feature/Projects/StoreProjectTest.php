@@ -1,0 +1,223 @@
+<?php
+
+namespace Tests\Feature\Projects;
+
+use App\Enums\UserRole;
+use App\Models\Location;
+use App\Models\Project;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\TestCase;
+
+class StoreProjectTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private User $admin;
+
+    private Location $location;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->admin = User::factory()->role(UserRole::Admin)->create();
+        $this->location = Location::factory()->create(['name' => 'Grand studio', 'is_klap' => true]);
+        Sanctum::actingAs($this->admin);
+    }
+
+    /** Payload de l'écran 58 de la maquette. */
+    private function payload(array $overrides = []): array
+    {
+        return array_merge([
+            'name' => 'Arts Danse au Lycée Charles',
+            'project_type' => 'Partenariat lycée',
+            'planned_sessions' => 32,
+            'start_date' => '2026-09-15',
+            'end_date' => '2027-06-19',
+            'default_location_id' => $this->location->id,
+            'organization' => 'Lycée Saint-Charles',
+            'city' => 'Marseille',
+            'postal_code' => '13003',
+            'sub_projects' => [
+                ['name' => 'Seconde 3'],
+                ['name' => 'Seconde 7'],
+                ['name' => 'Première 2'],
+                ['name' => 'Terminale 5'],
+            ],
+        ], $overrides);
+    }
+
+    public function test_cree_le_projet_et_ses_sous_projets(): void
+    {
+        $response = $this->postJson('/api/projects', $this->payload())
+            ->assertCreated()
+            ->assertJsonPath('data.name', 'Arts Danse au Lycée Charles')
+            ->assertJsonPath('data.project_type', 'Partenariat lycée')
+            ->assertJsonPath('data.planned_sessions', 32)
+            ->assertJsonPath('data.status', 'active')
+            ->assertJsonPath('data.default_location.name', 'Grand studio')
+            ->assertJsonCount(4, 'data.sub_projects');
+
+        $project = Project::findOrFail($response->json('data.id'));
+        $this->assertSame($this->admin->id, $project->created_by);
+        $this->assertSame(4, $project->subProjects()->count());
+    }
+
+    public function test_recopie_structure_ville_et_code_postal_dans_les_sous_projets(): void
+    {
+        $this->postJson('/api/projects', $this->payload([
+            'sub_projects' => [
+                ['name' => 'Seconde 3'],
+                ['name' => 'Groupe Izzo', 'organization' => 'Collège Izzo', 'postal_code' => '13002'],
+            ],
+        ]))->assertCreated();
+
+        $this->assertDatabaseHas('sub_projects', [
+            'name' => 'Seconde 3', 'organization' => 'Lycée Saint-Charles',
+            'city' => 'Marseille', 'postal_code' => '13003',
+        ]);
+        // Les valeurs propres au sous-projet l'emportent sur celles du projet.
+        $this->assertDatabaseHas('sub_projects', [
+            'name' => 'Groupe Izzo', 'organization' => 'Collège Izzo',
+            'city' => 'Marseille', 'postal_code' => '13002',
+        ]);
+    }
+
+    public function test_cree_un_sous_projet_par_defaut_quand_aucun_n_est_fourni(): void
+    {
+        $payload = $this->payload(['name' => 'Étincelles']);
+        unset($payload['sub_projects']);
+
+        $this->postJson('/api/projects', $payload)
+            ->assertCreated()
+            ->assertJsonCount(1, 'data.sub_projects')
+            ->assertJsonPath('data.sub_projects.0.name', 'Étincelles')
+            ->assertJsonPath('data.sub_projects.0.organization', 'Lycée Saint-Charles');
+    }
+
+    public function test_une_liste_vide_donne_aussi_un_sous_projet_par_defaut(): void
+    {
+        $this->postJson('/api/projects', $this->payload(['sub_projects' => []]))
+            ->assertCreated()
+            ->assertJsonCount(1, 'data.sub_projects');
+    }
+
+    public function test_accepte_le_minimum_nom_et_lieu(): void
+    {
+        $this->postJson('/api/projects', [
+            'name' => 'AIMER',
+            'default_location_id' => $this->location->id,
+        ])->assertCreated()->assertJsonPath('data.status', 'active');
+    }
+
+    public function test_accepte_le_statut_brouillon(): void
+    {
+        $this->postJson('/api/projects', $this->payload(['status' => 'draft']))
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'draft');
+    }
+
+    public function test_ignore_created_by_envoye_dans_la_requete(): void
+    {
+        $other = User::factory()->create();
+
+        $id = $this->postJson('/api/projects', $this->payload(['created_by' => $other->id]))
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->assertSame($this->admin->id, Project::findOrFail($id)->created_by);
+    }
+
+    public static function invalidPayloads(): array
+    {
+        return [
+            'nom absent' => [['name' => null], 'name'],
+            'nom trop long' => [['name' => str_repeat('a', 151)], 'name'],
+            'lieu absent' => [['default_location_id' => null], 'default_location_id'],
+            'lieu inexistant' => [['default_location_id' => 999999], 'default_location_id'],
+            'fin avant début' => [['start_date' => '2027-06-19', 'end_date' => '2026-09-15'], 'end_date'],
+            'statut archivé' => [['status' => 'archived'], 'status'],
+            'statut terminé' => [['status' => 'finished'], 'status'],
+            'zéro séance prévue' => [['planned_sessions' => 0], 'planned_sessions'],
+            'code postal du projet invalide' => [['postal_code' => '1300'], 'postal_code'],
+            'code postal de sous-projet invalide' => [
+                ['sub_projects' => [['name' => 'Seconde 3', 'postal_code' => '13 003']]],
+                'sub_projects.0.postal_code',
+            ],
+            'sous-projet sans nom' => [['sub_projects' => [['class_group' => 'Seconde']]], 'sub_projects.0.name'],
+            'sous-projets en double' => [
+                ['sub_projects' => [['name' => 'Seconde 3'], ['name' => 'seconde 3']]],
+                'sub_projects.0.name',
+            ],
+            'type trop long' => [['project_type' => str_repeat('a', 101)], 'project_type'],
+            'séances non entières' => [['planned_sessions' => 'abc'], 'planned_sessions'],
+            'séances hors limite' => [['planned_sessions' => 65536], 'planned_sessions'],
+            'début invalide' => [['start_date' => '31/02/2026'], 'start_date'],
+            'statut nul' => [['status' => null], 'status'],
+            'lieu non entier' => [['default_location_id' => 'grand-studio'], 'default_location_id'],
+            'structure trop longue' => [['organization' => str_repeat('a', 151)], 'organization'],
+            'ville trop longue' => [['city' => str_repeat('a', 101)], 'city'],
+            'nom de sous-projet trop long' => [
+                ['sub_projects' => [['name' => str_repeat('a', 151)]]],
+                'sub_projects.0.name',
+            ],
+            'classe trop longue' => [
+                ['sub_projects' => [['name' => 'Seconde 3', 'class_group' => str_repeat('a', 101)]]],
+                'sub_projects.0.class_group',
+            ],
+            'tranche d’âge trop longue' => [
+                ['sub_projects' => [['name' => 'Seconde 3', 'age_range' => str_repeat('a', 31)]]],
+                'sub_projects.0.age_range',
+            ],
+            'effectif nul' => [
+                ['sub_projects' => [['name' => 'Seconde 3', 'expected_headcount' => 0]]],
+                'sub_projects.0.expected_headcount',
+            ],
+        ];
+    }
+
+    #[DataProvider('invalidPayloads')]
+    public function test_refuse_une_saisie_invalide_sans_rien_creer(array $overrides, string $field): void
+    {
+        $this->postJson('/api/projects', $this->payload($overrides))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors($field);
+
+        $this->assertSame(0, Project::count());
+        $this->assertDatabaseCount('sub_projects', 0);
+    }
+
+    public function test_refuse_un_lieu_desactive(): void
+    {
+        $inactive = Location::factory()->inactive()->create();
+
+        $this->postJson('/api/projects', $this->payload(['default_location_id' => $inactive->id]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('default_location_id');
+
+        $this->assertSame(0, Project::count());
+        $this->assertDatabaseCount('sub_projects', 0);
+    }
+
+    public function test_accepte_une_fin_le_jour_du_debut(): void
+    {
+        $this->postJson('/api/projects', $this->payload([
+            'start_date' => '2026-09-15',
+            'end_date' => '2026-09-15',
+        ]))->assertCreated();
+    }
+
+    public function test_les_messages_d_erreur_sont_en_francais(): void
+    {
+        $this->postJson('/api/projects', $this->payload([
+            'name' => null,
+            'start_date' => '2027-06-19',
+            'end_date' => '2026-09-15',
+        ]))
+            ->assertJsonPath('errors.name.0', 'Le champ nom du projet est obligatoire.')
+            ->assertJsonPath('errors.end_date.0', 'La date de fin doit être postérieure ou égale à la date de début.');
+    }
+}
