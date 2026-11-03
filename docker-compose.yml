@@ -18,8 +18,10 @@ services:
     restart: unless-stopped
     depends_on:
       - db
-    env_file:
-      - .env
+    # Pas d'env_file ici : Laravel lit backend/.env, monté avec le volume
+    # ci-dessous. Injecter le fichier en variables d'environnement du conteneur
+    # casserait le bloc <php> de phpunit.xml, qui ne peut pas remplacer une
+    # vraie variable de processus : les tests tourneraient sur MariaDB.
     environment:
       DB_HOST: db
     ports:
