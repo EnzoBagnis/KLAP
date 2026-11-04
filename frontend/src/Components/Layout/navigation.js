@@ -1,4 +1,5 @@
 import { ROLES } from '../../Context/roles.js';
+import ProjectListPage from '../../Pages/Projects/ProjectListPage.jsx';
 
 const { ADMIN, SUPER_USER, CONTRIBUTOR } = ROLES;
 const ALL_ROLES = [ADMIN, SUPER_USER, CONTRIBUTOR];
@@ -22,7 +23,7 @@ const ALL_ROLES = [ADMIN, SUPER_USER, CONTRIBUTOR];
  */
 export const NAV_ITEMS = Object.freeze([
   { path: '/', label: 'Tableau de bord', roles: ALL_ROLES, end: true },
-  { path: '/projets', label: 'Projets', roles: ALL_ROLES },
+  { path: '/projets', label: 'Projets', roles: ALL_ROLES, page: ProjectListPage },
   { path: '/planning', label: 'Planning', roles: ALL_ROLES },
   { path: '/statistiques', label: 'Statistiques', roles: [ADMIN, SUPER_USER] },
   { path: '/pre-bilan', label: 'Pré-bilan', roles: [ADMIN, SUPER_USER] },
