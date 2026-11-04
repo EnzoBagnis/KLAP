@@ -27,6 +27,18 @@ class ReferenceDataSeeder extends Seeder
             ]);
         }
 
+        // Types de départ : ceux de la maquette et du cahier des charges.
+        // L'administratrice peut en ajouter, les renommer ou les désactiver.
+        foreach ([
+            [1, 'Partenariat lycée'],
+            [2, 'Parcours collège'],
+            [3, 'Projet de création scolaire'],
+            [4, 'Projet annuel école'],
+            [5, 'Projet de création en territoire'],
+        ] as [$id, $name]) {
+            DB::table('project_types')->insert(['id' => $id, 'name' => $name, 'created_at' => $now, 'updated_at' => $now]);
+        }
+
         DB::table('funders')->insert([
             ['id' => 1, 'name' => "DRAC Provence-Alpes-Côte d'Azur",  'type' => 'state',           'created_at' => $now, 'updated_at' => $now],
             ['id' => 2, 'name' => 'Ville de Marseille',               'type' => 'local_authority', 'created_at' => $now, 'updated_at' => $now],
