@@ -81,8 +81,11 @@ jobs:
           DB_DATABASE: ':memory:'
         run: php artisan test
 
+      # Le groupe mariadb rassemble les tests des contraintes CHECK, ignorées par SQLite.
       - name: Tests contre MariaDB
-        run: php artisan test --filter=DatabaseConnectionTest
+        run: |
+          php artisan test --filter=DatabaseConnectionTest
+          php artisan test --group=mariadb
 
       - name: Audit des dépendances
         run: composer audit --no-interaction

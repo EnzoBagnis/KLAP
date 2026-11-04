@@ -13,18 +13,18 @@ class ProjectSeeder extends Seeder
         $now = now();
 
         $projects = [
-            [1, 'Arts Danse au Lycée Charles', 'Option et spécialité danse, ateliers + visites + spectacles à KLAP', '2026-09-01', '2027-06-30', 'active', 4, null],
-            [2, 'Approche de la création chorégraphique : autour de BRAISES', '4 collèges, parcours autour de la pièce BRAISES', '2026-09-01', '2027-05-31', 'active', 3, null],
-            [3, 'AIMER', null, '2026-09-01', '2027-06-30', 'active', 1, null],
-            [4, 'Classes cousines', '2 classes jumelées sur un même parcours', '2026-10-01', '2027-04-30', 'draft', 2, null],
-            [5, 'Étincelles', 'création en territoire 2026', '2026-09-01', '2026-12-31', 'active', 5, null],
-            [6, 'Projet pilote 2025', "saison dernière, gardé pour l'historique", '2025-01-06', '2025-06-27', 'archived', 2, '2025-07-15 10:00:00'],
+            [1, 'Arts Danse au Lycée Charles', 'Option et spécialité danse, ateliers + visites + spectacles à KLAP', '2026-09-01', '2027-06-30', 'active', 4, null, 1, 50],
+            [2, 'Approche de la création chorégraphique : autour de BRAISES', '4 collèges, parcours autour de la pièce BRAISES', '2026-09-01', '2027-05-31', 'active', 3, null, 2, 32],
+            [3, 'AIMER', null, '2026-09-01', '2027-06-30', 'active', 1, null, 3, 30],
+            [4, 'Classes cousines', '2 classes jumelées sur un même parcours', '2026-10-01', '2027-04-30', 'draft', 2, null, 4, 10],
+            [5, 'Étincelles', 'création en territoire 2026', '2026-09-01', '2026-12-31', 'active', 5, null, 5, 30],
+            [6, 'Projet pilote 2025', "saison dernière, gardé pour l'historique", '2025-01-06', '2025-06-27', 'archived', 2, '2025-07-15 10:00:00', 1, null],
         ];
-        foreach ($projects as [$id, $name, $desc, $start, $end, $status, $location, $archivedAt]) {
+        foreach ($projects as [$id, $name, $desc, $start, $end, $status, $location, $archivedAt, $type, $planned]) {
             DB::table('projects')->insert([
                 'id' => $id, 'name' => $name, 'description' => $desc, 'start_date' => $start, 'end_date' => $end,
                 'status' => $status, 'default_location_id' => $location, 'created_by' => 1,
-                'archived_at' => $archivedAt, 'created_at' => $now, 'updated_at' => $now,
+                'archived_at' => $archivedAt, 'project_type_id' => $type, 'planned_sessions' => $planned, 'created_at' => $now, 'updated_at' => $now,
             ]);
         }
 
@@ -58,7 +58,7 @@ class ProjectSeeder extends Seeder
 
         // intervenants principaux (lead) et ponctuels (occasional)
         $members = [[1, 3, 'lead'], [1, 5, 'occasional'], [2, 4, 'lead'], [2, 5, 'occasional'],
-                    [3, 6, 'lead'], [4, 3, 'lead'], [5, 6, 'lead'], [5, 4, 'occasional'], [6, 7, 'lead']];
+            [3, 6, 'lead'], [4, 3, 'lead'], [5, 6, 'lead'], [5, 4, 'occasional'], [6, 7, 'lead']];
         foreach ($members as [$project, $user, $role]) {
             DB::table('project_user')->insert(['project_id' => $project, 'user_id' => $user, 'member_role' => $role]);
         }
@@ -66,14 +66,14 @@ class ProjectSeeder extends Seeder
         // champ 2 désactivé le 14/09, ses anciennes valeurs restent
         DB::table('custom_fields')->insert([
             ['id' => 1, 'project_id' => 1, 'section' => 'session', 'label' => 'Lien avec le programme de spécialité', 'field_type' => 'text',
-             'options' => null, 'is_required' => false, 'position' => 1, 'is_active' => true,
-             'activated_at' => '2026-09-01 10:00:00', 'deactivated_at' => null, 'created_at' => $now, 'updated_at' => $now],
+                'options' => null, 'is_required' => false, 'position' => 1, 'is_active' => true,
+                'activated_at' => '2026-09-01 10:00:00', 'deactivated_at' => null, 'created_at' => $now, 'updated_at' => $now],
             ['id' => 2, 'project_id' => 1, 'section' => 'participants', 'label' => 'Tenue adaptée', 'field_type' => 'checkbox',
-             'options' => null, 'is_required' => false, 'position' => 2, 'is_active' => false,
-             'activated_at' => '2026-09-01 10:00:00', 'deactivated_at' => '2026-09-14 16:00:00', 'created_at' => $now, 'updated_at' => $now],
+                'options' => null, 'is_required' => false, 'position' => 2, 'is_active' => false,
+                'activated_at' => '2026-09-01 10:00:00', 'deactivated_at' => '2026-09-14 16:00:00', 'created_at' => $now, 'updated_at' => $now],
             ['id' => 3, 'project_id' => 2, 'section' => 'participants', 'label' => "Niveau d'attention", 'field_type' => 'scale',
-             'options' => json_encode(['min' => 1, 'max' => 5]), 'is_required' => false, 'position' => 1, 'is_active' => true,
-             'activated_at' => '2026-09-01 10:00:00', 'deactivated_at' => null, 'created_at' => $now, 'updated_at' => $now],
+                'options' => json_encode(['min' => 1, 'max' => 5]), 'is_required' => false, 'position' => 1, 'is_active' => true,
+                'activated_at' => '2026-09-01 10:00:00', 'deactivated_at' => null, 'created_at' => $now, 'updated_at' => $now],
         ]);
     }
 }
