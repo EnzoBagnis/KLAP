@@ -27,6 +27,16 @@ class ProjectResource extends JsonResource
             ]),
             'sub_projects_count' => $this->whenCounted('subProjects'),
             'sub_projects' => SubProjectResource::collection($this->whenLoaded('subProjects')),
+            'team' => $this->whenLoaded('members', fn () => $this->members->map(fn ($member) => [
+                'id' => $member->id,
+                'name' => $member->name,
+                'member_role' => $member->pivot->member_role,
+            ])->values()),
+            'funders' => $this->whenLoaded('funders', fn () => $this->funders->map(fn ($funder) => [
+                'id' => $funder->id,
+                'name' => $funder->name,
+                'type' => $funder->type,
+            ])->values()),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

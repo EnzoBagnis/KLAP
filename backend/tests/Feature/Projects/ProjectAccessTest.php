@@ -37,6 +37,7 @@ class ProjectAccessTest extends TestCase
             $uri === '/api/projects' && $method === 'postJson' => $this->postJson($uri, [
                 'name' => 'Projet test',
                 'default_location_id' => Location::factory()->create()->id,
+                'principal_user_id' => User::factory()->role(UserRole::Contributor)->create()->id,
             ]),
             $method === 'postJson' => $this->postJson($uri, ['name' => 'Type test']),
             $method === 'patchJson' => $this->patchJson($uri, ['name' => 'Type renommé']),
