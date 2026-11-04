@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,6 +36,25 @@ class Project extends Model
             'planned_sessions' => 'integer',
             'archived_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Projets qu'un utilisateur peut consulter (RG02) : tous pour l'administratrice et la
+     * super-utilisatrice, seulement ceux où il est affecté (principal ou ponctuel) pour un
+     * intervenant. Le statut n'entre pas en compte : un brouillon affecté reste visible.
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->hasRole(UserRole::Admin, UserRole::SuperUser)) {
+            return $query;
+        }
+
+        if ($user->hasRole(UserRole::Contributor)) {
+            return $query->whereHas('members', fn (Builder $members) => $members->whereKey($user->id));
+        }
+
+        // Rôle inconnu (ajouté plus tard à l'énumération) : rien, par défaut.
+        return $query->whereRaw('1 = 0');
     }
 
     public function subProjects(): HasMany
