@@ -1,23 +1,35 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { AuthProvider, MOCK_USERS } from './Context/AuthContext.jsx';
 import AppRouter from './Router/AppRouter.jsx';
+import { NAV_ITEMS } from './Components/Layout/navigation.js';
+
+function renderAt(path) {
+  return render(
+    <AuthProvider initialUser={MOCK_USERS.admin}>
+      <MemoryRouter initialEntries={[path]}>
+        <AppRouter />
+      </MemoryRouter>
+    </AuthProvider>,
+  );
+}
 
 describe('AppRouter', () => {
-  it("affiche l'accueil sur /", () => {
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <AppRouter />
-      </MemoryRouter>,
-    );
-    expect(screen.getByRole('heading', { name: 'KLAP · Carnet de bord' })).toBeInTheDocument();
+  it('affiche le tableau de bord sur /', () => {
+    renderAt('/');
+    expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument();
   });
 
+  it.each(NAV_ITEMS.map((item) => [item.path, item.label]))(
+    'a une route pour l’entrée du menu %s',
+    (path, label) => {
+      renderAt(path);
+      expect(screen.getByRole('heading', { name: label })).toBeInTheDocument();
+    },
+  );
+
   it('affiche une page introuvable sur une route inconnue', () => {
-    render(
-      <MemoryRouter initialEntries={['/nimporte-quoi']}>
-        <AppRouter />
-      </MemoryRouter>,
-    );
+    renderAt('/nimporte-quoi');
     expect(screen.getByRole('heading', { name: 'Page introuvable' })).toBeInTheDocument();
   });
 });
