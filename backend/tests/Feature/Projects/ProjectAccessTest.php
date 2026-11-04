@@ -22,17 +22,26 @@ class ProjectAccessTest extends TestCase
             'liste' => ['getJson', '/api/projects'],
             'détail' => ['getJson', '/api/projects/{id}'],
             'création' => ['postJson', '/api/projects'],
+            'types : liste' => ['getJson', '/api/project-types'],
+            'types : création' => ['postJson', '/api/project-types'],
+            'types : modification' => ['patchJson', '/api/project-types/{type}'],
         ];
     }
 
     private function callRoute(string $method, string $uri)
     {
         $project = Project::factory()->create();
-        $uri = str_replace('{id}', (string) $project->id, $uri);
+        $uri = str_replace(['{id}', '{type}'], [(string) $project->id, (string) $project->project_type_id], $uri);
 
-        return $method === 'postJson'
-            ? $this->postJson($uri, ['name' => 'Projet test', 'default_location_id' => Location::factory()->create()->id])
-            : $this->getJson($uri);
+        return match (true) {
+            $uri === '/api/projects' && $method === 'postJson' => $this->postJson($uri, [
+                'name' => 'Projet test',
+                'default_location_id' => Location::factory()->create()->id,
+            ]),
+            $method === 'postJson' => $this->postJson($uri, ['name' => 'Type test']),
+            $method === 'patchJson' => $this->patchJson($uri, ['name' => 'Type renommé']),
+            default => $this->getJson($uri),
+        };
     }
 
     #[DataProvider('routes')]

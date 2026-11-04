@@ -17,7 +17,7 @@ class Project extends Model
     protected $fillable = [
         'name',
         'description',
-        'project_type',
+        'project_type_id',
         'planned_sessions',
         'start_date',
         'end_date',
@@ -38,6 +38,11 @@ class Project extends Model
     public function subProjects(): HasMany
     {
         return $this->hasMany(SubProject::class);
+    }
+
+    public function projectType(): BelongsTo
+    {
+        return $this->belongsTo(ProjectType::class);
     }
 
     public function defaultLocation(): BelongsTo
