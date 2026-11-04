@@ -34,6 +34,17 @@ class StoreProjectRequest extends FormRequest
                 Rule::exists('locations', 'id')->where('is_active', true),
             ],
 
+            // Intervenant·e principal·e : un compte intervenant actif. Les ponctuel·le·s ne se
+            // saisissent pas ici, ils s'ajoutent en enregistrant une fiche (cliente, 16/09/2026).
+            'principal_user_id' => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->where('role', 'contributor')->where('is_active', true),
+            ],
+            // Financeurs destinataires : aucun, un ou plusieurs.
+            'funder_ids' => ['nullable', 'array'],
+            'funder_ids.*' => ['integer', 'distinct', 'exists:funders,id'],
+
             // Saisis au niveau du projet sur l'écran 58, portés en base par chaque
             // sous-projet : ils servent de valeurs par défaut aux sous-projets.
             'organization' => ['nullable', 'string', 'max:150'],
@@ -64,7 +75,10 @@ class StoreProjectRequest extends FormRequest
             'min.numeric' => 'Le champ :attribute doit valoir au moins :min.',
             'max.numeric' => 'Le champ :attribute ne doit pas dépasser :max.',
             'regex' => 'Le champ :attribute doit contenir 5 chiffres.',
-            'distinct' => 'Deux sous-projets portent le même nom.',
+            'sub_projects.*.name.distinct' => 'Deux sous-projets portent le même nom.',
+            'funder_ids.*.distinct' => 'Un même financeur est choisi deux fois.',
+            'funder_ids.*.exists' => 'Le financeur choisi n’existe pas.',
+            'principal_user_id.exists' => 'L’intervenant·e principal·e doit être un compte intervenant actif.',
             'exists' => 'Le :attribute choisi n’existe pas ou n’est plus actif.',
             'in' => 'Le :attribute choisi n’est pas valide à la création.',
             'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
@@ -82,6 +96,9 @@ class StoreProjectRequest extends FormRequest
             'end_date' => 'fin',
             'status' => 'statut',
             'default_location_id' => 'lieu',
+            'principal_user_id' => 'intervenant·e principal·e',
+            'funder_ids' => 'financeurs',
+            'funder_ids.*' => 'financeur',
             'organization' => 'structure partenaire',
             'city' => 'ville',
             'postal_code' => 'code postal',

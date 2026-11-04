@@ -3,6 +3,7 @@
 namespace Tests\Feature\Projects;
 
 use App\Enums\UserRole;
+use App\Models\Funder;
 use App\Models\Project;
 use App\Models\SubProject;
 use App\Models\User;
@@ -69,6 +70,30 @@ class ReadProjectTest extends TestCase
             ->assertJsonPath('data.default_location.id', $project->default_location_id)
             ->assertJsonPath('data.project_type.id', $project->project_type_id)
             ->assertJsonPath('data.sub_projects.0.name', 'CM1 Peyssonnel');
+    }
+
+    public function test_le_detail_renvoie_l_equipe_et_les_financeurs_mais_pas_la_liste(): void
+    {
+        $project = Project::factory()->create();
+        // Le ponctuel est inséré avant et son nom précède : le principal doit quand même sortir en premier.
+        $anna = User::factory()->role(UserRole::Contributor)->create(['name' => 'Anna Bellini']);
+        $lea = User::factory()->role(UserRole::Contributor)->create(['name' => 'Léa Fournier']);
+        $project->members()->attach($anna->id, ['member_role' => 'occasional']);
+        $project->members()->attach($lea->id, ['member_role' => 'lead']);
+        $project->funders()->attach(Funder::factory()->create(['name' => 'DRAC', 'type' => 'state'])->id);
+
+        $this->getJson("/api/projects/{$project->id}")
+            ->assertOk()
+            ->assertJsonCount(2, 'data.team')
+            ->assertJsonPath('data.team.0.name', 'Léa Fournier')
+            ->assertJsonPath('data.team.0.member_role', 'lead')
+            ->assertJsonPath('data.team.1.member_role', 'occasional')
+            ->assertJsonPath('data.funders.0', ['id' => $project->funders()->first()->id, 'name' => 'DRAC', 'type' => 'state']);
+
+        $this->getJson('/api/projects')
+            ->assertOk()
+            ->assertJsonMissingPath('data.0.team')
+            ->assertJsonMissingPath('data.0.funders');
     }
 
     public function test_un_projet_inexistant_renvoie_404(): void
