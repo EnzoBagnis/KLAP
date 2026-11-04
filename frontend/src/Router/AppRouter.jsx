@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
 import AuthLayout from '../Layouts/AuthLayout.jsx';
 import MainLayout from '../Layouts/MainLayout.jsx';
+import ProjectDetailsPage from '../Pages/Projects/ProjectDetailsPage.jsx';
 import LoginPage from '../Pages/Auth/LoginPage.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import { NAV_ITEMS } from '../Components/Layout/navigation.js';
@@ -30,6 +31,8 @@ export default function AppRouter() {
               }
             />
           ))}
+          {/* Détail d'un projet : hors menu, « Projets » reste actif. L'API filtre par rôle. */}
+          <Route path="/projets/:id" element={<ProjectDetailsPage />} />
           <Route path="/notifications" element={<Placeholder title="Notifications" />} />
           <Route path="/profil" element={<Placeholder title="Profil" />} />
         </Route>
