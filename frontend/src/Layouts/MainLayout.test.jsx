@@ -1,7 +1,8 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { AuthProvider, MOCK_USERS } from '../Context/AuthContext.jsx';
+import { AuthProvider } from '../Context/AuthContext.jsx';
+import { MOCK_USERS } from '../testUtils.js';
 import AppRouter from '../Router/AppRouter.jsx';
 import NotificationBell from '../Components/Layout/NotificationBell.jsx';
 import { initials } from '../Components/Layout/Sidebar.jsx';

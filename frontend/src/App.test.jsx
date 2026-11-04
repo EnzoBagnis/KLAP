@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { AuthProvider, MOCK_USERS } from './Context/AuthContext.jsx';
+import { AuthProvider } from './Context/AuthContext.jsx';
+import { MOCK_USERS } from './testUtils.js';
 import AppRouter from './Router/AppRouter.jsx';
 import { NAV_ITEMS } from './Components/Layout/navigation.js';
 
