@@ -15,3 +15,15 @@ export async function getProject(id) {
   const response = await apiRequest(`/projects/${encodeURIComponent(id)}`, { token: getToken() });
   return response.data;
 }
+
+/** POST /projects : crée un projet (administratrice) et renvoie le projet créé. */
+export async function createProject(payload) {
+  const response = await apiRequest('/projects', { method: 'POST', body: payload, token: getToken() });
+  return response.data;
+}
+
+/** GET /project-types : types de projet, actifs d'abord. */
+export async function listProjectTypes() {
+  const response = await apiRequest('/project-types', { token: getToken() });
+  return response.data;
+}
