@@ -12,7 +12,8 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Création et lecture des projets, réservées à l'administratrice (RG02, #55).
+ * Création des projets réservée à l'administratrice ; lecture ouverte à la
+ * super-utilisatrice (tout) et aux intervenants (leurs projets), selon RG02 (#55, #89).
  * La modification et l'archivage relèvent d'autres issues.
  */
 class ProjectController extends Controller
@@ -22,11 +23,13 @@ class ProjectController extends Controller
 
     /**
      * Les projets archivés sont masqués par défaut : pour l'administratrice, archiver
-     * revient à supprimer. `?include_archived=1` les réaffiche.
+     * revient à supprimer. `?include_archived=1` les réaffiche. Un intervenant ne voit
+     * que les projets où il est affecté (RG02).
      */
     public function index(Request $request): AnonymousResourceCollection
     {
         $projects = Project::query()
+            ->visibleTo($request->user())
             ->when(! $request->boolean('include_archived'), fn ($query) => $query->where('status', '!=', 'archived'))
             ->with(['defaultLocation', 'projectType'])
             ->withCount('subProjects')
@@ -37,9 +40,22 @@ class ProjectController extends Controller
         return ProjectResource::collection($projects);
     }
 
-    public function show(Project $project): ProjectResource
+    /**
+     * Le projet est cherché parmi ceux que l'utilisateur peut voir, sans liaison de route :
+     * un projet non affecté et un projet inexistant donnent exactement la même 404, qui ne
+     * révèle pas qu'un projet existe (#89).
+     */
+    public function show(Request $request, string $project): ProjectResource
     {
-        return new ProjectResource($project->load(self::DETAIL_RELATIONS));
+        $found = Project::query()
+            ->visibleTo($request->user())
+            ->with(self::DETAIL_RELATIONS)
+            ->whereKey($project)
+            ->first();
+
+        abort_if($found === null, 404);
+
+        return new ProjectResource($found);
     }
 
     public function store(StoreProjectRequest $request): JsonResponse
