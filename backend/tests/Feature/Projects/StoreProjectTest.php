@@ -3,6 +3,7 @@
 namespace Tests\Feature\Projects;
 
 use App\Enums\UserRole;
+use App\Models\Funder;
 use App\Models\Location;
 use App\Models\Project;
 use App\Models\ProjectType;
@@ -22,6 +23,8 @@ class StoreProjectTest extends TestCase
 
     private ProjectType $type;
 
+    private User $lea;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -29,6 +32,7 @@ class StoreProjectTest extends TestCase
         $this->admin = User::factory()->role(UserRole::Admin)->create();
         $this->location = Location::factory()->create(['name' => 'Grand studio', 'is_klap' => true]);
         $this->type = ProjectType::factory()->create(['name' => 'Partenariat lycée']);
+        $this->lea = User::factory()->role(UserRole::Contributor)->create(['name' => 'Léa Fournier']);
         Sanctum::actingAs($this->admin);
     }
 
@@ -42,6 +46,7 @@ class StoreProjectTest extends TestCase
             'start_date' => '2026-09-15',
             'end_date' => '2027-06-19',
             'default_location_id' => $this->location->id,
+            'principal_user_id' => $this->lea->id,
             'organization' => 'Lycée Saint-Charles',
             'city' => 'Marseille',
             'postal_code' => '13003',
@@ -109,11 +114,12 @@ class StoreProjectTest extends TestCase
             ->assertJsonCount(1, 'data.sub_projects');
     }
 
-    public function test_accepte_le_minimum_nom_et_lieu(): void
+    public function test_accepte_le_minimum_nom_lieu_et_principal(): void
     {
         $this->postJson('/api/projects', [
             'name' => 'AIMER',
             'default_location_id' => $this->location->id,
+            'principal_user_id' => $this->lea->id,
         ])->assertCreated()->assertJsonPath('data.status', 'active');
     }
 
@@ -141,6 +147,12 @@ class StoreProjectTest extends TestCase
             'nom absent' => [['name' => null], 'name'],
             'nom trop long' => [['name' => str_repeat('a', 151)], 'name'],
             'lieu absent' => [['default_location_id' => null], 'default_location_id'],
+            'principal absent' => [['principal_user_id' => null], 'principal_user_id'],
+            'principal inexistant' => [['principal_user_id' => 999999], 'principal_user_id'],
+            'financeurs pas en liste' => [['funder_ids' => 'DRAC'], 'funder_ids'],
+            'financeur inexistant' => [['funder_ids' => [999999]], 'funder_ids.0'],
+            'principal non entier' => [['principal_user_id' => 'abc'], 'principal_user_id'],
+            'financeur non entier' => [['funder_ids' => ['abc']], 'funder_ids.0'],
             'lieu inexistant' => [['default_location_id' => 999999], 'default_location_id'],
             'fin avant début' => [['start_date' => '2027-06-19', 'end_date' => '2026-09-15'], 'end_date'],
             'statut archivé' => [['status' => 'archived'], 'status'],
@@ -228,6 +240,88 @@ class StoreProjectTest extends TestCase
         $this->postJson('/api/projects', $this->payload(['project_type_id' => null]))
             ->assertCreated()
             ->assertJsonPath('data.project_type', null);
+    }
+
+    public function test_affecte_le_principal_et_les_financeurs(): void
+    {
+        [$drac, $ville] = Funder::factory()->count(2)->create();
+
+        $id = $this->postJson('/api/projects', $this->payload(['funder_ids' => [$drac->id, $ville->id]]))
+            ->assertCreated()
+            ->assertJsonCount(1, 'data.team')
+            ->assertJsonPath('data.team.0.name', 'Léa Fournier')
+            ->assertJsonPath('data.team.0.member_role', 'lead')
+            ->assertJsonCount(2, 'data.funders')
+            ->json('data.id');
+
+        $this->assertDatabaseHas('project_user', ['project_id' => $id, 'user_id' => $this->lea->id, 'member_role' => 'lead']);
+        $this->assertDatabaseHas('funder_project', ['project_id' => $id, 'funder_id' => $drac->id]);
+        $this->assertDatabaseHas('funder_project', ['project_id' => $id, 'funder_id' => $ville->id]);
+    }
+
+    public function test_accepte_un_projet_sans_financeur(): void
+    {
+        $this->postJson('/api/projects', $this->payload())
+            ->assertCreated()
+            ->assertJsonCount(0, 'data.funders');
+        $this->postJson('/api/projects', $this->payload(['name' => 'Autre projet', 'funder_ids' => []]))
+            ->assertCreated()
+            ->assertJsonCount(0, 'data.funders');
+        $this->postJson('/api/projects', $this->payload(['name' => 'Troisième projet', 'funder_ids' => null]))
+            ->assertCreated()
+            ->assertJsonCount(0, 'data.funders');
+    }
+
+    public function test_n_affecte_aucun_ponctuel_a_la_creation(): void
+    {
+        $other = User::factory()->role(UserRole::Contributor)->create();
+
+        $this->postJson('/api/projects', $this->payload(['occasional_user_ids' => [$other->id]]))
+            ->assertCreated()
+            ->assertJsonCount(1, 'data.team');
+
+        $this->assertDatabaseMissing('project_user', ['user_id' => $other->id]);
+        $this->assertDatabaseCount('project_user', 1);
+    }
+
+    public static function invalidPrincipals(): array
+    {
+        return [
+            'administratrice' => [['role' => UserRole::Admin]],
+            'super-utilisatrice' => [['role' => UserRole::SuperUser]],
+            'intervenant désactivé' => [['role' => UserRole::Contributor, 'is_active' => false]],
+        ];
+    }
+
+    #[DataProvider('invalidPrincipals')]
+    public function test_le_principal_doit_etre_un_intervenant_actif(array $attributes): void
+    {
+        $principal = User::factory()->create($attributes);
+
+        $this->postJson('/api/projects', $this->payload(['principal_user_id' => $principal->id]))
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.principal_user_id.0', 'L’intervenant·e principal·e doit être un compte intervenant actif.');
+
+        $this->assertSame(0, Project::count());
+    }
+
+    public function test_le_message_des_sous_projets_en_double_est_en_francais(): void
+    {
+        $this->postJson('/api/projects', $this->payload([
+            'sub_projects' => [['name' => 'Seconde 3'], ['name' => 'seconde 3']],
+        ]))->assertJsonValidationErrors(['sub_projects.0.name' => 'Deux sous-projets portent le même nom.']);
+    }
+
+    public function test_refuse_un_financeur_en_double(): void
+    {
+        $drac = Funder::factory()->create();
+
+        $this->postJson('/api/projects', $this->payload(['funder_ids' => [$drac->id, $drac->id]]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['funder_ids.0' => 'Un même financeur est choisi deux fois.']);
+
+        $this->assertSame(0, Project::count());
+        $this->assertDatabaseCount('funder_project', 0);
     }
 
     public function test_les_messages_d_erreur_sont_en_francais(): void

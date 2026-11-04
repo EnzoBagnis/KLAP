@@ -17,6 +17,9 @@ use Illuminate\Support\Facades\DB;
  */
 class ProjectController extends Controller
 {
+    /** Relations renvoyées par le détail et par la réponse de création. */
+    private const DETAIL_RELATIONS = ['defaultLocation', 'projectType', 'subProjects', 'members', 'funders'];
+
     /**
      * Les projets archivés sont masqués par défaut : pour l'administratrice, archiver
      * revient à supprimer. `?include_archived=1` les réaffiche.
@@ -36,7 +39,7 @@ class ProjectController extends Controller
 
     public function show(Project $project): ProjectResource
     {
-        return new ProjectResource($project->load(['defaultLocation', 'projectType', 'subProjects']));
+        return new ProjectResource($project->load(self::DETAIL_RELATIONS));
     }
 
     public function store(StoreProjectRequest $request): JsonResponse
@@ -69,11 +72,15 @@ class ProjectController extends Controller
                 )));
             }
 
+            // Seul·e l'intervenant·e principal·e est affecté·e à la création.
+            $project->members()->attach($data['principal_user_id'], ['member_role' => 'lead']);
+            $project->funders()->attach($data['funder_ids'] ?? []);
+
             return $project;
         });
 
         // fresh() relit le statut par défaut posé par la base quand il n'est pas fourni.
-        return (new ProjectResource($project->fresh(['defaultLocation', 'projectType', 'subProjects'])))
+        return (new ProjectResource($project->fresh(self::DETAIL_RELATIONS)))
             ->response()
             ->setStatusCode(201);
     }
