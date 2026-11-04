@@ -13,7 +13,10 @@ class ProjectResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            'project_type' => $this->project_type,
+            'project_type' => $this->whenLoaded('projectType', fn () => $this->projectType ? [
+                'id' => $this->projectType->id,
+                'name' => $this->projectType->name,
+            ] : null),
             'planned_sessions' => $this->planned_sessions,
             'start_date' => $this->start_date?->toDateString(),
             'end_date' => $this->end_date?->toDateString(),
