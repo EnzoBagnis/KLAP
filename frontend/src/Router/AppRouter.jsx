@@ -1,11 +1,36 @@
 import { Route, Routes } from 'react-router-dom';
+import MainLayout from '../Layouts/MainLayout.jsx';
+import ProtectedRoute from './ProtectedRoute.jsx';
+import { NAV_ITEMS } from '../Components/Layout/navigation.js';
 
-// Point d'entrée des routes. Chaque écran s'ajoute ici quand il est développé,
-// avec son chemin en français (ex. /projets, /planning), comme dans la maquette.
+/*
+ * Les routes du menu sont dérivées de NAV_ITEMS : chemin, rôles autorisés et écran
+ * (champ `page`) viennent de la même entrée, il n'y a pas de seconde liste ici.
+ * Une entrée sans `page` affiche un écran provisoire.
+ */
 export default function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<Placeholder title="KLAP · Carnet de bord" />} />
+      <Route path="/connexion" element={<Placeholder title="Connexion" />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
+          {NAV_ITEMS.map(({ path, label, roles, page: Page }) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                <ProtectedRoute roles={roles}>
+                  {Page ? <Page /> : <Placeholder title={label} />}
+                </ProtectedRoute>
+              }
+            />
+          ))}
+          <Route path="/notifications" element={<Placeholder title="Notifications" />} />
+          <Route path="/profil" element={<Placeholder title="Profil" />} />
+        </Route>
+      </Route>
+
       <Route path="*" element={<Placeholder title="Page introuvable" />} />
     </Routes>
   );
@@ -14,9 +39,9 @@ export default function AppRouter() {
 // Écran provisoire, à supprimer quand les vraies pages seront branchées.
 function Placeholder({ title }) {
   return (
-    <main className="placeholder">
+    <section className="placeholder">
       <h1>{title}</h1>
-      <p>Application en cours de développement.</p>
-    </main>
+      <p>Écran en cours de développement.</p>
+    </section>
   );
 }
