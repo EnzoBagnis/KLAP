@@ -60,6 +60,7 @@
   border-radius: 0;
   font-size: var(--text-14);
   font-weight: 500;
+  text-decoration: none;
   cursor: pointer;
 }
 
