@@ -11,6 +11,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   window.sessionStorage.clear();
+  document.title = '';
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
