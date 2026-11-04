@@ -1,6 +1,8 @@
 import { Route, Routes } from 'react-router-dom';
 import AuthLayout from '../Layouts/AuthLayout.jsx';
 import MainLayout from '../Layouts/MainLayout.jsx';
+import NewProjectPage from '../Pages/Projects/NewProjectPage.jsx';
+import { ROLES } from '../Context/roles.js';
 import ProjectDetailsPage from '../Pages/Projects/ProjectDetailsPage.jsx';
 import LoginPage from '../Pages/Auth/LoginPage.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
@@ -33,6 +35,15 @@ export default function AppRouter() {
           ))}
           {/* Détail d'un projet : hors menu, « Projets » reste actif. L'API filtre par rôle. */}
           <Route path="/projets/:id" element={<ProjectDetailsPage />} />
+          {/* Création d'un projet, sous Gestion : administratrice seulement (RG02). */}
+          <Route
+            path="/gestion/projets/nouveau"
+            element={
+              <ProtectedRoute roles={[ROLES.ADMIN]}>
+                <NewProjectPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/notifications" element={<Placeholder title="Notifications" />} />
           <Route path="/profil" element={<Placeholder title="Profil" />} />
         </Route>
