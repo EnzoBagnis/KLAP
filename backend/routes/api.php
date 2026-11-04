@@ -12,11 +12,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
 
-    // Projets : création et lecture réservées à l'administratrice (RG02, #55).
+    // Projets en lecture : tous les rôles. Le contrôleur limite un intervenant à ses
+    // affectations (RG02, #89).
+    Route::get('projects', [ProjectController::class, 'index']);
+    Route::get('projects/{project}', [ProjectController::class, 'show']);
+
+    // Projets : création réservée à l'administratrice (RG02, #55).
     Route::middleware('role:admin')->group(function () {
-        Route::get('projects', [ProjectController::class, 'index']);
         Route::post('projects', [ProjectController::class, 'store']);
-        Route::get('projects/{project}', [ProjectController::class, 'show']);
 
         // Types de projet : liste gérée par l'administratrice, sans suppression.
         Route::get('project-types', [ProjectTypeController::class, 'index']);

@@ -11,7 +11,10 @@ use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
-/** RG02 : seule l'administratrice crée et consulte les projets par ces routes. */
+/**
+ * RG02 : seule l'administratrice crée des projets et gère les types. La lecture des
+ * projets par les autres rôles est testée dans ProjectVisibilityTest (#89).
+ */
 class ProjectAccessTest extends TestCase
 {
     use RefreshDatabase;
@@ -51,7 +54,13 @@ class ProjectAccessTest extends TestCase
         $this->callRoute($method, $uri)->assertUnauthorized();
     }
 
-    #[DataProvider('routes')]
+    /** Écritures et gestion des types : toujours réservées à l'administratrice. */
+    public static function adminOnlyRoutes(): array
+    {
+        return array_diff_key(self::routes(), array_flip(['liste', 'détail']));
+    }
+
+    #[DataProvider('adminOnlyRoutes')]
     public function test_un_intervenant_est_refuse(string $method, string $uri): void
     {
         Sanctum::actingAs(User::factory()->role(UserRole::Contributor)->create());
@@ -59,7 +68,7 @@ class ProjectAccessTest extends TestCase
         $this->callRoute($method, $uri)->assertForbidden();
     }
 
-    #[DataProvider('routes')]
+    #[DataProvider('adminOnlyRoutes')]
     public function test_la_super_utilisatrice_est_refusee(string $method, string $uri): void
     {
         Sanctum::actingAs(User::factory()->role(UserRole::SuperUser)->create());
