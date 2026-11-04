@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../../Context/AuthContext.jsx';
@@ -199,7 +199,7 @@ describe('Détail d’un projet', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Le projet n’a pas pu être chargé.');
     await userEvent.setup().click(screen.getByRole('button', { name: 'Réessayer' }));
     expect(await screen.findByRole('heading', { name: 'Arts Danse au Lycée Charles' })).toBeInTheDocument();
-    expect(document.title).toBe('Arts Danse au Lycée Charles · KLAP');
+    await waitFor(() => expect(document.title).toBe('Arts Danse au Lycée Charles · KLAP'));
   });
 
   it('ignore une réponse arrivée après le changement de projet', async () => {
@@ -259,6 +259,6 @@ describe('Détail d’un projet', () => {
     renderAt('/projets/99');
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Projet introuvable');
-    expect(document.title).toBe('Projet introuvable · KLAP');
+    await waitFor(() => expect(document.title).toBe('Projet introuvable · KLAP'));
   });
 });
