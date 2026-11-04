@@ -1,5 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
+import AuthLayout from '../Layouts/AuthLayout.jsx';
 import MainLayout from '../Layouts/MainLayout.jsx';
+import LoginPage from '../Pages/Auth/LoginPage.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import { NAV_ITEMS } from '../Components/Layout/navigation.js';
 
@@ -11,7 +13,9 @@ import { NAV_ITEMS } from '../Components/Layout/navigation.js';
 export default function AppRouter() {
   return (
     <Routes>
-      <Route path="/connexion" element={<Placeholder title="Connexion" />} />
+      <Route element={<AuthLayout />}>
+        <Route path="/connexion" element={<LoginPage />} />
+      </Route>
 
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
