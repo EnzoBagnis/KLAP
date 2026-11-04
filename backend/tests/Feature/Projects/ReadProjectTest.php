@@ -21,9 +21,10 @@ class ReadProjectTest extends TestCase
         Sanctum::actingAs(User::factory()->role(UserRole::Admin)->create());
     }
 
-    public function test_la_liste_renvoie_tous_les_projets_avec_leur_statut(): void
+    public function test_la_liste_masque_les_projets_archives(): void
     {
         $active = Project::factory()->create(['name' => 'BRAISES', 'start_date' => '2026-09-01']);
+        Project::factory()->create(['name' => 'Classes cousines', 'status' => 'draft', 'start_date' => '2026-10-01']);
         Project::factory()->create(['name' => 'Projet pilote 2025', 'status' => 'archived', 'start_date' => '2025-01-01']);
         SubProject::factory()->count(4)->for($active)->create();
 
@@ -31,11 +32,30 @@ class ReadProjectTest extends TestCase
             ->assertOk()
             ->assertJsonCount(2, 'data')
             // Le plus récent d'abord.
-            ->assertJsonPath('data.0.name', 'BRAISES')
-            ->assertJsonPath('data.0.status', 'active')
-            ->assertJsonPath('data.0.sub_projects_count', 4)
-            ->assertJsonPath('data.1.status', 'archived')
+            ->assertJsonPath('data.0.name', 'Classes cousines')
+            ->assertJsonPath('data.1.name', 'BRAISES')
+            ->assertJsonPath('data.1.sub_projects_count', 4)
             ->assertJsonMissingPath('data.0.sub_projects');
+    }
+
+    public function test_la_liste_reaffiche_les_archives_sur_demande(): void
+    {
+        Project::factory()->create(['name' => 'BRAISES']);
+        Project::factory()->create(['name' => 'Projet pilote 2025', 'status' => 'archived', 'start_date' => '2025-01-01']);
+
+        $this->getJson('/api/projects?include_archived=1')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.1.status', 'archived');
+    }
+
+    public function test_le_detail_d_un_projet_archive_reste_accessible(): void
+    {
+        $archived = Project::factory()->create(['status' => 'archived']);
+
+        $this->getJson("/api/projects/{$archived->id}")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'archived');
     }
 
     public function test_le_detail_renvoie_les_sous_projets_et_le_lieu(): void
@@ -47,6 +67,7 @@ class ReadProjectTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.name', 'Classes cousines')
             ->assertJsonPath('data.default_location.id', $project->default_location_id)
+            ->assertJsonPath('data.project_type.id', $project->project_type_id)
             ->assertJsonPath('data.sub_projects.0.name', 'CM1 Peyssonnel');
     }
 

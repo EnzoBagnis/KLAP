@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Location;
 use App\Models\Project;
+use App\Models\ProjectType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -16,7 +17,7 @@ class ProjectFactory extends Factory
     {
         return [
             'name' => fake()->unique()->sentence(3),
-            'project_type' => 'Partenariat lycée',
+            'project_type_id' => ProjectType::factory(),
             'planned_sessions' => 20,
             'start_date' => '2026-09-15',
             'end_date' => '2027-06-19',

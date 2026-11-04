@@ -5,6 +5,7 @@ namespace Tests\Feature\Projects;
 use App\Enums\UserRole;
 use App\Models\Location;
 use App\Models\Project;
+use App\Models\ProjectType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -19,12 +20,15 @@ class StoreProjectTest extends TestCase
 
     private Location $location;
 
+    private ProjectType $type;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->admin = User::factory()->role(UserRole::Admin)->create();
         $this->location = Location::factory()->create(['name' => 'Grand studio', 'is_klap' => true]);
+        $this->type = ProjectType::factory()->create(['name' => 'Partenariat lycée']);
         Sanctum::actingAs($this->admin);
     }
 
@@ -33,7 +37,7 @@ class StoreProjectTest extends TestCase
     {
         return array_merge([
             'name' => 'Arts Danse au Lycée Charles',
-            'project_type' => 'Partenariat lycée',
+            'project_type_id' => $this->type->id,
             'planned_sessions' => 32,
             'start_date' => '2026-09-15',
             'end_date' => '2027-06-19',
@@ -55,7 +59,7 @@ class StoreProjectTest extends TestCase
         $response = $this->postJson('/api/projects', $this->payload())
             ->assertCreated()
             ->assertJsonPath('data.name', 'Arts Danse au Lycée Charles')
-            ->assertJsonPath('data.project_type', 'Partenariat lycée')
+            ->assertJsonPath('data.project_type.name', 'Partenariat lycée')
             ->assertJsonPath('data.planned_sessions', 32)
             ->assertJsonPath('data.status', 'active')
             ->assertJsonPath('data.default_location.name', 'Grand studio')
@@ -152,7 +156,7 @@ class StoreProjectTest extends TestCase
                 ['sub_projects' => [['name' => 'Seconde 3'], ['name' => 'seconde 3']]],
                 'sub_projects.0.name',
             ],
-            'type trop long' => [['project_type' => str_repeat('a', 101)], 'project_type'],
+            'type inexistant' => [['project_type_id' => 999999], 'project_type_id'],
             'séances non entières' => [['planned_sessions' => 'abc'], 'planned_sessions'],
             'séances hors limite' => [['planned_sessions' => 65536], 'planned_sessions'],
             'début invalide' => [['start_date' => '31/02/2026'], 'start_date'],
@@ -208,6 +212,22 @@ class StoreProjectTest extends TestCase
             'start_date' => '2026-09-15',
             'end_date' => '2026-09-15',
         ]))->assertCreated();
+    }
+
+    public function test_refuse_un_type_desactive(): void
+    {
+        $inactive = ProjectType::factory()->inactive()->create();
+
+        $this->postJson('/api/projects', $this->payload(['project_type_id' => $inactive->id]))
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.project_type_id.0', 'Le type de projet choisi n’existe pas ou n’est plus actif.');
+    }
+
+    public function test_accepte_un_projet_sans_type(): void
+    {
+        $this->postJson('/api/projects', $this->payload(['project_type_id' => null]))
+            ->assertCreated()
+            ->assertJsonPath('data.project_type', null);
     }
 
     public function test_les_messages_d_erreur_sont_en_francais(): void

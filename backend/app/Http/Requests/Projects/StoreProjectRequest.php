@@ -22,7 +22,8 @@ class StoreProjectRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string'],
-            'project_type' => ['nullable', 'string', 'max:100'],
+            // Type choisi dans la liste gérée par l'administratrice ; un type désactivé n'est plus proposé.
+            'project_type_id' => ['nullable', 'integer', Rule::exists('project_types', 'id')->where('is_active', true)],
             'planned_sessions' => ['nullable', 'integer', 'min:1', 'max:65535'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
@@ -75,7 +76,7 @@ class StoreProjectRequest extends FormRequest
         return [
             'name' => 'nom du projet',
             'description' => 'description',
-            'project_type' => 'type de projet',
+            'project_type_id' => 'type de projet',
             'planned_sessions' => 'séances prévues',
             'start_date' => 'début',
             'end_date' => 'fin',
