@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('klap_notifications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('recipient_id')->constrained('users')->cascadeOnDelete();
-            $table->enum('type', ['entry_submitted', 'unlock_request', 'invitation_accepted', 'reminder']);
+            $table->enum('type', ['entry_submitted', 'unlock_request', 'unlock_approved', 'invitation_accepted', 'reminder']);
             $table->foreignId('logbook_entry_id')->nullable()->constrained()->nullOnDelete();
             $table->string('message');
             $table->timestamp('read_at')->nullable();

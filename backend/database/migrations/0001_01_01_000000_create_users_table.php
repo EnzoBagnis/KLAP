@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+// Table des utilisateurs de base (nom, email, mot de passe haché) et gestion des sessions
 return new class extends Migration
 {
     /**

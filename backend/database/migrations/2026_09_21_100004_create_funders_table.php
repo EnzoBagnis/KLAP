@@ -5,6 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+// Bailleurs de fonds institutionnels et mécènes (DRAC, Ville de Marseille, Région Sud, fondations privées)
 return new class extends Migration
 {
     public function up(): void

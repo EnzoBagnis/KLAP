@@ -23,7 +23,9 @@ return new class extends Migration
             SELECT sp.sub_project_id,
                    sp.project_id,
                    MAX(sp.attendees) AS participants,
-                   COUNT(DISTINCT sp.scheduled_session_id) AS sessions_documented
+                   MAX(sp.attendees) AS unique_participants_max,
+                   COUNT(DISTINCT sp.scheduled_session_id) AS sessions_documented,
+                   COUNT(DISTINCT sp.scheduled_session_id) AS sessions_count
             FROM scheduled_session_sub_project sp
             JOIN logbook_entries le ON le.scheduled_session_id = sp.scheduled_session_id
             WHERE le.status IN ('submitted', 'locked')
@@ -35,7 +37,8 @@ return new class extends Migration
             CREATE VIEW v_project_participants AS
             SELECT p.id AS project_id,
                    p.name,
-                   COALESCE(SUM(v.participants), 0) AS participants
+                   COALESCE(SUM(v.participants), 0) AS participants,
+                   COALESCE(SUM(v.participants), 0) AS total_participants_max
             FROM projects p
             LEFT JOIN v_sub_project_participants v ON v.project_id = p.id
             GROUP BY p.id, p.name
