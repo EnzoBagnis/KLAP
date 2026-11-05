@@ -258,4 +258,158 @@ class StatisticsTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors($field);
     }
+
+    private function describeGroups(): void
+    {
+        foreach ([
+            'G1' => ['city' => 'Marseille', 'postal_code' => '13003', 'age_range' => '15-16 ans', 'expected_headcount' => 15],
+            'G2' => ['city' => 'Aix-en-Provence', 'postal_code' => '13100', 'age_range' => '15-16 ans', 'expected_headcount' => null],
+            'G3' => ['city' => 'Marseille', 'postal_code' => '13003', 'age_range' => '8-10 ans', 'expected_headcount' => 20],
+        ] as $name => $attributes) {
+            $this->groups[$name]->forceFill($attributes)->save();
+        }
+    }
+
+    public function test_provenance_par_ville_et_code_postal_et_participants_par_age(): void
+    {
+        $this->describeGroups();
+        $data = $this->statistics();
+
+        $this->assertSame([
+            ['city' => 'Marseille', 'postal_code' => '13003', 'participants' => 27, 'groups' => 2],
+            ['city' => 'Aix-en-Provence', 'postal_code' => '13100', 'participants' => 8, 'groups' => 1],
+        ], $data['by_city']);
+        $this->assertSame([
+            ['age_range' => '15-16 ans', 'participants' => 20, 'groups' => 2],
+            ['age_range' => '8-10 ans', 'participants' => 15, 'groups' => 1],
+        ], $data['by_age_range']);
+    }
+
+    public function test_provenance_suit_les_filtres(): void
+    {
+        $this->describeGroups();
+        $data = $this->statistics(['project_id' => $this->projectB->id]);
+
+        $this->assertSame([['city' => 'Marseille', 'postal_code' => '13003', 'participants' => 15, 'groups' => 1]], $data['by_city']);
+    }
+
+    public function test_assiduite_presents_moyens_rapportes_a_l_effectif_prevu(): void
+    {
+        $this->describeGroups();
+        $groups = collect($this->statistics()['projects'])->flatMap(fn ($project) => $project['sub_projects'])->keyBy('name');
+
+        $this->assertEquals(11.0, $groups['G1']['average_attendees']); // (10 + 12) / 2
+        $this->assertSame(73, $groups['G1']['attendance_rate']); // 11 / 15
+        $this->assertSame(15, $groups['G1']['expected_headcount']);
+        $this->assertNull($groups['G2']['attendance_rate']); // effectif prévu inconnu
+        $this->assertSame(75, $groups['G3']['attendance_rate']);
+        $this->assertSame('Aix-en-Provence', $groups['G2']['city']);
+    }
+
+    public function test_un_groupe_sans_seance_documentee_n_a_pas_d_assiduite(): void
+    {
+        $extra = SubProject::factory()->for($this->projectB)->create(['name' => 'G4', 'expected_headcount' => 12]);
+        $group = collect($this->project($this->statistics(), $this->projectB)['sub_projects'])->firstWhere('id', $extra->id);
+
+        $this->assertNull($group['average_attendees']);
+        $this->assertNull($group['attendance_rate']);
+    }
+
+    public function test_separe_les_fiches_en_retard_et_a_remplir(): void
+    {
+        // Séance du 1er novembre sans fiche : échéance le 11, encore à remplir.
+        $this->addSession($this->projectA, '2026-11-01', ['G2' => 5], null);
+        // Brouillon d'une séance du 10 octobre rouvert jusqu'au 10 novembre : à remplir.
+        $this->addSession($this->projectA, '2026-10-10', ['G2' => 5], 'draft');
+        DB::table('logbook_entries')->whereNull('submitted_at')->where('edit_deadline', '2026-10-10')->update(['edit_deadline' => '2026-11-10']);
+
+        $a = $this->project($this->statistics(), $this->projectA);
+
+        // En retard : brouillon du 24/09 (échéance 24/09) et séance du 08/10 sans fiche (échéance 18/10).
+        $this->assertSame(4, $a['entries_missing']);
+        $this->assertSame(2, $a['entries_overdue']);
+        $this->assertSame(2, $a['entries_to_fill']);
+        $this->assertSame(2, $this->statistics()['totals']['entries_overdue']);
+    }
+
+    public function test_l_echeance_du_jour_reste_a_remplir(): void
+    {
+        // Séance du 26 octobre : échéance le 5 novembre, jour du test, incluse.
+        $this->addSession($this->projectB, '2026-10-26', ['G3' => 5], null);
+        $b = $this->project($this->statistics(), $this->projectB);
+
+        $this->assertSame(0, $b['entries_overdue']);
+        $this->assertSame(1, $b['entries_to_fill']);
+    }
+
+    public function test_des_presents_absents_ne_font_pas_baisser_la_moyenne(): void
+    {
+        $this->describeGroups();
+        $this->addSession($this->projectB, '2026-09-29', ['G3' => null], 'submitted');
+        $group = $this->project($this->statistics(), $this->projectB)['sub_projects'][0];
+
+        $this->assertEquals(15.0, $group['average_attendees']);
+        $this->assertSame(75, $group['attendance_rate']);
+    }
+
+    public function test_le_taux_part_de_la_moyenne_exacte_et_peut_depasser_100(): void
+    {
+        $this->groups['G3']->forceFill(['expected_headcount' => 4])->save();
+        $this->addSession($this->projectB, '2026-09-22', ['G3' => 2], 'submitted');
+        $this->addSession($this->projectB, '2026-09-29', ['G3' => 16], 'submitted');
+        $this->addSession($this->projectB, '2026-10-06', ['G3' => 0], 'submitted');
+        // (15 + 2 + 16 + 0) / 4 = 8,25 ; 8,25 / 4 = 206,25 %, et non 8,3 / 4 = 207,5 %.
+        $group = $this->project($this->statistics(), $this->projectB)['sub_projects'][0];
+
+        $this->assertEquals(8.3, $group['average_attendees']);
+        $this->assertSame(206, $group['attendance_rate']);
+    }
+
+    public function test_provenance_sans_ville_et_meme_ville_avec_deux_codes_postaux(): void
+    {
+        $this->groups['G1']->forceFill(['city' => 'Marseille', 'postal_code' => '13003', 'age_range' => null])->save();
+        $this->groups['G2']->forceFill(['city' => null, 'postal_code' => null, 'age_range' => '16 - 17 ans'])->save();
+        $this->groups['G3']->forceFill(['city' => 'Marseille', 'postal_code' => '13001', 'age_range' => '16-17 ans'])->save();
+        $data = $this->statistics();
+
+        $this->assertSame([
+            ['city' => 'Marseille', 'postal_code' => '13001', 'participants' => 15, 'groups' => 1],
+            ['city' => 'Marseille', 'postal_code' => '13003', 'participants' => 12, 'groups' => 1],
+            ['city' => null, 'postal_code' => null, 'participants' => 8, 'groups' => 1],
+        ], $data['by_city']);
+        $this->assertSame([
+            ['age_range' => '16-17 ans', 'participants' => 23, 'groups' => 2],
+            ['age_range' => null, 'participants' => 12, 'groups' => 1],
+        ], $data['by_age_range']);
+    }
+
+    public function test_un_brouillon_sans_echeance_retombe_sur_j_plus_10(): void
+    {
+        $this->addSession($this->projectB, '2026-10-30', ['G3' => 5], 'draft');
+        DB::table('logbook_entries')->where('edit_deadline', '2026-10-30')->update(['edit_deadline' => null]);
+
+        $b = $this->project($this->statistics(), $this->projectB);
+        $this->assertSame(0, $b['entries_overdue']);
+        $this->assertSame(1, $b['entries_to_fill']);
+    }
+
+    public function test_les_fiches_hors_delai_suivent_la_periode(): void
+    {
+        $a = $this->project($this->statistics(['from' => '2026-10-01']), $this->projectA);
+
+        $this->assertSame(1, $a['entries_missing']); // séance du 08/10 seulement
+        $this->assertSame(1, $a['entries_overdue']);
+    }
+
+    public function test_le_delai_se_compte_a_l_heure_de_paris(): void
+    {
+        // Séance du 25 octobre : échéance le 4 novembre. À 23 h 30 UTC le 4, il est le 5 à Paris.
+        $this->addSession($this->projectB, '2026-10-25', ['G3' => 5], null);
+
+        $this->travelTo(now()->setDate(2026, 11, 4)->setTime(22, 30));
+        $this->assertSame(0, $this->project($this->statistics(), $this->projectB)['entries_overdue']);
+
+        $this->travelTo(now()->setDate(2026, 11, 4)->setTime(23, 30));
+        $this->assertSame(1, $this->project($this->statistics(), $this->projectB)['entries_overdue']);
+    }
 }
