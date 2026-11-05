@@ -4,6 +4,7 @@ namespace Tests\Feature\Logbook;
 
 use App\Enums\UserRole;
 use App\Models\KlapNotification;
+use App\Models\LogbookEntry;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +52,7 @@ class NotificationTest extends TestCase
             $this->assertCount(1, $notifications);
             $this->assertSame('entry_submitted', $notifications[0]->type);
             $this->assertSame($id, $notifications[0]->logbook_entry_id);
-            $this->assertSame('Léa Fournier a rempli la fiche du 5 octobre (Arts Danse).', $notifications[0]->message);
+            $this->assertSame(sprintf('Léa Fournier a rempli la fiche de la séance du 5 octobre : Arts Danse (%s).', $this->session->subProjects()->pluck('name')->join(', ')), $notifications[0]->message);
             $this->assertNull($notifications[0]->read_at);
         }
         $this->assertCount(0, $this->notificationsOf($this->referent));
@@ -66,6 +67,43 @@ class NotificationTest extends TestCase
 
         $this->assertCount(0, $this->notificationsOf($inactive));
         $this->assertCount(0, $this->notificationsOf($otherContributor));
+    }
+
+    public function test_l_auteur_membre_de_l_administration_n_est_pas_prevenu(): void
+    {
+        // Séance animée par l'administratrice elle-même.
+        $this->session->forceFill(['referent_id' => $this->admin->id])->save();
+        $this->referent = $this->admin;
+        $this->submit();
+
+        $this->assertCount(0, $this->notificationsOf($this->admin));
+        $this->assertCount(1, $this->notificationsOf($this->superUser));
+    }
+
+    public function test_une_super_utilisatrice_desactivee_ne_recoit_rien(): void
+    {
+        $this->superUser->update(['is_active' => false]);
+        $this->submit();
+
+        $this->assertCount(0, $this->notificationsOf($this->superUser));
+        $this->assertCount(1, $this->notificationsOf($this->admin));
+    }
+
+    public function test_deux_soumissions_simultanees_ne_previennent_qu_une_fois(): void
+    {
+        $id = $this->createEntry($this->completePayload());
+        // Une autre soumission passe entre la lecture de la fiche et son écriture.
+        $done = false;
+        LogbookEntry::retrieved(function (LogbookEntry $entry) use (&$done, $id) {
+            if (! $done && $entry->id === $id) {
+                $done = true;
+                DB::table('logbook_entries')->where('id', $id)->update(['status' => 'submitted', 'submitted_at' => now()]);
+            }
+        });
+
+        $this->actingAs($this->referent)->postJson("/api/logbook-entries/{$id}/submit")->assertOk();
+
+        $this->assertSame(0, KlapNotification::query()->count());
     }
 
     public function test_une_seconde_soumission_ne_previent_plus(): void
@@ -169,5 +207,6 @@ class NotificationTest extends TestCase
     {
         $this->getJson('/api/notifications')->assertUnauthorized();
         $this->postJson('/api/notifications/read-all')->assertUnauthorized();
+        $this->patchJson('/api/notifications/1/read')->assertUnauthorized();
     }
 }
