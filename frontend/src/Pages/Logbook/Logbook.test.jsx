@@ -397,3 +397,72 @@ describe('Cas d’erreur et garde-fous', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('rédigée par un autre intervenant');
   });
 });
+
+describe('Déverrouillage par l’administratrice', () => {
+  const locked = (overrides = {}) =>
+    entry({ status: 'locked', editable: false, unlockable: true, edit_deadline: '2026-10-15', ...overrides });
+
+  it('n’affiche le bouton que si l’API l’autorise', async () => {
+    mockApi({ 'GET /logbook-entries/7': () => jsonResponse({ data: locked({ unlockable: false }) }) });
+    renderAt('/fiches/7', MOCK_USERS.admin);
+    await screen.findByRole('heading', { name: 'Arts Danse au Lycée Charles' });
+    expect(screen.queryByRole('button', { name: 'Déverrouiller la fiche' })).not.toBeInTheDocument();
+  });
+
+  it('rouvre la fiche après confirmation et indique la nouvelle échéance', async () => {
+    const fetchMock = mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: locked() }),
+      'POST /logbook-entries/7/unlock': () =>
+        jsonResponse({
+          data: locked({
+            status: 'submitted',
+            unlockable: false,
+            edit_deadline: '2026-10-30',
+            unlocked_at: '2026-10-20T07:00:00+00:00',
+            unlocked_by: { id: 1, name: 'Mariette Travard' },
+          }),
+        }),
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const user = userEvent.setup();
+    renderAt('/fiches/7', MOCK_USERS.admin);
+    await user.click(await screen.findByRole('button', { name: 'Déverrouiller la fiche' }));
+    expect(await screen.findByText(/Fiche rouverte : Léa Fournier peut la modifier jusqu’au 30\/10\/2026 inclus\./)).toBeInTheDocument();
+    expect(screen.getByText('Rouverte le 20/10/2026 par Mariette Travard.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Déverrouiller la fiche' })).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([url]) => url.endsWith('/unlock'))).toHaveLength(1);
+  });
+
+  it('ne fait rien si l’administratrice annule', async () => {
+    const fetchMock = mockApi({ 'GET /logbook-entries/7': () => jsonResponse({ data: locked() }) });
+    vi.stubGlobal('confirm', vi.fn(() => false));
+    const user = userEvent.setup();
+    renderAt('/fiches/7', MOCK_USERS.admin);
+    await user.click(await screen.findByRole('button', { name: 'Déverrouiller la fiche' }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('affiche le refus de l’API', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: locked() }),
+      'POST /logbook-entries/7/unlock': () => jsonResponse({ message: 'La fiche n’est pas verrouillée.' }, 409),
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const user = userEvent.setup();
+    renderAt('/fiches/7', MOCK_USERS.admin);
+    await user.click(await screen.findByRole('button', { name: 'Déverrouiller la fiche' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('La fiche n’est pas verrouillée.');
+  });
+
+  it('rend la fiche modifiable à son auteur après réouverture', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () =>
+        jsonResponse({
+          data: entry({ status: 'submitted', edit_deadline: '2026-10-30', unlocked_at: '2026-10-20T07:00:00+00:00', unlocked_by: { id: 1, name: 'Mariette Travard' } }),
+        }),
+    });
+    renderAt('/fiches/7?etape=2');
+    expect(await screen.findByLabelText(/Objectifs pédagogiques/)).toBeEnabled();
+    expect(screen.getByText(/Modifiable jusqu’au 30\/10\/2026 inclus/)).toBeInTheDocument();
+  });
+});

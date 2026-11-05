@@ -7,7 +7,7 @@ import useAuth from '../../Hooks/useAuth.js';
 import useLogbook from '../../Hooks/useLogbook.js';
 import { getEntry } from '../../Services/LogbookService.js';
 import { dayTitle } from '../Planning/sessionLabels.js';
-import { STEPS, stepsWithErrors } from './logbookModel.js';
+import { STEPS, formatDate, formatInstant, stepsWithErrors } from './logbookModel.js';
 import ArtistFeedbackStep from './Steps/ArtistFeedbackStep.jsx';
 import GeneralStep from './Steps/GeneralStep.jsx';
 import NextStepsStep from './Steps/NextStepsStep.jsx';
@@ -96,7 +96,7 @@ export default function LogbookEntryPage() {
 }
 
 function LogbookForm() {
-  const { entry, errors, message, busy, dirty, readOnlyReason, save, submit } = useLogbook();
+  const { entry, errors, message, busy, dirty, readOnlyReason, save, submit, unlock } = useLogbook();
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = Number(searchParams.get('etape'));
   const step = STEPS.some((s) => s.number === requested) ? requested : 1;
@@ -144,6 +144,10 @@ function LogbookForm() {
     headingRef.current?.focus();
   }
 
+  function handleUnlock() {
+    if (window.confirm('Rouvrir cette fiche ? Son auteur·rice pourra la modifier pendant 10 jours.')) unlock();
+  }
+
   // Après un échec (enregistrement ou soumission), on se place sur la première étape en erreur.
   useEffect(() => {
     if (message?.tone === 'error' && message.steps?.length && !message.steps.includes(step)) {
@@ -168,7 +172,19 @@ function LogbookForm() {
 
       {readOnlyReason && <p className="form-alert">{readOnlyReason}</p>}
       {!readOnlyReason && entry.edit_deadline && (
-        <p className="form-hint">Modifiable jusqu’au {entry.edit_deadline.split('-').reverse().join('/')} inclus.</p>
+        <p className="form-hint">Modifiable jusqu’au {formatDate(entry.edit_deadline)} inclus.</p>
+      )}
+      {entry.unlocked_at && entry.unlocked_by && (
+        <p className="form-hint">
+          Rouverte le {formatInstant(entry.unlocked_at)} par {entry.unlocked_by.name}.
+        </p>
+      )}
+      {entry.unlockable && (
+        <div className="logbook-unlock">
+          <Button variant="line" onClick={handleUnlock} disabled={busy}>
+            Déverrouiller la fiche
+          </Button>
+        </div>
       )}
 
       <nav className="stepper" aria-label="Étapes de la fiche">

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useMemo, useState } from 'react';
 import useAuth from '../Hooks/useAuth.js';
-import { submitEntry, updateEntry } from '../Services/LogbookService.js';
-import { flattenErrors, formFromEntry, payloadFromForm, stepsWithErrors } from '../Pages/Logbook/logbookModel.js';
+import { submitEntry, unlockEntry, updateEntry } from '../Services/LogbookService.js';
+import { flattenErrors, formatDate, formFromEntry, payloadFromForm, stepsWithErrors } from '../Pages/Logbook/logbookModel.js';
 
 export const LogbookContext = createContext(null);
 
@@ -105,9 +105,38 @@ export function LogbookProvider({ initialEntry, children }) {
     }
   }, [save, entry.id, accept, fail]);
 
+  /** Rouvre la fiche (administratrice) : nouvelle échéance donnée par l'API. */
+  const unlock = useCallback(async () => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const saved = await unlockEntry(entry.id);
+      accept(saved);
+      setLockedByApi(null);
+      setErrors({});
+      setMessage({
+        tone: 'success',
+        text: `Fiche rouverte : ${saved.author.name} peut la modifier jusqu’au ${formatDate(saved.edit_deadline)} inclus.`,
+      });
+      return true;
+    } catch (error) {
+      if (error.status === 401) {
+        logout();
+      } else {
+        setMessage({
+          tone: 'error',
+          text: [403, 409].includes(error.status) || error.status === 0 ? error.message : 'La fiche n’a pas pu être rouverte.',
+        });
+      }
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }, [entry.id, accept, logout]);
+
   const value = useMemo(
-    () => ({ entry, form, set, errors, message, setMessage, busy, dirty, readOnlyReason, save, submit }),
-    [entry, form, set, errors, message, busy, dirty, readOnlyReason, save, submit],
+    () => ({ entry, form, set, errors, message, setMessage, busy, dirty, readOnlyReason, save, submit, unlock }),
+    [entry, form, set, errors, message, busy, dirty, readOnlyReason, save, submit, unlock],
   );
 
   return <LogbookContext.Provider value={value}>{children}</LogbookContext.Provider>;
