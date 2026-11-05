@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\LogbookEntry;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -40,16 +41,13 @@ class StatisticsService
         $subProjects = DB::table('sub_projects')
             ->whereIn('project_id', $projects->pluck('id'))
             ->orderBy('name')->orderBy('id')
-            ->get(['id', 'project_id', 'name'])
+            ->get(['id', 'project_id', 'name', 'age_range', 'city', 'postal_code', 'expected_headcount'])
             ->groupBy('project_id');
 
         $rows = $projects->map(function ($project) use ($groups, $indicators, $documented, $missing, $subProjects) {
-            $children = ($subProjects[$project->id] ?? collect())->map(fn ($group) => [
-                'id' => $group->id,
-                'name' => $group->name,
-                'participants' => (int) ($groups[$group->id]->participants ?? 0),
-                'sessions_documented' => (int) ($groups[$group->id]->sessions_documented ?? 0),
-            ])->values();
+            $children = ($subProjects[$project->id] ?? collect())
+                ->map(fn ($group) => $this->groupRow($group, $groups[$group->id] ?? null))
+                ->values();
             $indicator = $indicators[$project->id] ?? null;
 
             return [
@@ -57,22 +55,96 @@ class StatisticsService
                 'name' => $project->name,
                 'participants' => $children->sum('participants'),
                 'sessions_documented' => (int) ($documented[$project->id] ?? 0),
-                'entries_missing' => (int) ($missing[$project->id] ?? 0),
+                ...$this->missingCounts($missing->where('project_id', $project->id)),
                 ...$this->averages($indicator),
                 'sub_projects' => $children,
             ];
         })->values();
+
+        $allGroups = $rows->flatMap(fn ($row) => $row['sub_projects'])->where('participants', '>', 0);
 
         return [
             'filters' => ['project_id' => $this->projectId, 'from' => $this->from, 'to' => $this->to],
             'totals' => [
                 'participants' => $rows->sum('participants'),
                 'sessions_documented' => $rows->sum('sessions_documented'),
-                'entries_missing' => $rows->sum('entries_missing'),
+                ...$this->missingCounts($missing),
                 // Moyennes sur toutes les évaluations, pas une moyenne des moyennes par projet.
                 ...$this->averages($this->indicators(grouped: false)->first()),
             ],
+            // Provenance (ville et code postal, pas l'arrondissement) et âge, portés par le sous-projet.
+            'by_city' => $this->breakdown($allGroups, fn ($group) => [$group['city'], $group['postal_code']], ['city', 'postal_code']),
+            // Tranche d'âge saisie librement : « 16 - 17 ans » et « 16-17 ans » sont regroupées.
+            'by_age_range' => $this->breakdown($allGroups, fn ($group) => [self::ageRange($group['age_range'])], ['age_range']),
             'projects' => $rows,
+        ];
+    }
+
+    /**
+     * Ligne d'un groupe. Assiduité (choix d'équipe, à confirmer avec la cliente) : présents
+     * moyens sur les séances documentées, rapportés à l'effectif prévu du groupe.
+     */
+    private function groupRow(object $group, ?object $stats): array
+    {
+        $raw = $stats?->average_attendees === null ? null : (float) $stats->average_attendees;
+        $expected = $group->expected_headcount === null ? null : (int) $group->expected_headcount;
+
+        return [
+            'id' => $group->id,
+            'name' => $group->name,
+            'age_range' => $group->age_range,
+            'city' => $group->city,
+            'postal_code' => $group->postal_code,
+            'expected_headcount' => $expected,
+            'participants' => (int) ($stats->participants ?? 0),
+            'sessions_documented' => (int) ($stats->sessions_documented ?? 0),
+            'average_attendees' => $raw === null ? null : round($raw, 1),
+            // Calculé sur la moyenne exacte ; peut dépasser 100 % si plus de présents que prévu.
+            'attendance_rate' => $raw !== null && $expected > 0 ? (int) round($raw / $expected * 100) : null,
+        ];
+    }
+
+    private static function ageRange(?string $value): ?string
+    {
+        $value = $value === null ? '' : preg_replace(['/\s*-\s*/', '/\s+/'], ['-', ' '], trim($value));
+
+        return $value === '' ? null : $value;
+    }
+
+    /** Participants regroupés par clé (ville et code postal, ou tranche d'âge), du plus grand au plus petit. */
+    private function breakdown(Collection $groups, callable $key, array $fields): array
+    {
+        return $groups
+            ->groupBy(fn ($group) => json_encode($key($group)))
+            ->map(fn (Collection $same) => [
+                ...array_combine($fields, $key($same->first())),
+                'participants' => $same->sum('participants'),
+                'groups' => $same->count(),
+            ])
+            ->sortByDesc('participants')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Fiches manquantes, en retard (échéance passée : J+10, ou nouvelle échéance après
+     * réouverture d'un brouillon) ou à remplir (encore dans le délai).
+     */
+    private function missingCounts(Collection $missing): array
+    {
+        $today = LogbookEntry::localNow()->toDateString();
+        $overdue = $missing->filter(function ($row) use ($today) {
+            $deadline = $row->edit_deadline !== null
+                ? substr((string) $row->edit_deadline, 0, 10)
+                : Carbon::parse(substr((string) $row->session_date, 0, 10))->addDays(LogbookEntry::EDIT_DAYS)->toDateString();
+
+            return $deadline < $today;
+        })->count();
+
+        return [
+            'entries_missing' => $missing->count(),
+            'entries_overdue' => $overdue,
+            'entries_to_fill' => $missing->count() - $overdue,
         ];
     }
 
@@ -94,7 +166,8 @@ class StatisticsService
             ->join('scheduled_sessions as s', 's.id', '=', 'sp.scheduled_session_id')
             ->whereIn('le.status', self::RENDERED))
             ->groupBy('sp.sub_project_id')
-            ->selectRaw('sp.sub_project_id, MAX(sp.attendees) AS participants, COUNT(DISTINCT sp.scheduled_session_id) AS sessions_documented')
+            ->selectRaw('sp.sub_project_id, MAX(sp.attendees) AS participants, AVG(sp.attendees) AS average_attendees, '
+                .'COUNT(DISTINCT sp.scheduled_session_id) AS sessions_documented')
             ->get()
             ->keyBy('sub_project_id');
     }
@@ -123,18 +196,20 @@ class StatisticsService
         return $grouped ? $query->addSelect('s.project_id')->groupBy('s.project_id')->get() : $query->get();
     }
 
-    /** v_missing_entries, filtrée : séances passées (heure de Paris) sans fiche rendue. */
+    /**
+     * v_missing_entries, filtrée : séances passées (heure de Paris) sans fiche rendue,
+     * avec l'échéance du brouillon s'il y en a un (une seule fiche par séance).
+     */
     private function missingEntries(): Collection
     {
         return $this->scoped(DB::table('scheduled_sessions as s'))
+            ->leftJoin('logbook_entries as draft', 'draft.scheduled_session_id', '=', 's.id')
             ->whereDate('s.session_date', '<', LogbookEntry::localNow()->toDateString())
             ->whereNotExists(fn (Builder $query) => $query->selectRaw('1')
                 ->from('logbook_entries as le')
                 ->whereColumn('le.scheduled_session_id', 's.id')
                 ->whereIn('le.status', self::RENDERED))
-            ->groupBy('s.project_id')
-            ->selectRaw('s.project_id, COUNT(*) AS missing')
-            ->pluck('missing', 'project_id');
+            ->get(['s.id', 's.project_id', 's.session_date', 'draft.edit_deadline']);
     }
 
     /** Moyennes sur 5 (null sans aucune note) et nombre d'évaluations. */
