@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\LogbookController;
 use App\Http\Controllers\Api\PlanningController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\StatisticsController;
@@ -29,6 +30,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Planning et séances d'atelier
     Route::get('/planning', [PlanningController::class, 'index']);
     Route::post('/planning', [PlanningController::class, 'store']);
+
+    // Carnet de bord (formulaire mobile 6 étapes, auto-save et déverrouillage J+10)
+    Route::get('/sessions/{sessionId}/logbook', [LogbookController::class, 'showBySession']);
+    Route::get('/logbook/sessions/{sessionId}', [LogbookController::class, 'showBySession']);
+    Route::post('/logbook/draft', [LogbookController::class, 'saveDraft']);
+    Route::post('/logbook/submit', [LogbookController::class, 'submit']);
+    Route::post('/logbook/{entry}/request-unlock', [LogbookController::class, 'requestUnlock']);
+    Route::post('/logbook/{entry}/unlock', [LogbookController::class, 'unlock']);
 
     // Lieux d'ateliers et studios permanents
     Route::get('/locations', [LocationController::class, 'index']);
