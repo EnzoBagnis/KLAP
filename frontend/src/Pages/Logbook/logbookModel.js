@@ -115,3 +115,9 @@ export function flattenErrors(errors) {
 export function stepsWithErrors(errors) {
   return [...new Set(Object.keys(errors).map(stepOfError))].sort((a, b) => a - b);
 }
+
+/** Date d'échéance « 2026-10-30 » → « 30/10/2026 ». */
+export const formatDate = (isoDate) => isoDate.slice(0, 10).split('-').reverse().join('/');
+
+/** Horodatage de l'API (UTC) → date à l'heure de KLAP, « 21/09/2026 ». */
+export const formatInstant = (iso) => new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
