@@ -7,6 +7,10 @@ import Button from '../UI/Button.jsx';
 export default function DynamicExerciseList({ exercises, onChange, errors = {}, min = 2, max = 10, disabled = false }) {
   const update = (index, value) => onChange(exercises.map((label, i) => (i === index ? value : label)));
   const remove = (index) => onChange(exercises.filter((_, i) => i !== index));
+  // Les lignes vides ne sont pas envoyées : l'erreur exercises.N de l'API vise la N-ième ligne remplie.
+  const filled = exercises.map((label) => label.trim() !== '');
+  const apiIndex = (index) => (filled[index] ? filled.slice(0, index).filter(Boolean).length : -1);
+  const errorOf = (index) => errors[`exercises.${apiIndex(index)}`];
 
   return (
     <fieldset className="field" aria-describedby={errors.exercises ? 'exercices-erreur' : 'exercices-compte'} disabled={disabled}>
@@ -14,7 +18,7 @@ export default function DynamicExerciseList({ exercises, onChange, errors = {}, 
         Exercices<span className="field-required" aria-hidden="true"> *</span>
       </legend>
       <p id="exercices-compte" className="form-hint">
-        {exercises.length} / {max} exercices ({min} au moins)
+        {filled.filter(Boolean).length} / {max} exercices renseignés ({min} au moins)
       </p>
       <ol className="exercise-list">
         {exercises.map((label, index) => (
@@ -24,13 +28,13 @@ export default function DynamicExerciseList({ exercises, onChange, errors = {}, 
               <input
                 id={`exercice-${index}`}
                 name={`exercises.${index}`}
-                className={`field-input${errors[`exercises.${index}`] ? ' has-error' : ''}`}
+                className={`field-input${errorOf(index) ? ' has-error' : ''}`}
                 maxLength={200}
                 value={label}
-                aria-invalid={errors[`exercises.${index}`] ? true : undefined}
+                aria-invalid={errorOf(index) ? true : undefined}
                 onChange={(event) => update(index, event.target.value)}
               />
-              {errors[`exercises.${index}`] && <p className="field-error">{errors[`exercises.${index}`]}</p>}
+              {errorOf(index) && <p className="field-error">{errorOf(index)}</p>}
             </div>
             <Button variant="ghost" aria-label={`Retirer l’exercice ${index + 1}`} onClick={() => remove(index)}>
               Retirer
