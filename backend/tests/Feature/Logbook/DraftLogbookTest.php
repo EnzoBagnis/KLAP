@@ -221,4 +221,31 @@ class DraftLogbookTest extends TestCase
 
         $this->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'juste à temps'])->assertOk();
     }
+
+    public function test_pas_de_fiche_avant_le_jour_de_la_seance(): void
+    {
+        $this->session->forceFill(['session_date' => '2026-10-07'])->save(); // demain
+
+        $this->actingAs($this->referent)->postJson("/api/sessions/{$this->session->id}/logbook-entry")
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.session.0', 'La séance n’a pas encore eu lieu : la fiche se remplit à partir du jour de la séance.');
+        $this->assertDatabaseCount('logbook_entries', 0);
+    }
+
+    public function test_la_fiche_s_ouvre_le_jour_meme_a_l_heure_de_paris(): void
+    {
+        $this->session->forceFill(['session_date' => '2026-10-07'])->save();
+        // 22 h 30 UTC le 6 octobre : il est déjà le 7 à Paris.
+        $this->travelTo(now()->setDate(2026, 10, 6)->setTime(22, 30));
+
+        $this->actingAs($this->referent)->postJson("/api/sessions/{$this->session->id}/logbook-entry")->assertCreated();
+    }
+
+    public function test_la_veille_a_23_h_59_a_paris_la_fiche_reste_fermee(): void
+    {
+        $this->session->forceFill(['session_date' => '2026-10-07'])->save();
+        $this->travelTo(now()->setDate(2026, 10, 6)->setTime(21, 59)); // 23 h 59 à Paris
+
+        $this->actingAs($this->referent)->postJson("/api/sessions/{$this->session->id}/logbook-entry")->assertUnprocessable();
+    }
 }
