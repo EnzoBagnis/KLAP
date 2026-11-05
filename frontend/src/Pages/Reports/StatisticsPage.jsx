@@ -188,22 +188,45 @@ export default function StatisticsPage() {
       {state.status === 'ready' && data.projects.length > 0 && (
         <>
           <ul className="stat-cards" aria-label="Totaux">
-            <StatCard label="Participants" value={formatCount(data.totals.participants)} />
+            <StatCard
+              label="Participants"
+              value={formatCount(data.totals.participants)}
+              hint="Somme des groupes : pas un nombre de personnes distinctes."
+            />
             <StatCard label="Séances documentées" value={formatCount(data.totals.sessions_documented)} />
             <StatCard
-              label="Fiches manquantes"
+              label="Fiches en retard"
               value={formatCount(data.totals.entries_missing)}
+              hint={`Séances passées sans fiche rendue, dont ${formatCount(data.totals.entries_overdue)} hors délai.`}
               alert={data.totals.entries_missing > 0}
             />
-            <StatCard label="Évaluations" value={formatCount(data.totals.evaluations)} />
           </ul>
 
           <section aria-labelledby="moyennes-titre">
             <h2 id="moyennes-titre" className="section-title">
-              Moyennes des participants
+              Moyennes des fiches
             </h2>
+            <p className="form-hint">Notes de 1 à 5 données sur chaque fiche rendue : une note par fiche, parfois pour plusieurs groupes.</p>
             <Ratings values={data.totals} />
           </section>
+
+          <div className="statistics-breakdowns">
+            <Breakdown
+              id="provenance-titre"
+              title="Provenance"
+              rows={data.by_city}
+              columns={[
+                ['Ville', (row) => row.city || 'Non renseignée'],
+                ['Code postal', (row) => row.postal_code || 'Non renseigné'],
+              ]}
+            />
+            <Breakdown
+              id="age-titre"
+              title="Âge"
+              rows={data.by_age_range}
+              columns={[['Tranche d’âge', (row) => row.age_range || 'Non renseignée']]}
+            />
+          </div>
 
           <section aria-labelledby="projets-titre">
             <h2 id="projets-titre" className="section-title">
@@ -216,8 +239,9 @@ export default function StatisticsPage() {
                     <th scope="col">Projet et groupes</th>
                     <th scope="col">Participants</th>
                     <th scope="col">Séances documentées</th>
-                    <th scope="col">Fiches manquantes</th>
-                    <th scope="col">Évaluations</th>
+                    <th scope="col">Assiduité</th>
+                    <th scope="col">Fiches en retard</th>
+                    <th scope="col">dont hors délai</th>
                     {RATINGS.map((rating) => (
                       <th key={rating.key} scope="col">
                         {rating.label}
@@ -231,18 +255,28 @@ export default function StatisticsPage() {
                       <th scope="row">{project.name}</th>
                       <td>{formatCount(project.participants)}</td>
                       <td>{formatCount(project.sessions_documented)}</td>
+                      <td />
                       <td>{formatCount(project.entries_missing)}</td>
-                      <td>{formatCount(project.evaluations)}</td>
+                      <td>{formatCount(project.entries_overdue)}</td>
                       {RATINGS.map((rating) => (
                         <td key={rating.key}>{formatAverage(project[rating.key])}</td>
                       ))}
                     </tr>
                     {project.sub_projects.map((group) => (
                       <tr key={group.id} className="statistics-group">
-                        <th scope="row">{group.name}</th>
+                        <th scope="row">
+                          {group.name}
+                          {groupDetails(group) && (
+                            <span className="statistics-group-meta">
+                              <span className="visually-hidden">, </span>
+                              {groupDetails(group)}
+                            </span>
+                          )}
+                        </th>
                         <td>{formatCount(group.participants)}</td>
                         <td>{formatCount(group.sessions_documented)}</td>
-                        {/* Fiches manquantes, évaluations et moyennes : comptées par projet seulement. */}
+                        <td>{formatAttendance(group)}</td>
+                        {/* Fiches et moyennes : comptées par projet (une fiche couvre parfois plusieurs groupes). */}
                         {Array.from({ length: RATINGS.length + 2 }, (_, index) => (
                           <td key={index} />
                         ))}
@@ -254,6 +288,8 @@ export default function StatisticsPage() {
             </div>
             <p className="form-hint">
               Participants d’un groupe : le maximum des présents sur ses séances. Participants d’un projet : la somme de ses groupes.
+              Assiduité : présents en moyenne sur les séances documentées, rapportés à l’effectif prévu du groupe (plus de 100 % si plus de présents que prévu).
+              Fiches en retard : séances passées sans fiche rendue ; hors délai : échéance de modification passée.
             </p>
           </section>
         </>
@@ -262,12 +298,75 @@ export default function StatisticsPage() {
   );
 }
 
-function StatCard({ label, value, alert = false }) {
+function StatCard({ label, value, hint, alert = false }) {
   return (
     <li className={`stat-card${alert ? ' is-alert' : ''}`}>
       <span className="stat-label">{label}</span>
       <span className="stat-value">{value}</span>
+      {hint && <span className="stat-hint">{hint}</span>}
     </li>
+  );
+}
+
+/** « 15-16 ans · Marseille (13003) », à partir de ce qui est renseigné sur le groupe. */
+function groupDetails(group) {
+  const place = group.city ? `${group.city}${group.postal_code ? ` (${group.postal_code})` : ''}` : group.postal_code;
+  return [group.age_range, place].filter(Boolean).join(' · ');
+}
+
+/** « 11 présents en moyenne, 73 % des 15 prévus » ; sans effectif prévu, la moyenne seule. */
+function formatAttendance(group) {
+  if (group.average_attendees == null) return 'Non renseignée';
+  const average = `${group.average_attendees.toLocaleString('fr-FR')} présents en moyenne`;
+  return group.attendance_rate == null
+    ? average
+    : `${average}, ${group.attendance_rate} % des ${group.expected_headcount} prévus`;
+}
+
+/** Participants répartis par provenance ou par âge (somme des groupes concernés). */
+function Breakdown({ id, title, rows, columns }) {
+  return (
+    <section aria-labelledby={id}>
+      <h2 id={id} className="section-title">
+        {title}
+      </h2>
+      {rows.length === 0 ? (
+        <p className="page-empty">Aucun participant compté sur la période.</p>
+      ) : (
+        <div className="statistics-table-wrapper" role="region" aria-labelledby={id} tabIndex={0}>
+        <table className="statistics-table" aria-labelledby={id}>
+          <thead>
+            <tr>
+              {columns.map(([label]) => (
+                <th key={label} scope="col">
+                  {label}
+                </th>
+              ))}
+              <th scope="col">Groupes documentés</th>
+              <th scope="col">Participants</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={columns.map(([, value]) => value(row)).join('|')}>
+                {columns.map(([label, value], index) =>
+                  index === 0 ? (
+                    <th key={label} scope="row">
+                      {value(row)}
+                    </th>
+                  ) : (
+                    <td key={label}>{value(row)}</td>
+                  ),
+                )}
+                <td>{formatCount(row.groups)}</td>
+                <td>{formatCount(row.participants)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        </div>
+      )}
+    </section>
   );
 }
 
