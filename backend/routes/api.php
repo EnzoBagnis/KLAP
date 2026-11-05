@@ -61,3 +61,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/exports/projects/{projectId}/pdf', [ExportController::class, 'rejectPdf']);
 
 });
+
+// Route de repli (Fallback) pour toute URL API inexistante
+Route::fallback(function () {
+    return response()->json([
+        'message' => 'Point de terminaison API introuvable.',
+    ], 404);
+});
