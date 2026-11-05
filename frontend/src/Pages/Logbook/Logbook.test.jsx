@@ -5,6 +5,7 @@ import { afterEach, beforeEach, vi } from 'vitest';
 import { AuthProvider } from '../../Context/AuthContext.jsx';
 import AppRouter from '../../Router/AppRouter.jsx';
 import { MOCK_USERS, jsonResponse, mockApi } from '../../testUtils.js';
+import { todayKey } from '../Planning/sessionLabels.js';
 import { formFromEntry, payloadFromForm, stepOfError, stepsWithErrors } from './logbookModel.js';
 
 const entry = (overrides = {}) => ({
@@ -80,6 +81,19 @@ describe('Modèle de la fiche', () => {
     expect(payload.objectives).toBe('Écoute');
     expect(payload.highlights).toBeNull();
     expect(payload.attendees).toEqual([{ sub_project_id: 11, count: null }]);
+  });
+
+  it('propose d’emblée deux lignes d’exercice, sans les envoyer vides', () => {
+    const form = formFromEntry(entry());
+    expect(form.exercises).toEqual(['', '']);
+    expect(payloadFromForm(form).exercises).toEqual([]);
+    expect(formFromEntry(entry({ exercises: ['Marche', 'Miroir', 'Duo'] })).exercises).toHaveLength(3);
+    expect(formFromEntry(entry({ editable: false, exercises: ['Marche'] })).exercises).toEqual(['Marche']);
+  });
+
+  it('donne la date du jour à l’heure de Paris', () => {
+    expect(todayKey(new Date('2026-10-06T22:30:00Z'))).toBe('2026-10-07');
+    expect(todayKey(new Date('2026-10-06T21:59:00Z'))).toBe('2026-10-06');
   });
 
   it('ne garde le détail que lorsque la réponse le demande', () => {
@@ -260,6 +274,19 @@ describe('Lien depuis le planning', () => {
     referent: { id: 3, name: 'Léa Fournier' },
     sub_projects: [{ id: 11, name: 'Seconde 3' }],
     ...overrides,
+  });
+
+  it('apparaît le jour même de la séance', async () => {
+    mockApi({ 'GET /sessions': () => jsonResponse({ data: [session({ session_date: '2026-10-06' })] }) });
+    renderAt('/planning?mois=2026-10');
+    expect(await screen.findByRole('link', { name: /Remplir la fiche/ })).toBeInTheDocument();
+  });
+
+  it('n’apparaît pas sur une séance à venir', async () => {
+    mockApi({ 'GET /sessions': () => jsonResponse({ data: [session({ session_date: '2026-10-07' })] }) });
+    renderAt('/planning?mois=2026-10');
+    await screen.findByText('Arts Danse au Lycée Charles');
+    expect(screen.queryByRole('link', { name: /Remplir la fiche/ })).not.toBeInTheDocument();
   });
 
   it('n’apparaît que pour l’intervenant référent d’une séance non annulée', async () => {
@@ -464,5 +491,25 @@ describe('Déverrouillage par l’administratrice', () => {
     renderAt('/fiches/7?etape=2');
     expect(await screen.findByLabelText(/Objectifs pédagogiques/)).toBeEnabled();
     expect(screen.getByText(/Modifiable jusqu’au 30\/10\/2026 inclus/)).toBeInTheDocument();
+  });
+});
+
+describe('Liste des exercices', () => {
+  it('compte les lignes remplies et place l’erreur de l’API sous la bonne ligne', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: entry() }),
+      'PATCH /logbook-entries/7': () =>
+        jsonResponse({ message: 'Invalid', errors: { 'exercises.0': ['Libellé refusé.'] } }, 422),
+    });
+    const user = userEvent.setup();
+    renderAt('/fiches/7?etape=3');
+    expect(await screen.findByText('0 / 10 exercices renseignés (2 au moins)')).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Exercice 2' }), 'Duo');
+    expect(screen.getByText('1 / 10 exercices renseignés (2 au moins)')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
+    expect(await screen.findByText('Libellé refusé.')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Exercice 2' })).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('textbox', { name: 'Exercice 1' })).not.toHaveAttribute('aria-invalid');
   });
 });
