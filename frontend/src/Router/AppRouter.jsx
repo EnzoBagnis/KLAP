@@ -5,6 +5,8 @@ import NewProjectPage from '../Pages/Projects/NewProjectPage.jsx';
 import { ROLES } from '../Context/roles.js';
 import ProjectDetailsPage from '../Pages/Projects/ProjectDetailsPage.jsx';
 import LoginPage from '../Pages/Auth/LoginPage.jsx';
+import LogbookEntryPage from '../Pages/Logbook/LogbookEntryPage.jsx';
+import OpenLogbookPage from '../Pages/Logbook/OpenLogbookPage.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import { NAV_ITEMS } from '../Components/Layout/navigation.js';
 
@@ -44,6 +46,9 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+          {/* Fiche de séance : hors menu, « Planning » reste le point d'entrée. L'API vérifie les droits. */}
+          <Route path="/planning/seances/:sessionId/fiche" element={<OpenLogbookPage />} />
+          <Route path="/fiches/:id" element={<LogbookEntryPage />} />
           <Route path="/notifications" element={<Placeholder title="Notifications" />} />
           <Route path="/profil" element={<Placeholder title="Profil" />} />
         </Route>
