@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\LogbookEntryController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectTypeController;
 use App\Http\Controllers\Api\ScheduledSessionController;
+use App\Http\Controllers\Api\StatisticsController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('logbook-entries/{entry}/submit', [LogbookEntryController::class, 'submit']);
     Route::get('sessions/{session}/logbook-entry', [LogbookEntryController::class, 'forSession']);
     Route::post('sessions/{session}/logbook-entry', [LogbookEntryController::class, 'store']);
+
+    // Statistiques (#113) : administration seulement, en lecture.
+    Route::get('statistics', StatisticsController::class)->middleware('role:admin,super_user');
 
     // Projets : création réservée à l'administratrice (RG02, #55).
     Route::middleware('role:admin')->group(function () {
