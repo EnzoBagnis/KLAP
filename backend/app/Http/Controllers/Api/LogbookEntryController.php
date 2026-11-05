@@ -8,6 +8,7 @@ use App\Http\Requests\Logbook\StoreLogbookEntryRequest;
 use App\Http\Requests\Logbook\SubmitLogbookEntryRequest;
 use App\Http\Requests\Logbook\UpdateLogbookEntryRequest;
 use App\Http\Resources\LogbookEntryResource;
+use App\Models\KlapNotification;
 use App\Models\LogbookEntry;
 use App\Models\User;
 use App\Support\LogbookRules;
@@ -112,9 +113,17 @@ class LogbookEntryController extends Controller
             throw ValidationException::withMessages($errors);
         }
 
-        $entry->status = 'submitted';
-        $entry->submitted_at ??= now();
-        $entry->save();
+        DB::transaction(function () use ($entry) {
+            $first = $entry->submitted_at === null;
+            $entry->status = 'submitted';
+            $entry->submitted_at ??= now();
+            $entry->save();
+            // Cahier des charges : « Notification à l'admin quand une fiche est remplie » ;
+            // la super-utilisatrice aussi (#84). Une seule fois, à la première soumission.
+            if ($first) {
+                $this->notifySubmitted($entry);
+            }
+        });
 
         return new LogbookEntryResource($entry->fresh(self::RELATIONS));
     }
@@ -150,6 +159,29 @@ class LogbookEntryController extends Controller
         });
 
         return new LogbookEntryResource($found->fresh(self::RELATIONS));
+    }
+
+    private function notifySubmitted(LogbookEntry $entry): void
+    {
+        $entry->loadMissing(['author', 'scheduledSession.project']);
+        $session = $entry->scheduledSession;
+        $message = sprintf('%s a rempli la fiche du %s (%s).',
+            $entry->author->name,
+            $session->session_date->locale('fr')->translatedFormat('j F'),
+            $session->project->name);
+
+        User::query()
+            ->whereIn('role', [UserRole::Admin->value, UserRole::SuperUser->value])
+            ->where('is_active', true)
+            ->whereKeyNot($entry->author_id)
+            ->pluck('id')
+            ->each(fn (int $recipient) => KlapNotification::query()->create([
+                'recipient_id' => $recipient,
+                'type' => 'entry_submitted',
+                'logbook_entry_id' => $entry->id,
+                // La colonne est un VARCHAR(255) : un nom de projet très long est tronqué.
+                'message' => mb_strimwidth($message, 0, 255, '…'),
+            ]));
     }
 
     /** Écrit la saisie validée : colonnes, évaluation, exercices (remplacés), présents. */
