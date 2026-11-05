@@ -36,6 +36,30 @@ class ProjectPolicy
     }
 
     /**
+     * Détermine si l'utilisateur peut exporter le pré-bilan officiel (Word / Excel).
+     * Réservé à l'administration (admin, super_user) ou à l'artiste intervenant sur ce projet.
+     */
+    public function export(User $user, Project $project): Response
+    {
+        if (! $user->is_active) {
+            return Response::deny("Votre compte utilisateur a été désactivé par l'administration.");
+        }
+
+        if ($user->isAdmin() || $user->isSuperUser()) {
+            return Response::allow();
+        }
+
+        // Un intervenant contributeur ne peut exporter que les projets auxquels il participe
+        $isLinked = $project->users()->where('users.id', $user->id)->exists();
+
+        if ($isLinked) {
+            return Response::allow();
+        }
+
+        return Response::deny("Vous n'êtes pas assigné à ce projet et ne pouvez pas en exporter le bilan.");
+    }
+
+    /**
      * Détermine si l'utilisateur peut créer un projet.
      */
     public function create(User $user): Response

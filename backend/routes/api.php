@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\LogbookController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PlanningController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\StatisticsController;
@@ -46,5 +48,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // Statistiques et indicateurs agrégés (Règle MAX dédoublonnée)
     Route::get('/statistics/projects', [StatisticsController::class, 'getProjectsSummary']);
     Route::get('/statistics/projects/{projectId}', [StatisticsController::class, 'getProjectStats']);
+
+    // Notifications internes (Cloche de supervision)
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+
+    // Génération et export des pré-bilans (Word & Excel/CSV - strictement AUCUN PDF)
+    Route::get('/exports/projects/{projectId}/word', [ExportController::class, 'exportWord']);
+    Route::get('/exports/projects/{projectId}/excel', [ExportController::class, 'exportCsv']);
+    Route::get('/exports/projects/{projectId}/csv', [ExportController::class, 'exportCsv']);
+    Route::get('/exports/projects/{projectId}/pdf', [ExportController::class, 'rejectPdf']);
 
 });
