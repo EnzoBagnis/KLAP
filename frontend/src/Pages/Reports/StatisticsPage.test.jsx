@@ -5,7 +5,7 @@ import { afterEach, vi } from 'vitest';
 import { AuthProvider } from '../../Context/AuthContext.jsx';
 import AppRouter from '../../Router/AppRouter.jsx';
 import { getStatistics } from '../../Services/StatisticsService.js';
-import { MOCK_USERS, jsonResponse, mockApi } from '../../testUtils.js';
+import { MOCK_USERS, jsonResponse, mockApi, screenCalls } from '../../testUtils.js';
 
 const averages = (engagement, expression, autonomy) => ({
   avg_engagement: engagement,
@@ -347,6 +347,6 @@ describe('Page Statistiques', () => {
     const fetchMock = mockApi({});
     renderAt('/statistiques', MOCK_USERS.contributor);
     expect(screen.queryByRole('heading', { name: 'Statistiques' })).not.toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screenCalls(fetchMock)).toHaveLength(0);
   });
 });
