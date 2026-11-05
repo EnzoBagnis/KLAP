@@ -12,6 +12,11 @@
   --color-accent: #e12a10;       /* rouge KLAP */
   --color-accent-strong: #c41f08;
 
+  /* Charte des graphiques (contexte client) : engagement, expression, autonomie */
+  --color-chart-engagement: #e12a10;
+  --color-chart-expression: #2e8b57;
+  --color-chart-autonomy: #8e5bb5;
+
   /* Polices */
   --font-body: 'Archivo', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
