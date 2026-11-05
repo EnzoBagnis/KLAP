@@ -4,7 +4,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { AuthProvider } from '../../Context/AuthContext.jsx';
 import AppRouter from '../../Router/AppRouter.jsx';
-import { MOCK_USERS, jsonResponse, mockApi } from '../../testUtils.js';
+import { MOCK_USERS, jsonResponse, mockApi, screenCalls } from '../../testUtils.js';
 import { todayKey } from '../Planning/sessionLabels.js';
 import { formFromEntry, payloadFromForm, stepOfError, stepsWithErrors } from './logbookModel.js';
 
@@ -147,7 +147,7 @@ describe('Ouverture depuis le planning', () => {
     });
     renderAt('/planning/seances/1/fiche');
     await screen.findByRole('heading', { name: 'Arts Danse au Lycée Charles' });
-    expect(fetchMock.mock.calls.map(([, o]) => o?.method ?? 'GET')).toEqual(['GET', 'POST', 'GET']);
+    expect(screenCalls(fetchMock).map(([, o]) => o?.method ?? 'GET')).toEqual(['GET', 'POST', 'GET']);
   });
 
   it('relit la fiche si une autre ouverture l’a créée entre-temps', async () => {
@@ -310,7 +310,7 @@ it('n’envoie rien quand rien n’a changé', async () => {
   renderAt('/fiches/7');
   await user.click(await screen.findByRole('button', { name: 'Étape suivante' }));
   await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('etape=2'));
-  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(screenCalls(fetchMock)).toHaveLength(1);
 });
 
 describe('Cas d’erreur et garde-fous', () => {
@@ -466,7 +466,7 @@ describe('Déverrouillage par l’administratrice', () => {
     const user = userEvent.setup();
     renderAt('/fiches/7', MOCK_USERS.admin);
     await user.click(await screen.findByRole('button', { name: 'Déverrouiller la fiche' }));
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(screenCalls(fetchMock)).toHaveLength(1);
   });
 
   it('affiche le refus de l’API', async () => {
