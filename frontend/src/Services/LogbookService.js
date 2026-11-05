@@ -18,3 +18,7 @@ export const updateEntry = (id, payload) =>
 
 export const submitEntry = (id) =>
   data(apiRequest(`/logbook-entries/${encodeURIComponent(id)}/submit`, { method: 'POST', body: {}, token: getToken() }));
+
+/** Rouvrir une fiche verrouillée ou hors délai (administratrice, #109). */
+export const unlockEntry = (id) =>
+  data(apiRequest(`/logbook-entries/${encodeURIComponent(id)}/unlock`, { method: 'POST', body: {}, token: getToken() }));
