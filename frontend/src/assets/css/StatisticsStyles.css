@@ -15,7 +15,7 @@
 
 .stat-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   margin: 0 0 32px;
   padding: 0;
@@ -45,6 +45,23 @@
 .stat-value {
   font-size: var(--text-30);
   font-weight: 600;
+}
+
+.stat-hint {
+  font-size: var(--text-13);
+  color: var(--color-mute);
+}
+
+.statistics-breakdowns {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+.statistics-group-meta {
+  display: block;
+  font-size: var(--text-12);
 }
 
 .ratings {
@@ -148,6 +165,10 @@
 
   .stat-cards {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .statistics-breakdowns {
+    grid-template-columns: 1fr;
   }
 
   .rating-row {
