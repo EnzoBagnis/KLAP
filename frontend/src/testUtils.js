@@ -49,3 +49,7 @@ export function mockApi(routes) {
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
+
+/** Appels faits par l'écran testé, sans ceux de la cloche (compteur rechargé à chaque page). */
+export const screenCalls = (fetchMock) =>
+  fetchMock.mock.calls.filter(([url]) => !new URL(url).pathname.startsWith('/api/notifications'));
