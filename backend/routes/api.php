@@ -50,5 +50,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Listes pour les menus du formulaire projet (#92).
         Route::get('users', [UserController::class, 'index']);
         Route::get('funders', [FunderController::class, 'index']);
+
+        // Rouvrir une fiche verrouillée ou hors délai (#109), opération tracée.
+        Route::post('logbook-entries/{entry}/unlock', [LogbookEntryController::class, 'unlock']);
     });
 });

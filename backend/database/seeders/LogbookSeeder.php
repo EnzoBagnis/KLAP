@@ -32,7 +32,7 @@ class LogbookSeeder extends Seeder
                 'artist_review' => 'séance dense mais ça a bien travaillé',
                 'next_steps' => 'reprendre la séquence au sol avec musique',
                 'dropped_leads' => 'le travail sur chaise, pas adapté à cette salle', 'keep_in_class' => false,
-                'additional_notes' => 'il manque des tapis', 'edit_deadline' => '2026-09-20', 'submitted_at' => '2026-09-10 19:05:00',
+                'additional_notes' => 'il manque des tapis', 'edit_deadline' => '2026-10-01', 'submitted_at' => '2026-09-10 19:05:00',
                 'unlocked_by' => 1, 'unlocked_at' => '2026-09-21 09:15:00',
             ],
             [
