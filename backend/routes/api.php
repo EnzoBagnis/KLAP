@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\FunderController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectTypeController;
+use App\Http\Controllers\Api\ScheduledSessionController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,9 +24,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('projects', [ProjectController::class, 'index']);
     Route::get('projects/{project}', [ProjectController::class, 'show']);
 
+    // Planning (#102) : lecture par tous les rôles, filtrée selon RG02.
+    Route::get('projects/{project}/sessions', [ScheduledSessionController::class, 'indexForProject']);
+    Route::get('sessions', [ScheduledSessionController::class, 'index']);
+
     // Projets : création réservée à l'administratrice (RG02, #55).
     Route::middleware('role:admin')->group(function () {
         Route::post('projects', [ProjectController::class, 'store']);
+        Route::post('projects/{project}/sessions', [ScheduledSessionController::class, 'store']);
 
         // Types de projet : liste gérée par l'administratrice, sans suppression.
         Route::get('project-types', [ProjectTypeController::class, 'index']);
