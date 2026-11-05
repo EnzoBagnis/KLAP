@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FunderController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\LogbookEntryController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectTypeController;
 use App\Http\Controllers\Api\ScheduledSessionController;
@@ -37,6 +38,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('logbook-entries/{entry}/submit', [LogbookEntryController::class, 'submit']);
     Route::get('sessions/{session}/logbook-entry', [LogbookEntryController::class, 'forSession']);
     Route::post('sessions/{session}/logbook-entry', [LogbookEntryController::class, 'store']);
+
+    // Notifications (#122) : chacun lit les siennes.
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'read']);
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll']);
 
     // Statistiques (#113) : administration seulement, en lecture.
     Route::get('statistics', StatisticsController::class)->middleware('role:admin,super_user');

@@ -8,6 +8,7 @@ use App\Http\Requests\Logbook\StoreLogbookEntryRequest;
 use App\Http\Requests\Logbook\SubmitLogbookEntryRequest;
 use App\Http\Requests\Logbook\UpdateLogbookEntryRequest;
 use App\Http\Resources\LogbookEntryResource;
+use App\Models\KlapNotification;
 use App\Models\LogbookEntry;
 use App\Models\User;
 use App\Support\LogbookRules;
@@ -112,9 +113,20 @@ class LogbookEntryController extends Controller
             throw ValidationException::withMessages($errors);
         }
 
-        $entry->status = 'submitted';
-        $entry->submitted_at ??= now();
-        $entry->save();
+        DB::transaction(function () use ($entry) {
+            // « Première soumission » décidée par la base, pas par la fiche chargée plus tôt :
+            // un double appui sur « Soumettre » n'envoie qu'une notification.
+            $first = LogbookEntry::query()->whereKey($entry->id)->whereNull('submitted_at')
+                ->update(['status' => 'submitted', 'submitted_at' => now(), 'updated_at' => now()]) === 1;
+            if (! $first) {
+                LogbookEntry::query()->whereKey($entry->id)->update(['status' => 'submitted', 'updated_at' => now()]);
+            }
+            // Cahier des charges : « Notification à l'admin quand une fiche est remplie » ;
+            // la super-utilisatrice aussi (#84). Une seule fois, à la première soumission.
+            if ($first) {
+                $this->notifySubmitted($entry);
+            }
+        });
 
         return new LogbookEntryResource($entry->fresh(self::RELATIONS));
     }
@@ -150,6 +162,32 @@ class LogbookEntryController extends Controller
         });
 
         return new LogbookEntryResource($found->fresh(self::RELATIONS));
+    }
+
+    private function notifySubmitted(LogbookEntry $entry): void
+    {
+        $entry->loadMissing(['author', 'scheduledSession.project', 'scheduledSession.subProjects']);
+        $session = $entry->scheduledSession;
+        // Date de la séance, nom complet du projet et groupes : plusieurs fiches d'un même
+        // jour et d'un même projet restent distinguables dans la cloche.
+        $message = sprintf('%s a rempli la fiche de la séance du %s : %s (%s).',
+            $entry->author->name,
+            $session->session_date->locale('fr')->translatedFormat('j F'),
+            $session->project->name,
+            $session->subProjects->pluck('name')->join(', '));
+
+        User::query()
+            ->whereIn('role', [UserRole::Admin->value, UserRole::SuperUser->value])
+            ->where('is_active', true)
+            ->whereKeyNot($entry->author_id)
+            ->pluck('id')
+            ->each(fn (int $recipient) => KlapNotification::query()->create([
+                'recipient_id' => $recipient,
+                'type' => 'entry_submitted',
+                'logbook_entry_id' => $entry->id,
+                // La colonne est un VARCHAR(255) : un nom de projet très long est tronqué.
+                'message' => mb_strimwidth($message, 0, 255, '…'),
+            ]));
     }
 
     /** Écrit la saisie validée : colonnes, évaluation, exercices (remplacés), présents. */
