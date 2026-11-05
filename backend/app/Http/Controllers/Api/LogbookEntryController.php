@@ -114,10 +114,13 @@ class LogbookEntryController extends Controller
         }
 
         DB::transaction(function () use ($entry) {
-            $first = $entry->submitted_at === null;
-            $entry->status = 'submitted';
-            $entry->submitted_at ??= now();
-            $entry->save();
+            // « Première soumission » décidée par la base, pas par la fiche chargée plus tôt :
+            // un double appui sur « Soumettre » n'envoie qu'une notification.
+            $first = LogbookEntry::query()->whereKey($entry->id)->whereNull('submitted_at')
+                ->update(['status' => 'submitted', 'submitted_at' => now(), 'updated_at' => now()]) === 1;
+            if (! $first) {
+                LogbookEntry::query()->whereKey($entry->id)->update(['status' => 'submitted', 'updated_at' => now()]);
+            }
             // Cahier des charges : « Notification à l'admin quand une fiche est remplie » ;
             // la super-utilisatrice aussi (#84). Une seule fois, à la première soumission.
             if ($first) {
@@ -163,12 +166,15 @@ class LogbookEntryController extends Controller
 
     private function notifySubmitted(LogbookEntry $entry): void
     {
-        $entry->loadMissing(['author', 'scheduledSession.project']);
+        $entry->loadMissing(['author', 'scheduledSession.project', 'scheduledSession.subProjects']);
         $session = $entry->scheduledSession;
-        $message = sprintf('%s a rempli la fiche du %s (%s).',
+        // Date de la séance, nom complet du projet et groupes : plusieurs fiches d'un même
+        // jour et d'un même projet restent distinguables dans la cloche.
+        $message = sprintf('%s a rempli la fiche de la séance du %s : %s (%s).',
             $entry->author->name,
             $session->session_date->locale('fr')->translatedFormat('j F'),
-            $session->project->name);
+            $session->project->name,
+            $session->subProjects->pluck('name')->join(', '));
 
         User::query()
             ->whereIn('role', [UserRole::Admin->value, UserRole::SuperUser->value])
