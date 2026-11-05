@@ -222,3 +222,7 @@ fieldset.field {
     width: 100%;
   }
 }
+
+.logbook-unlock {
+  margin-top: 12px;
+}
