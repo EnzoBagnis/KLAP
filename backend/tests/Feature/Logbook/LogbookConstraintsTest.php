@@ -67,4 +67,12 @@ class LogbookConstraintsTest extends TestCase
             'status' => 'submitted', 'submitted_at' => now(), 'adjustment_done' => true, 'adjustment_detail' => 'abc',
         ]);
     }
+
+    public function test_la_base_refuse_un_brouillon_verrouille(): void
+    {
+        $id = $this->createEntry();
+
+        $this->expectException(QueryException::class);
+        DB::table('logbook_entries')->where('id', $id)->update(['status' => 'locked']);
+    }
 }

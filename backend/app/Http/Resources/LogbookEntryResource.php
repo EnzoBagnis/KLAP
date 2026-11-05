@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\UserRole;
 use App\Models\LogbookEntry;
 use App\Models\ParticipantEvaluation;
 use Illuminate\Http\Request;
@@ -12,6 +13,8 @@ class LogbookEntryResource extends JsonResource
     public function toArray(Request $request): array
     {
         $session = $this->scheduledSession;
+        // Séance annulée ou projet archivé : ni modification ni réouverture (UpdateLogbookEntryRequest).
+        $active = $session->status !== 'cancelled' && $session->project->status !== 'archived';
 
         return [
             'id' => $this->id,
@@ -19,7 +22,11 @@ class LogbookEntryResource extends JsonResource
             'edit_deadline' => $this->edit_deadline?->toDateString(),
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'editable' => $this->author_id === $request->user()?->id
-                && $this->status !== 'locked' && ! $this->deadlinePassed(),
+                && ! $this->isLocked() && $active,
+            // Rouvrable par l'administratrice : verrouillée ou hors délai, séance et projet actifs.
+            'unlockable' => $request->user()?->hasRole(UserRole::Admin) === true && $this->isLocked() && $active,
+            'unlocked_at' => $this->unlocked_at?->toIso8601String(),
+            'unlocked_by' => $this->unlockedBy ? ['id' => $this->unlockedBy->id, 'name' => $this->unlockedBy->name] : null,
             'author' => ['id' => $this->author->id, 'name' => $this->author->name],
             // Section 1, héritée de la séance (non modifiable depuis la fiche).
             'session' => [
