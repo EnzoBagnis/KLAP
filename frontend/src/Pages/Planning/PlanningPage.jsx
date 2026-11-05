@@ -148,6 +148,11 @@ export default function PlanningPage() {
                         <p className="planning-meta">
                           {session.location.name} · {session.referent.name}
                         </p>
+                        {session.status !== 'cancelled' && session.referent.id === user?.id && (
+                          <Link to={`/planning/seances/${session.id}/fiche`} className="planning-entry-link">
+                            Remplir la fiche<span className="visually-hidden"> du {dayTitle(date).toLowerCase()}</span>
+                          </Link>
+                        )}
                       </div>
                     </li>
                   ))}
