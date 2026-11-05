@@ -37,6 +37,12 @@ class StoreLogbookEntryRequest extends FormRequest
         if ($this->scheduledSession->project->status === 'archived') {
             throw ValidationException::withMessages(['session' => 'Ce projet est archivé.']);
         }
+        // La fiche rend compte d'une séance passée : elle s'ouvre à partir du jour même (heure de Paris).
+        if ($this->scheduledSession->session_date->toDateString() > LogbookEntry::localNow()->toDateString()) {
+            throw ValidationException::withMessages([
+                'session' => 'La séance n’a pas encore eu lieu : la fiche se remplit à partir du jour de la séance.',
+            ]);
+        }
 
         return true;
     }

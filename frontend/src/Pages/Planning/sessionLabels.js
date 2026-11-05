@@ -64,3 +64,8 @@ export function dayTitle(isoDate) {
     new Date(year, month - 1, day),
   );
 }
+
+/** Date du jour à l'heure de KLAP (Paris), comme l'API, au format « 2026-11-05 ». */
+export function todayKey(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(date);
+}
