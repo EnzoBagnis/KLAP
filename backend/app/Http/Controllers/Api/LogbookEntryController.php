@@ -23,7 +23,7 @@ use Illuminate\Validation\ValidationException;
 /** Fiches de séance (#15, #19) : brouillon, soumission, lecture. */
 class LogbookEntryController extends Controller
 {
-    private const RELATIONS = ['author', 'evaluation', 'exercises', 'scheduledSession.project', 'scheduledSession.location', 'scheduledSession.subProjects'];
+    private const RELATIONS = ['author', 'unlockedBy', 'evaluation', 'exercises', 'scheduledSession.project', 'scheduledSession.location', 'scheduledSession.subProjects'];
 
     /** Fiches lisibles : toutes pour l'administration, les siennes pour un intervenant. */
     private function readable(User $user): Builder
@@ -117,6 +117,39 @@ class LogbookEntryController extends Controller
         $entry->save();
 
         return new LogbookEntryResource($entry->fresh(self::RELATIONS));
+    }
+
+    /**
+     * Rouvre une fiche verrouillée ou hors délai (administratrice, route `role:admin`) :
+     * nouvelle échéance à J+10 du déverrouillage, une fiche verrouillée redevient soumise.
+     * Seul le dernier déverrouillage est tracé (unlocked_by, unlocked_at).
+     */
+    public function unlock(Request $request, string $entry): LogbookEntryResource
+    {
+        abort_unless(ctype_digit($entry), 404);
+
+        // Ligne verrouillée le temps de l'opération : la commande de verrouillage ne peut pas
+        // passer la fiche en `locked` entre la lecture et l'écriture.
+        $found = DB::transaction(function () use ($request, $entry) {
+            $found = LogbookEntry::query()->lockForUpdate()->find($entry);
+            abort_if($found === null, 404);
+            $found->load('scheduledSession.project');
+            abort_if($found->scheduledSession->status === 'cancelled'
+                || $found->scheduledSession->project->status === 'archived', 403,
+                'La séance a été annulée ou son projet archivé : la fiche ne se rouvre pas.');
+            abort_unless($found->isLocked(), 409, 'La fiche n’est pas verrouillée.');
+
+            // Une fiche rendue redevient soumise ; un brouillon reste un brouillon.
+            $found->status = $found->status === 'draft' ? 'draft' : 'submitted';
+            $found->edit_deadline = LogbookEntry::localNow()->addDays(LogbookEntry::EDIT_DAYS)->toDateString();
+            $found->unlocked_by = $request->user()->id;
+            $found->unlocked_at = now();
+            $found->save();
+
+            return $found;
+        });
+
+        return new LogbookEntryResource($found->fresh(self::RELATIONS));
     }
 
     /** Écrit la saisie validée : colonnes, évaluation, exercices (remplacés), présents. */
