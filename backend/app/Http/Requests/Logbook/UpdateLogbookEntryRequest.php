@@ -30,7 +30,7 @@ class UpdateLogbookEntryRequest extends FormRequest
             abort_unless($user->hasRole(UserRole::Admin, UserRole::SuperUser), 404);
             abort(403, 'Seul·e l’auteur·rice de la fiche peut la modifier.');
         }
-        abort_if($this->entry->status === 'locked' || $this->entry->deadlinePassed(), 403,
+        abort_if($this->entry->isLocked(), 403,
             'La fiche est verrouillée : le délai de 10 jours après la séance est passé.');
         abort_if($this->entry->scheduledSession->status === 'cancelled'
             || $this->entry->scheduledSession->project->status === 'archived', 403,
