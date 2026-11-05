@@ -107,3 +107,12 @@
   padding: 0;
   border: 0;
 }
+
+.planning-entry-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  font-size: var(--text-14);
+  font-weight: 500;
+  color: var(--color-accent-strong);
+}
