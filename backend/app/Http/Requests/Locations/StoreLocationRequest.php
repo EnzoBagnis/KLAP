@@ -16,6 +16,23 @@ class StoreLocationRequest extends FormRequest
         return (bool) $this->user()->is_active;
     }
 
+    /**
+     * Nettoie les espaces multiples internes avant validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        $merges = [];
+        if ($this->has('name')) {
+            $merges['name'] = preg_replace('/\s+/', ' ', trim((string) $this->input('name')));
+        }
+        if ($this->has('city')) {
+            $merges['city'] = preg_replace('/\s+/', ' ', trim((string) $this->input('city')));
+        }
+        if (! empty($merges)) {
+            $this->merge($merges);
+        }
+    }
+
     public function rules(): array
     {
         return [

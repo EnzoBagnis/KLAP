@@ -15,6 +15,18 @@ class UpdateProjectRequest extends FormRequest
         return $this->user()->can('update', $project);
     }
 
+    /**
+     * Nettoie les espaces multiples internes avant validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('name')) {
+            $this->merge([
+                'name' => preg_replace('/\s+/', ' ', trim((string) $this->input('name'))),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [

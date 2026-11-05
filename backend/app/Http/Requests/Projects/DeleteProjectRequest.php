@@ -19,6 +19,18 @@ class DeleteProjectRequest extends FormRequest
         return $this->user()->can('delete', $project);
     }
 
+    /**
+     * Nettoie les espaces multiples internes avant validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('confirm_name')) {
+            $this->merge([
+                'confirm_name' => preg_replace('/\s+/', ' ', trim((string) $this->input('confirm_name'))),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -35,6 +47,7 @@ class DeleteProjectRequest extends FormRequest
 
     /**
      * Valide que le nom saisi correspond exactement au nom du projet ciblé.
+     * Fournit un guidage UX précis si c'est simplement un problème de majuscules/minuscules.
      */
     public function withValidator(Validator $validator): void
     {
@@ -42,11 +55,21 @@ class DeleteProjectRequest extends FormRequest
             $project = $this->route('project');
 
             if ($project instanceof Project) {
-                if (trim((string) $this->input('confirm_name')) !== trim($project->name)) {
-                    $validator->errors()->add(
-                        'confirm_name',
-                        "Le nom saisi ne correspond pas exactement au nom du projet (« {$project->name} »)."
-                    );
+                $inputName = preg_replace('/\s+/', ' ', trim((string) $this->input('confirm_name')));
+                $projectName = preg_replace('/\s+/', ' ', trim((string) $project->name));
+
+                if ($inputName !== $projectName) {
+                    if (mb_strtolower($inputName) === mb_strtolower($projectName)) {
+                        $validator->errors()->add(
+                            'confirm_name',
+                            "Attention à la casse (majuscules/minuscules) : veuillez saisir exactement « {$project->name} »."
+                        );
+                    } else {
+                        $validator->errors()->add(
+                            'confirm_name',
+                            "Le nom saisi ne correspond pas exactement au nom du projet (« {$project->name} »)."
+                        );
+                    }
                 }
             }
         });

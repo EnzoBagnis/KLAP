@@ -174,4 +174,64 @@ class ProjectAndPlanningTest extends TestCase
             'session_date' => '2026-11-10',
         ]);
     }
+
+    public function test_la_creation_de_projet_normalise_les_espaces_multiples(): void
+    {
+        $response = $this->actingAs($this->admin, 'sanctum')->postJson('/api/projects', [
+            'name' => "Projet    Espaces    Multiples    2026",
+            'default_location_id' => $this->location->id,
+            'lead_artist_id' => $this->artist->id,
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('projects', [
+            'name' => 'Projet Espaces Multiples 2026',
+        ]);
+    }
+
+    public function test_la_suppression_alerte_sur_la_casse_et_tolere_les_espaces_internes(): void
+    {
+        $project = Project::create([
+            'name' => 'Projet Sensibilisation Sud',
+            'default_location_id' => $this->location->id,
+            'created_by' => $this->admin->id,
+        ]);
+
+        // 1. Même texte mais mauvaise casse -> Alerte explicite sur les majuscules/minuscules
+        $caseMismatch = $this->actingAs($this->admin, 'sanctum')->deleteJson("/api/projects/{$project->id}", [
+            'confirm_name' => 'projet sensibilisation sud',
+        ]);
+        $caseMismatch->assertStatus(422);
+        $this->assertStringContainsString('casse (majuscules/minuscules)', $caseMismatch->json('errors.confirm_name.0'));
+
+        // 2. Bon nom avec espaces doubles internes -> Accepté et supprimé
+        $doubleSpaces = $this->actingAs($this->admin, 'sanctum')->deleteJson("/api/projects/{$project->id}", [
+            'confirm_name' => 'Projet   Sensibilisation   Sud',
+        ]);
+        $doubleSpaces->assertStatus(200);
+        $this->assertDatabaseMissing('projects', ['id' => $project->id]);
+    }
+
+    public function test_la_planification_rejette_une_heure_de_fin_invalide_ou_anterieure(): void
+    {
+        $project = Project::create([
+            'name' => 'Projet Test Heures',
+            'default_location_id' => $this->location->id,
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Heure de fin antérieure à l'heure de début
+        $response = $this->actingAs($this->admin, 'sanctum')->postJson('/api/planning', [
+            'project_id' => $project->id,
+            'location_id' => $this->location->id,
+            'referent_id' => $this->artist->id,
+            'session_date' => '2026-11-12',
+            'start_time' => '16:00',
+            'end_time' => '14:00',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['end_time']);
+        $this->assertStringContainsString('postérieure', $response->json('errors.end_time.0'));
+    }
 }

@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Contrôleur de gestion du planning des ateliers et séances KLAP.
@@ -130,19 +131,40 @@ class PlanningController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'project_id' => ['required', 'integer', 'exists:projects,id'],
             'sub_project_ids' => ['nullable', 'array'],
             'sub_project_ids.*' => ['integer', 'exists:sub_projects,id'],
             'location_id' => ['required', 'integer', 'exists:locations,id'],
             'referent_id' => ['nullable', 'integer', 'exists:users,id'],
             'session_date' => ['required', 'date'],
-            'start_time' => ['required', 'string'],
-            'end_time' => ['required', 'string'],
+            'start_time' => ['required', 'string', 'regex:/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
+            'end_time' => ['required', 'string', 'regex:/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
             'session_type' => ['nullable', 'string', 'in:guided_tour,viewing_workshop,practice_workshop,complementary_workshop,performance,ongoing_project,other'],
-            'session_type_detail' => ['nullable', 'string', 'max:100'],
+            'session_type_detail' => ['nullable', 'required_if:session_type,other', 'string', 'max:100'],
             'is_transversal' => ['nullable', 'boolean'],
+        ], [
+            'start_time.regex' => "L'heure de début doit être au format HH:MM (ex: 14:00).",
+            'end_time.regex' => "L'heure de fin doit être au format HH:MM (ex: 16:00).",
+            'session_type_detail.required_if' => "Le détail est obligatoire lorsque le type de séance est 'Autre'.",
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            $start = $request->input('start_time');
+            $end = $request->input('end_time');
+
+            if ($start && $end && is_string($start) && is_string($end)) {
+                // Normalise au format H:i pour comparer de manière sûre
+                $startNormalized = substr($start, 0, 5);
+                $endNormalized = substr($end, 0, 5);
+
+                if ($endNormalized <= $startNormalized) {
+                    $validator->errors()->add('end_time', "L'heure de fin doit être strictement postérieure à l'heure de début.");
+                }
+            }
+        });
+
+        $validated = $validator->validate();
 
         $session = DB::transaction(function () use ($validated, $request) {
             $session = ScheduledSession::create([

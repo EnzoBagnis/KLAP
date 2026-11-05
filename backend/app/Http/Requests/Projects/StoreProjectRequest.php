@@ -15,6 +15,18 @@ class StoreProjectRequest extends FormRequest
         return $this->user()->can('create', Project::class);
     }
 
+    /**
+     * Nettoie les espaces multiples internes avant validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('name')) {
+            $this->merge([
+                'name' => preg_replace('/\s+/', ' ', trim((string) $this->input('name'))),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
