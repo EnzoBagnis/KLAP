@@ -2,12 +2,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from '../Components/Layout/Header.jsx';
 import Sidebar from '../Components/Layout/Sidebar.jsx';
+import { NotificationsProvider } from '../Context/NotificationsContext.jsx';
+import useNotifications from '../Hooks/useNotifications.js';
 import '../assets/css/LayoutStyles.css';
 
 const MENU_ID = 'menu-principal';
 
 // Gabarit des écrans connectés : navigation et zone de contenu.
 export default function MainLayout() {
+  return (
+    <NotificationsProvider>
+      <Layout />
+    </NotificationsProvider>
+  );
+}
+
+function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef(null);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
@@ -36,8 +46,7 @@ export default function MainLayout() {
     };
   }, [menuOpen]);
 
-  // À brancher sur l'API des notifications (klap_notifications non lues).
-  const notificationCount = 0;
+  const { unreadCount: notificationCount } = useNotifications();
 
   return (
     <div className={`app-layout${menuOpen ? ' menu-open' : ''}`}>
