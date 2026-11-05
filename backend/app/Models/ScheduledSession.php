@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Séance programmée au planning. Elle existe avant la fiche, qui en hérite
@@ -51,6 +52,11 @@ class ScheduledSession extends Model
     public function referent(): BelongsTo
     {
         return $this->belongsTo(User::class, 'referent_id');
+    }
+
+    public function logbookEntry(): HasOne
+    {
+        return $this->hasOne(LogbookEntry::class);
     }
 
     public function subProjects(): BelongsToMany

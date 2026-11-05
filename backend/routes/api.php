@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FunderController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\LogbookEntryController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectTypeController;
 use App\Http\Controllers\Api\ScheduledSessionController;
@@ -27,6 +28,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Planning (#102) : lecture par tous les rôles, filtrée selon RG02.
     Route::get('projects/{project}/sessions', [ScheduledSessionController::class, 'indexForProject']);
     Route::get('sessions', [ScheduledSessionController::class, 'index']);
+
+    // Fiches de séance (#15, #19) : le contrôle des droits est fait par fiche.
+    Route::get('logbook-entries', [LogbookEntryController::class, 'index']);
+    Route::get('logbook-entries/{entry}', [LogbookEntryController::class, 'show']);
+    Route::patch('logbook-entries/{entry}', [LogbookEntryController::class, 'update']);
+    Route::post('logbook-entries/{entry}/submit', [LogbookEntryController::class, 'submit']);
+    Route::get('sessions/{session}/logbook-entry', [LogbookEntryController::class, 'forSession']);
+    Route::post('sessions/{session}/logbook-entry', [LogbookEntryController::class, 'store']);
 
     // Projets : création réservée à l'administratrice (RG02, #55).
     Route::middleware('role:admin')->group(function () {
