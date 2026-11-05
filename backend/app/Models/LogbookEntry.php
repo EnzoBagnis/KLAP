@@ -55,6 +55,18 @@ class LogbookEntry extends Model
         return $this->belongsTo(User::class, 'author_id');
     }
 
+    /** Administratrice qui a rouvert la fiche en dernier. */
+    public function unlockedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'unlocked_by');
+    }
+
+    /** Verrouillée, ou hors délai (un brouillon hors délai n'est jamais `locked`). */
+    public function isLocked(): bool
+    {
+        return $this->status === 'locked' || $this->deadlinePassed();
+    }
+
     public function evaluation(): HasOne
     {
         return $this->hasOne(ParticipantEvaluation::class);
