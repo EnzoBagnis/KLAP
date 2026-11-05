@@ -39,6 +39,8 @@ const TEXT_FIELDS = [
 ];
 
 /** État du formulaire à partir de la fiche renvoyée par l'API. */
+const padExercises = (labels) => [...labels, ...Array(Math.max(0, MIN_EXERCISES - labels.length)).fill('')];
+
 export function formFromEntry(entry) {
   const evaluation = entry.evaluation ?? {};
   return {
@@ -54,7 +56,8 @@ export function formFromEntry(entry) {
       feeling_detail: evaluation.feeling_detail ?? '',
       progress: evaluation.progress ?? '',
     },
-    exercises: [...(entry.exercises ?? [])],
+    // Deux lignes d'emblée sur une fiche modifiable : c'est le minimum demandé à la soumission.
+    exercises: entry.editable ? padExercises(entry.exercises ?? []) : [...(entry.exercises ?? [])],
     attendees: Object.fromEntries(
       (entry.session?.sub_projects ?? []).map((group) => [group.id, group.attendees ?? '']),
     ),

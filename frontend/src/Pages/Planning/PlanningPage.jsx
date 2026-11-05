@@ -15,6 +15,7 @@ import {
   parseMonth,
   sessionTypeLabel,
   shiftMonth,
+  todayKey,
 } from './sessionLabels.js';
 import '../../assets/css/ProjectStyles.css';
 import '../../assets/css/PlanningStyles.css';
@@ -82,6 +83,8 @@ export default function PlanningPage() {
   }
 
   const closeModal = useCallback(() => setModalOpen(false), []);
+  // La fiche se remplit à partir du jour de la séance (l'API le vérifie aussi).
+  const today = todayKey();
 
   return (
     <section className="page">
@@ -148,7 +151,7 @@ export default function PlanningPage() {
                         <p className="planning-meta">
                           {session.location.name} · {session.referent.name}
                         </p>
-                        {session.status !== 'cancelled' && session.referent.id === user?.id && (
+                        {session.status !== 'cancelled' && session.referent.id === user?.id && session.session_date <= today && (
                           <Link to={`/planning/seances/${session.id}/fiche`} className="planning-entry-link">
                             Remplir la fiche<span className="visually-hidden"> du {dayTitle(date).toLowerCase()}</span>
                           </Link>
