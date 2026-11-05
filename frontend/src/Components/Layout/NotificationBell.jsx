@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 
-// Cloche visible pour tous les rôles (choix de l'équipe). L'administratrice reçoit les
-// fiches soumises et les demandes de déverrouillage, l'intervenant les rappels de fiche
-// non remplie (types de klap_notifications). Aucun type ne vise encore la super-utilisatrice.
+// Cloche visible pour tous les rôles (choix de l'équipe). L'administratrice et la
+// super-utilisatrice reçoivent les fiches soumises (#84, #122) ; les demandes de
+// déverrouillage iront à l'administratrice seule.
 export default function NotificationBell({ count = 0, onClick }) {
   const label =
     count > 0 ? `Notifications, ${count} non lue${count > 1 ? 's' : ''}` : 'Notifications';

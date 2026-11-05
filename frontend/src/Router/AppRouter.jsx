@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import AuthLayout from '../Layouts/AuthLayout.jsx';
 import MainLayout from '../Layouts/MainLayout.jsx';
 import NewProjectPage from '../Pages/Projects/NewProjectPage.jsx';
+import NotificationsPage from '../Pages/Notifications/NotificationsPage.jsx';
 import { ROLES } from '../Context/roles.js';
 import ProjectDetailsPage from '../Pages/Projects/ProjectDetailsPage.jsx';
 import LoginPage from '../Pages/Auth/LoginPage.jsx';
@@ -49,7 +50,7 @@ export default function AppRouter() {
           {/* Fiche de séance : hors menu, « Planning » reste le point d'entrée. L'API vérifie les droits. */}
           <Route path="/planning/seances/:sessionId/fiche" element={<OpenLogbookPage />} />
           <Route path="/fiches/:id" element={<LogbookEntryPage />} />
-          <Route path="/notifications" element={<Placeholder title="Notifications" />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/profil" element={<Placeholder title="Profil" />} />
         </Route>
       </Route>
