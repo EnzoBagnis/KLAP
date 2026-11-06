@@ -100,12 +100,27 @@ docker compose up -d --build db backend
 
 Une fois les conteneurs démarrés (laissez 5 à 10 secondes à MariaDB pour son premier démarrage) :
 
-1. **Générer la clé d'application Laravel** (si `APP_KEY` est vide dans votre `.env`) :
+1. **Installer les dépendances PHP avec Composer** :
+   ```bash
+   docker compose exec backend composer install
+   ```
+   > [!NOTE]
+   > Cette commande est obligatoire lors de la première installation. Comme le dossier local `./backend` est monté dans le conteneur (`./backend:/var/www/html`), il masque le dossier `vendor` présent dans l'image. Cette commande va installer les paquets directement dans votre dossier local `backend/vendor/`, ce qui permettra en plus à votre IDE (VS Code, PhpStorm...) d'activer l'autocomplétion.
+
+2. **Générer la clé d'application Laravel** (si `APP_KEY` est vide dans votre `.env`) :
    ```bash
    docker compose exec backend php artisan key:generate
    ```
+   > [!TIP]
+   > Comme Docker Compose charge le `.env` au démarrage du conteneur, synchronisez la clé générée vers le `.env` racine et rechargez le conteneur pour éviter l'erreur `No application encryption key has been specified` :
+   > ```powershell
+   > # Sur Windows PowerShell :
+   > Copy-Item backend\.env .env -Force
+   > docker compose up -d backend
+   > ```
+   > *(Ou sur Linux/Mac : `cp backend/.env .env && docker compose up -d backend`)*
 
-2. **Exécuter les migrations de la base de données** :
+3. **Exécuter les migrations de la base de données** :
    ```bash
    docker compose exec backend php artisan migrate
    ```
@@ -226,9 +241,10 @@ docker compose exec backend php artisan migrate
 
 | Problème rencontré | Cause | Solution |
 |---|---|---|
+| `Failed opening required '/var/www/html/vendor/autoload.php'` | Le dossier `vendor/` n'existe pas encore sur votre machine locale car le montage de volume masque celui du conteneur | Exécutez : `docker compose exec backend composer install` |
 | `failed to connect to the docker API` ou `daemon not running` | Docker Desktop n'est pas lancé | Démarrez l'application **Docker Desktop** sous Windows/Mac et attendez que le statut soit *Engine running*. |
 | `SQLSTATE[42S02]: Table 'klap.sessions' doesn't exist` | Les migrations n'ont pas encore été jouées dans MariaDB | Exécutez : `docker compose exec backend php artisan migrate` |
-| `No application encryption key has been specified` | La variable `APP_KEY` est vide dans le `.env` | Exécutez : `docker compose exec backend php artisan key:generate` |
+| `No application encryption key has been specified` | Le conteneur Docker a démarré avec une clé vide dans son environnement système | Exécutez `docker compose exec backend php artisan key:generate`, synchronisez (`Copy-Item backend\.env .env -Force`) puis rechargez : `docker compose up -d backend` |
 | `port is already allocated` (ex: 8080 ou 3306) | Un autre service local utilise déjà ce port (ex: MySQL local, Wamp, XAMPP, un autre Docker) | Arrêtez le service en conflit ou changez le port hôte dans `docker-compose.yml` (ex: `"8081:80"` ou `"3307:3306"`). |
 | Latence / requêtes lentes vers la BDD | Résolution DNS inverse dans MariaDB | Vérifiez la présence de `command: --skip-name-resolve` sous le service `db` dans `docker-compose.yml`. |
 | PHP est toujours en version 8.3 après un `git pull` | L'image Docker locale n'a pas été reconstruite après la modification du Dockerfile | Exécutez `docker compose up -d --build backend` pour forcer le rebuild sous PHP 8.5. |
