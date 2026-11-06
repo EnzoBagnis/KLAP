@@ -406,3 +406,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Onglets de Gestion (écrans 07 et 08). */
+.management-tabs {
+  display: flex;
+  gap: 4px;
+  margin: -8px 0 28px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.management-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+  padding: 0 16px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-mute);
+  font-size: var(--text-14);
+  text-decoration: none;
+}
+
+.management-tab.active {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.invitation-form {
+  max-width: 520px;
+  margin-top: 16px;
+}

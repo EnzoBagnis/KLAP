@@ -50,6 +50,59 @@
   font-size: var(--text-14);
 }
 
+.form-success {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--color-ink);
+  background: var(--color-field);
+  font-size: var(--text-14);
+}
+
+.password-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: -8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-13);
+  color: var(--color-mute);
+}
+
+.password-rules li::before {
+  content: '○ ';
+}
+
+.password-rules li.is-met {
+  color: var(--color-ink);
+}
+
+.password-rules li.is-met::before {
+  content: '● ';
+  color: var(--color-accent);
+}
+
+.activation-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: var(--text-14);
+}
+
+.activation-facts dt {
+  font-family: var(--font-mono);
+  font-size: var(--text-12);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--color-mute);
+}
+
+.activation-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
