@@ -15,6 +15,7 @@ class LogbookEntryResource extends JsonResource
         $session = $this->scheduledSession;
         // Séance annulée ou projet archivé : ni modification ni réouverture (UpdateLogbookEntryRequest).
         $active = $session->status !== 'cancelled' && $session->project->status !== 'archived';
+        $pendingRequest = $this->resource->pendingUnlockRequestAt();
 
         return [
             'id' => $this->id,
@@ -26,6 +27,12 @@ class LogbookEntryResource extends JsonResource
             // Rouvrable par l'administratrice : verrouillée ou hors délai, séance et projet actifs.
             'unlockable' => $request->user()?->hasRole(UserRole::Admin) === true && $this->isLocked() && $active,
             'unlocked_at' => $this->unlocked_at?->toIso8601String(),
+            'unlock_requested_at' => $pendingRequest?->toIso8601String(),
+            // L'auteur peut demander la réouverture d'une fiche verrouillée, une demande à la fois ;
+            // une administratrice auteure la rouvre elle-même.
+            'unlock_requestable' => $this->author_id === $request->user()?->id
+                && $request->user()?->hasRole(UserRole::Admin) !== true
+                && $this->isLocked() && $active && $pendingRequest === null,
             'unlocked_by' => $this->unlockedBy ? ['id' => $this->unlockedBy->id, 'name' => $this->unlockedBy->name] : null,
             'author' => ['id' => $this->author->id, 'name' => $this->author->name],
             // Section 1, héritée de la séance (non modifiable depuis la fiche).

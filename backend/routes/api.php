@@ -44,6 +44,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('logbook-entries/{entry}', [LogbookEntryController::class, 'show']);
     Route::patch('logbook-entries/{entry}', [LogbookEntryController::class, 'update']);
     Route::post('logbook-entries/{entry}/submit', [LogbookEntryController::class, 'submit']);
+    // Demande de réouverture par l'auteur (#130) ; seule l'administratrice rouvre.
+    Route::post('logbook-entries/{entry}/unlock-request', [LogbookEntryController::class, 'requestUnlock']);
     Route::get('sessions/{session}/logbook-entry', [LogbookEntryController::class, 'forSession']);
     Route::post('sessions/{session}/logbook-entry', [LogbookEntryController::class, 'store']);
 

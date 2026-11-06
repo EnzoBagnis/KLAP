@@ -47,6 +47,8 @@ class LogbookEntryController extends Controller
             ->join('scheduled_sessions', 'scheduled_sessions.id', '=', 'logbook_entries.scheduled_session_id')
             ->orderByDesc('scheduled_sessions.session_date')
             ->select('logbook_entries.*')
+            // Après select() : sinon la sous-requête est effacée et chaque fiche relit ses demandes.
+            ->withMax('unlockRequests', 'created_at')
             ->get();
 
         return LogbookEntryResource::collection($entries);
@@ -164,30 +166,71 @@ class LogbookEntryController extends Controller
         return new LogbookEntryResource($found->fresh(self::RELATIONS));
     }
 
+    /**
+     * Demande de réouverture par l'auteur d'une fiche verrouillée (#130, repris de la branche
+     * de Lucas, #121) : les administratrices actives sont prévenues ; seule l'une d'elles
+     * rouvre (contexte client). Une seule demande en attente, close par la réouverture.
+     */
+    public function requestUnlock(Request $request, string $entry): LogbookEntryResource
+    {
+        $user = $request->user();
+        $found = ctype_digit($entry) ? $this->readable($user)->find($entry) : null;
+        abort_if($found === null, 404);
+        abort_unless($found->author_id === $user->id, 403, 'Seul·e l’auteur·rice de la fiche peut en demander la réouverture.');
+        abort_if($user->hasRole(UserRole::Admin), 403, 'Vous pouvez rouvrir cette fiche vous-même.');
+
+        DB::transaction(function () use ($found) {
+            // Ligne verrouillée : un double appui ne crée qu'une demande.
+            $entry = LogbookEntry::query()->lockForUpdate()->with('scheduledSession.project')->findOrFail($found->id);
+            abort_if($entry->scheduledSession->status === 'cancelled'
+                || $entry->scheduledSession->project->status === 'archived', 403,
+                'La séance a été annulée ou son projet archivé : la fiche ne se rouvre pas.');
+            abort_unless($entry->isLocked(), 409, 'La fiche n’est pas verrouillée.');
+            abort_if($entry->pendingUnlockRequestAt() !== null, 409,
+                'Une demande de réouverture est déjà en attente pour cette fiche.');
+
+            $sent = $this->notifyAdministration($entry, 'unlock_request', '%s demande à rouvrir la fiche de la séance du %s : %s (%s).', [UserRole::Admin]);
+            abort_if($sent === 0, 503, 'Aucune administratrice ne peut recevoir la demande pour le moment.');
+        });
+
+        return new LogbookEntryResource($found->fresh(self::RELATIONS));
+    }
+
     private function notifySubmitted(LogbookEntry $entry): void
+    {
+        $this->notifyAdministration($entry, 'entry_submitted', '%s a rempli la fiche de la séance du %s : %s (%s).',
+            [UserRole::Admin, UserRole::SuperUser]);
+    }
+
+    /**
+     * Notifie les comptes actifs des rôles donnés, sauf l'auteur. Message : auteur, date de la
+     * séance, nom complet du projet et groupes, pour distinguer les fiches d'un même jour.
+     * Renvoie le nombre de notifications créées.
+     */
+    private function notifyAdministration(LogbookEntry $entry, string $type, string $format, array $roles): int
     {
         $entry->loadMissing(['author', 'scheduledSession.project', 'scheduledSession.subProjects']);
         $session = $entry->scheduledSession;
-        // Date de la séance, nom complet du projet et groupes : plusieurs fiches d'un même
-        // jour et d'un même projet restent distinguables dans la cloche.
-        $message = sprintf('%s a rempli la fiche de la séance du %s : %s (%s).',
+        $message = sprintf($format,
             $entry->author->name,
             $session->session_date->locale('fr')->translatedFormat('j F'),
             $session->project->name,
             $session->subProjects->pluck('name')->join(', '));
 
-        User::query()
-            ->whereIn('role', [UserRole::Admin->value, UserRole::SuperUser->value])
+        $recipients = User::query()
+            ->whereIn('role', array_map(fn (UserRole $role) => $role->value, $roles))
             ->where('is_active', true)
             ->whereKeyNot($entry->author_id)
-            ->pluck('id')
-            ->each(fn (int $recipient) => KlapNotification::query()->create([
-                'recipient_id' => $recipient,
-                'type' => 'entry_submitted',
-                'logbook_entry_id' => $entry->id,
-                // La colonne est un VARCHAR(255) : un nom de projet très long est tronqué.
-                'message' => mb_strimwidth($message, 0, 255, '…'),
-            ]));
+            ->pluck('id');
+        $recipients->each(fn (int $recipient) => KlapNotification::query()->create([
+            'recipient_id' => $recipient,
+            'type' => $type,
+            'logbook_entry_id' => $entry->id,
+            // La colonne est un VARCHAR(255) : un nom de projet très long est tronqué.
+            'message' => mb_strimwidth($message, 0, 255, '…'),
+        ]));
+
+        return $recipients->count();
     }
 
     /** Écrit la saisie validée : colonnes, évaluation, exercices (remplacés), présents. */
