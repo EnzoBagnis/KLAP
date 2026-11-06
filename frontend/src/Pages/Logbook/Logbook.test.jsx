@@ -433,7 +433,7 @@ describe('Déverrouillage par l’administratrice', () => {
     mockApi({ 'GET /logbook-entries/7': () => jsonResponse({ data: locked({ unlockable: false }) }) });
     renderAt('/fiches/7', MOCK_USERS.admin);
     await screen.findByRole('heading', { name: 'Arts Danse au Lycée Charles' });
-    expect(screen.queryByRole('button', { name: 'Déverrouiller la fiche' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rouvrir la fiche' })).not.toBeInTheDocument();
   });
 
   it('rouvre la fiche après confirmation et indique la nouvelle échéance', async () => {
@@ -453,10 +453,10 @@ describe('Déverrouillage par l’administratrice', () => {
     vi.stubGlobal('confirm', vi.fn(() => true));
     const user = userEvent.setup();
     renderAt('/fiches/7', MOCK_USERS.admin);
-    await user.click(await screen.findByRole('button', { name: 'Déverrouiller la fiche' }));
+    await user.click(await screen.findByRole('button', { name: 'Rouvrir la fiche' }));
     expect(await screen.findByText(/Fiche rouverte : Léa Fournier peut la modifier jusqu’au 30\/10\/2026 inclus\./)).toBeInTheDocument();
     expect(screen.getByText('Rouverte le 20/10/2026 par Mariette Travard.')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Déverrouiller la fiche' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rouvrir la fiche' })).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([url]) => url.endsWith('/unlock'))).toHaveLength(1);
   });
 
@@ -465,7 +465,7 @@ describe('Déverrouillage par l’administratrice', () => {
     vi.stubGlobal('confirm', vi.fn(() => false));
     const user = userEvent.setup();
     renderAt('/fiches/7', MOCK_USERS.admin);
-    await user.click(await screen.findByRole('button', { name: 'Déverrouiller la fiche' }));
+    await user.click(await screen.findByRole('button', { name: 'Rouvrir la fiche' }));
     expect(screenCalls(fetchMock)).toHaveLength(1);
   });
 
@@ -477,7 +477,7 @@ describe('Déverrouillage par l’administratrice', () => {
     vi.stubGlobal('confirm', vi.fn(() => true));
     const user = userEvent.setup();
     renderAt('/fiches/7', MOCK_USERS.admin);
-    await user.click(await screen.findByRole('button', { name: 'Déverrouiller la fiche' }));
+    await user.click(await screen.findByRole('button', { name: 'Rouvrir la fiche' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('La fiche n’est pas verrouillée.');
   });
 
@@ -511,5 +511,97 @@ describe('Liste des exercices', () => {
     expect(await screen.findByText('Libellé refusé.')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Exercice 2' })).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByRole('textbox', { name: 'Exercice 1' })).not.toHaveAttribute('aria-invalid');
+  });
+});
+
+describe('Demande de réouverture par l’auteur', () => {
+  const locked = (overrides = {}) =>
+    entry({ status: 'locked', editable: false, unlock_requestable: true, unlock_requested_at: null, ...overrides });
+
+  it('propose la demande sur une fiche verrouillée, après confirmation', async () => {
+    const fetchMock = mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: locked() }),
+      'POST /logbook-entries/7/unlock-request': () =>
+        jsonResponse({ data: locked({ unlock_requestable: false, unlock_requested_at: '2026-10-20T07:00:00+00:00' }) }),
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const user = userEvent.setup();
+    renderAt('/fiches/7');
+    await user.click(await screen.findByRole('button', { name: 'Demander la réouverture' }));
+
+    expect(await screen.findByText('Demande envoyée : l’administratrice est prévenue.')).toBeInTheDocument();
+    expect(screen.getByText('Demande de réouverture envoyée le 20/10/2026.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Demander la réouverture' })).not.toBeInTheDocument();
+    expect(screenCalls(fetchMock).filter(([url]) => url.endsWith('/unlock-request'))).toHaveLength(1);
+  });
+
+  it('n’envoie rien si l’auteur annule', async () => {
+    const fetchMock = mockApi({ 'GET /logbook-entries/7': () => jsonResponse({ data: locked() }) });
+    vi.stubGlobal('confirm', vi.fn(() => false));
+    const user = userEvent.setup();
+    renderAt('/fiches/7');
+    await user.click(await screen.findByRole('button', { name: 'Demander la réouverture' }));
+    expect(screenCalls(fetchMock)).toHaveLength(1);
+  });
+
+  it('affiche le refus de l’API', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: locked() }),
+      'POST /logbook-entries/7/unlock-request': () =>
+        jsonResponse({ message: 'Une demande de réouverture est déjà en attente pour cette fiche.' }, 409),
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const user = userEvent.setup();
+    renderAt('/fiches/7');
+    await user.click(await screen.findByRole('button', { name: 'Demander la réouverture' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('déjà en attente');
+  });
+
+  it('rappelle une demande déjà envoyée, sans bouton', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () =>
+        jsonResponse({ data: locked({ unlock_requestable: false, unlock_requested_at: '2026-10-18T07:00:00+00:00' }) }),
+    });
+    renderAt('/fiches/7');
+    expect(await screen.findByText('Demande de réouverture envoyée le 18/10/2026.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Demander la réouverture' })).not.toBeInTheDocument();
+  });
+
+  it('affiche l’absence d’administratrice disponible', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: locked() }),
+      'POST /logbook-entries/7/unlock-request': () =>
+        jsonResponse({ message: 'Aucune administratrice ne peut recevoir la demande pour le moment.' }, 503),
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const user = userEvent.setup();
+    renderAt('/fiches/7');
+    await user.click(await screen.findByRole('button', { name: 'Demander la réouverture' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Aucune administratrice');
+  });
+
+  it('relit la fiche quand la demande a déjà été faite ailleurs', async () => {
+    let reads = 0;
+    mockApi({
+      'GET /logbook-entries/7': () =>
+        jsonResponse({
+          data: ++reads === 1 ? locked() : locked({ unlock_requestable: false, unlock_requested_at: '2026-10-19T07:00:00+00:00' }),
+        }),
+      'POST /logbook-entries/7/unlock-request': () =>
+        jsonResponse({ message: 'Une demande de réouverture est déjà en attente pour cette fiche.' }, 409),
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const user = userEvent.setup();
+    renderAt('/fiches/7');
+    await user.click(await screen.findByRole('button', { name: 'Demander la réouverture' }));
+    expect(await screen.findByText('Demande de réouverture envoyée le 19/10/2026.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Demander la réouverture' })).not.toBeInTheDocument();
+  });
+
+  it('ne propose pas la demande à l’administratrice', async () => {
+    mockApi({ 'GET /logbook-entries/7': () => jsonResponse({ data: locked({ unlock_requestable: false, unlockable: true }) }) });
+    renderAt('/fiches/7', MOCK_USERS.admin);
+    expect(await screen.findByRole('button', { name: 'Rouvrir la fiche' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Demander la réouverture' })).not.toBeInTheDocument();
   });
 });
