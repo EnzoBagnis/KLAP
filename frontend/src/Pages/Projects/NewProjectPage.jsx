@@ -7,6 +7,7 @@ import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import useAuth from '../../Hooks/useAuth.js';
 import BaseModal from '../../Modals/BaseModal.jsx';
 import { createProject, listProjectTypes } from '../../Services/ProjectService.js';
+import LocationSelect from '../../Components/Form/LocationSelect.jsx';
 import { listContributors, listFunders, listLocations } from '../../Services/ReferenceService.js';
 import '../../assets/css/FormStyles.css';
 import '../../assets/css/ProjectStyles.css';
@@ -37,7 +38,7 @@ export function validateProject(form) {
   const errors = {};
   if (!form.name.trim()) errors.name = 'Donnez un nom au projet.';
   else if (form.name.trim().length > 150) errors.name = 'Le nom ne doit pas dépasser 150 caractères.';
-  if (!form.default_location_id) errors.default_location_id = 'Choisissez le lieu habituel.';
+  if (!form.default_location_id) errors.default_location_id = 'Choisissez le lieu par défaut.';
   if (!form.principal_user_id) errors.principal_user_id = 'Choisissez l’intervenant·e principal·e.';
   if (form.organization.trim().length > 150) errors.organization = 'La structure ne doit pas dépasser 150 caractères.';
   if (form.city.trim().length > 100) errors.city = 'La ville ne doit pas dépasser 100 caractères.';
@@ -146,6 +147,12 @@ export default function NewProjectPage() {
   }, [loadReferences]);
 
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
+  // Lieu créé depuis le menu (#135) : ajouté à la liste, rangée par nom.
+  const addLocation = (place) =>
+    setReferences((current) => ({
+      ...current,
+      locations: [...current.locations, place].sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    }));
 
   function toggleFunder(id) {
     setForm((current) => ({
@@ -256,14 +263,15 @@ export default function NewProjectPage() {
               <TextInput label="Début" name="start_date" type="date" value={form.start_date} onChange={update('start_date')} error={errors.start_date} />
               <TextInput label="Fin" name="end_date" type="date" value={form.end_date} onChange={update('end_date')} error={errors.end_date} />
             </div>
-            <SelectInput
-              label="Lieu habituel"
+            <LocationSelect
+              label="Lieu par défaut"
               name="default_location_id"
               required
-              value={form.default_location_id}
-              onChange={update('default_location_id')}
+              value={String(form.default_location_id)}
+              onChange={(value) => setForm((current) => ({ ...current, default_location_id: value }))}
+              onCreated={addLocation}
               error={errors.default_location_id}
-              options={references.locations.map((place) => ({ value: place.id, label: `${place.name} (${place.city})` }))}
+              locations={references.locations}
             />
           </fieldset>
 
