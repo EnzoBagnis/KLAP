@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import TextInput from '../../Components/Form/TextInput.jsx';
 import Button from '../../Components/UI/Button.jsx';
 import useAuth from '../../Hooks/useAuth.js';
@@ -36,7 +36,9 @@ function validate(email, password) {
 export default function LoginPage() {
   const { status, login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  // Après l'activation d'un compte (#127) : adresse pré-remplie et message d'accueil.
+  const { state: arrival } = useLocation();
+  const [email, setEmail] = useState(arrival?.email ?? '');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -76,6 +78,11 @@ export default function LoginPage() {
     <>
       <h1 className="auth-title">Connexion</h1>
       <p className="auth-subtitle">Accédez à votre espace de suivi.</p>
+      {arrival?.activated && (
+        <p className="form-success" role="status">
+          Votre compte est activé. Connectez-vous avec votre mot de passe.
+        </p>
+      )}
 
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         {formError && (

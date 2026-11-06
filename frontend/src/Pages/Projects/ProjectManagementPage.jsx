@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import Button from '../../Components/UI/Button.jsx';
+import ManagementTabs from '../../Components/Management/ManagementTabs.jsx';
 import useAuth from '../../Hooks/useAuth.js';
 import { listProjects } from '../../Services/ProjectService.js';
 import { errorMessage } from './ProjectListPage.jsx';
@@ -12,7 +13,7 @@ import '../../assets/css/ProjectStyles.css';
  * Gestion des projets (maquette, écran 07), réservée à l'administratrice.
  * Pas de bouton Modifier ni Supprimer : ces actions n'ont pas encore d'API, et la
  * suppression passera par un parcours long d'archivage (contexte client).
- * L'onglet Utilisateurs (écran 08) attend l'API des invitations.
+ * L'onglet Utilisateurs (écran 08) permet d'inviter une personne (#127).
  */
 export default function ProjectManagementPage() {
   const { logout } = useAuth();
@@ -54,6 +55,7 @@ export default function ProjectManagementPage() {
           + Nouveau projet
         </Link>
       </div>
+      <ManagementTabs />
 
       {state.status === 'loading' && <LoadingSpinner label="Chargement des projets…" />}
 
