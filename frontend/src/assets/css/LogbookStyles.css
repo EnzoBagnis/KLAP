@@ -176,14 +176,6 @@ fieldset.field {
   min-height: var(--tap-target);
 }
 
-.form-success {
-  margin: 0;
-  padding: 12px 14px;
-  border-left: 3px solid var(--color-ink);
-  background: var(--color-field);
-  font-size: var(--text-14);
-}
-
 .logbook-actions {
   display: flex;
   flex-wrap: wrap;
