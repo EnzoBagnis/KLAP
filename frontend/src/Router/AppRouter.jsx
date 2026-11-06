@@ -5,7 +5,9 @@ import NewProjectPage from '../Pages/Projects/NewProjectPage.jsx';
 import NotificationsPage from '../Pages/Notifications/NotificationsPage.jsx';
 import { ROLES } from '../Context/roles.js';
 import ProjectDetailsPage from '../Pages/Projects/ProjectDetailsPage.jsx';
+import ActivationPage from '../Pages/Auth/ActivationPage.jsx';
 import LoginPage from '../Pages/Auth/LoginPage.jsx';
+import UserManagementPage from '../Pages/Users/UserManagementPage.jsx';
 import LogbookEntryPage from '../Pages/Logbook/LogbookEntryPage.jsx';
 import OpenLogbookPage from '../Pages/Logbook/OpenLogbookPage.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
@@ -21,6 +23,8 @@ export default function AppRouter() {
     <Routes>
       <Route element={<AuthLayout />}>
         <Route path="/connexion" element={<LoginPage />} />
+        {/* Lien reçu par mail (#127) : hors connexion. */}
+        <Route path="/activation/:token" element={<ActivationPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
@@ -38,6 +42,15 @@ export default function AppRouter() {
           ))}
           {/* Détail d'un projet : hors menu, « Projets » reste actif. L'API filtre par rôle. */}
           <Route path="/projets/:id" element={<ProjectDetailsPage />} />
+          {/* Gestion, onglet Utilisateurs : inviter une personne (#127), administratrice seulement. */}
+          <Route
+            path="/gestion/utilisateurs"
+            element={
+              <ProtectedRoute roles={[ROLES.ADMIN]}>
+                <UserManagementPage />
+              </ProtectedRoute>
+            }
+          />
           {/* Création d'un projet, sous Gestion : administratrice seulement (RG02). */}
           <Route
             path="/gestion/projets/nouveau"

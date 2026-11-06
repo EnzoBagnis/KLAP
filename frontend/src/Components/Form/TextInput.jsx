@@ -2,7 +2,7 @@ import { useId } from 'react';
 
 // Champ de formulaire de la maquette : libellé en capitales, astérisque rouge si obligatoire,
 // message d'erreur relié au champ pour les lecteurs d'écran.
-export default function TextInput({ label, required = false, error, id, ...inputProps }) {
+export default function TextInput({ label, required = false, error, id, 'aria-describedby': describedBy, ...inputProps }) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const errorId = `${inputId}-erreur`;
@@ -23,7 +23,7 @@ export default function TextInput({ label, required = false, error, id, ...input
         className={`field-input${error ? ' has-error' : ''}`}
         required={required}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
+        aria-describedby={[error && errorId, describedBy].filter(Boolean).join(' ') || undefined}
         {...inputProps}
       />
       {error && (
