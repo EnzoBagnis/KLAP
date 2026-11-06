@@ -145,3 +145,25 @@
 .btn-block {
   width: 100%;
 }
+
+/* Nouveau lieu, déplié sous le menu des lieux (#135). */
+.location-select {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.location-new {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-left: 3px solid var(--color-line);
+  background: var(--color-field);
+}
+
+.location-new-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

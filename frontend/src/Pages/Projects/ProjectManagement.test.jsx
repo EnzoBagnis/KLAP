@@ -40,7 +40,7 @@ const field = (label) => screen.getByLabelText(new RegExp(label));
 
 async function fillRequired(user) {
   await user.type(field('Nom du projet'), 'BRAISES');
-  await user.selectOptions(field('Lieu habituel'), '2');
+  await user.selectOptions(field('Lieu par défaut'), '2');
   await user.selectOptions(field('Intervenant·e principal·e'), '3');
 }
 
@@ -99,7 +99,7 @@ describe('Nouveau projet', () => {
     await user.click(await screen.findByRole('button', { name: 'Créer le projet' }));
 
     expect(screen.getByText('Donnez un nom au projet.')).toBeInTheDocument();
-    expect(screen.getByText('Choisissez le lieu habituel.')).toBeInTheDocument();
+    expect(screen.getByText('Choisissez le lieu par défaut.')).toBeInTheDocument();
     expect(screen.getByText('Choisissez l’intervenant·e principal·e.')).toBeInTheDocument();
     expect(field('Nom du projet')).toHaveFocus();
     expect(fetchMock.mock.calls.some(([, options]) => options?.method === 'POST')).toBe(false);

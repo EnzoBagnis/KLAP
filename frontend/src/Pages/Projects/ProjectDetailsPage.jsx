@@ -155,7 +155,7 @@ function ProjectDetails({ project }) {
           )}
           {project.default_location && (
             <div>
-              <dt>Lieu habituel</dt>
+              <dt>Lieu par défaut</dt>
               <dd>{project.default_location.name}</dd>
             </div>
           )}

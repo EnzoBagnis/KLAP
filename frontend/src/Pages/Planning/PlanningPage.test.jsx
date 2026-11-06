@@ -189,6 +189,26 @@ describe('Programmer une séance', () => {
     return { fetchMock, user, dialog };
   }
 
+  it('crée un lieu depuis la modale sans la fermer', async () => {
+    const { user, dialog } = await openModal(
+      routes({ 'POST /locations': () => jsonResponse({ data: { id: 9, name: 'Théâtre du Merlan', postal_code: '13014', city: 'Marseille' } }, 201) }),
+    );
+    await user.selectOptions(within(dialog).getByLabelText(/^Lieu/), 'Nouveau lieu…');
+    await user.type(within(dialog).getByLabelText(/Nom du lieu/), 'Théâtre du Merlan');
+    await user.type(within(dialog).getByLabelText(/Code postal/), '13014');
+    await user.type(within(dialog).getByLabelText(/Ville/), 'Marseille');
+    await user.keyboard('{Escape}');
+    // Échap ferme le dépliage, pas la modale.
+    expect(screen.getByRole('dialog', { name: 'Programmer une séance' })).toBeInTheDocument();
+    await user.selectOptions(within(dialog).getByLabelText(/^Lieu/), 'Nouveau lieu…');
+    await user.type(within(dialog).getByLabelText(/Nom du lieu/), 'Théâtre du Merlan');
+    await user.type(within(dialog).getByLabelText(/Code postal/), '13014');
+    await user.type(within(dialog).getByLabelText(/Ville/), 'Marseille');
+    await user.click(within(dialog).getByRole('button', { name: 'Ajouter le lieu' }));
+    expect(await within(dialog).findByRole('option', { name: 'Théâtre du Merlan (Marseille)' })).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/^Lieu/)).toHaveValue('9');
+  });
+
   async function fill(user, dialog) {
     await user.selectOptions(within(dialog).getByLabelText(/Projet/), '1');
     await within(dialog).findByRole('checkbox', { name: 'Seconde 3' });
