@@ -1,6 +1,6 @@
 import { createContext, useCallback, useMemo, useState } from 'react';
 import useAuth from '../Hooks/useAuth.js';
-import { submitEntry, unlockEntry, updateEntry } from '../Services/LogbookService.js';
+import { getEntry, requestUnlock as requestUnlockEntry, submitEntry, unlockEntry, updateEntry } from '../Services/LogbookService.js';
 import { flattenErrors, formatDate, formFromEntry, payloadFromForm, stepsWithErrors } from '../Pages/Logbook/logbookModel.js';
 
 export const LogbookContext = createContext(null);
@@ -134,9 +134,36 @@ export function LogbookProvider({ initialEntry, children }) {
     }
   }, [entry.id, accept, logout]);
 
+  /** Demande la réouverture à l'administratrice (auteur d'une fiche verrouillée). */
+  const requestUnlock = useCallback(async () => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      accept(await requestUnlockEntry(entry.id));
+      setMessage({ tone: 'success', text: 'Demande envoyée : l’administratrice est prévenue.' });
+      return true;
+    } catch (error) {
+      if (error.status === 401) {
+        logout();
+      } else {
+        // Demande faite ailleurs (autre onglet) : on relit la fiche pour afficher son état.
+        if (error.status === 409) getEntry(entry.id).then(accept).catch(() => {});
+        setMessage({
+          tone: 'error',
+          text: [403, 409, 503].includes(error.status) || error.status === 0
+            ? error.message
+            : 'La demande n’a pas pu être envoyée. Réessayez dans un instant.',
+        });
+      }
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }, [entry.id, accept, logout]);
+
   const value = useMemo(
-    () => ({ entry, form, set, errors, message, setMessage, busy, dirty, readOnlyReason, save, submit, unlock }),
-    [entry, form, set, errors, message, busy, dirty, readOnlyReason, save, submit, unlock],
+    () => ({ entry, form, set, errors, message, setMessage, busy, dirty, readOnlyReason, save, submit, unlock, requestUnlock }),
+    [entry, form, set, errors, message, busy, dirty, readOnlyReason, save, submit, unlock, requestUnlock],
   );
 
   return <LogbookContext.Provider value={value}>{children}</LogbookContext.Provider>;
