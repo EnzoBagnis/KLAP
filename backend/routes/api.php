@@ -29,6 +29,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Lieux : tout utilisateur peut en choisir un (contexte client).
     Route::get('locations', [LocationController::class, 'index']);
+    // Créer un lieu (#134) : tout utilisateur, pour les projets en tournée.
+    Route::post('locations', [LocationController::class, 'store']);
 
     // Projets en lecture : tous les rôles. Le contrôleur limite un intervenant à ses
     // affectations (RG02, #89).
