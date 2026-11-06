@@ -177,6 +177,7 @@ class LogbookEntryController extends Controller
         $found = ctype_digit($entry) ? $this->readable($user)->find($entry) : null;
         abort_if($found === null, 404);
         abort_unless($found->author_id === $user->id, 403, 'Seul·e l’auteur·rice de la fiche peut en demander la réouverture.');
+        abort_if($user->hasRole(UserRole::Admin), 403, 'Vous pouvez rouvrir cette fiche vous-même.');
 
         DB::transaction(function () use ($found) {
             // Ligne verrouillée : un double appui ne crée qu'une demande.

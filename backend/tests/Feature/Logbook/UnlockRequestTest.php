@@ -147,13 +147,36 @@ class UnlockRequestTest extends TestCase
         $this->request(99999)->assertNotFound();
     }
 
-    public function test_refuse_une_seance_annulee_ou_un_projet_archive(): void
+    public function test_refuse_un_projet_archive(): void
     {
         $id = $this->lockedEntry();
         $this->project->forceFill(['status' => 'archived'])->save();
 
         $this->request($id)->assertForbidden();
         $this->actingAs($this->referent)->getJson("/api/logbook-entries/{$id}")->assertJsonPath('data.unlock_requestable', false);
+        $this->assertCount(0, $this->requests());
+    }
+
+    public function test_refuse_une_seance_annulee(): void
+    {
+        $id = $this->lockedEntry();
+        $this->session->forceFill(['status' => 'cancelled'])->save();
+
+        $this->request($id)->assertForbidden();
+        $this->actingAs($this->referent)->getJson("/api/logbook-entries/{$id}")->assertJsonPath('data.unlock_requestable', false);
+        $this->assertCount(0, $this->requests());
+    }
+
+    public function test_une_administratrice_auteure_rouvre_elle_meme(): void
+    {
+        $this->session->forceFill(['referent_id' => $this->admin->id])->save();
+        $this->referent = $this->admin;
+        $id = $this->lockedEntry();
+
+        $this->actingAs($this->admin)->getJson("/api/logbook-entries/{$id}")
+            ->assertJsonPath('data.unlock_requestable', false)
+            ->assertJsonPath('data.unlockable', true);
+        $this->request($id, $this->admin)->assertForbidden()->assertJsonPath('message', 'Vous pouvez rouvrir cette fiche vous-même.');
         $this->assertCount(0, $this->requests());
     }
 
