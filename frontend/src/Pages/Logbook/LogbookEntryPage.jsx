@@ -96,7 +96,7 @@ export default function LogbookEntryPage() {
 }
 
 function LogbookForm() {
-  const { entry, errors, message, busy, dirty, readOnlyReason, save, submit, unlock } = useLogbook();
+  const { entry, errors, message, busy, dirty, readOnlyReason, save, submit, unlock, requestUnlock } = useLogbook();
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = Number(searchParams.get('etape'));
   const step = STEPS.some((s) => s.number === requested) ? requested : 1;
@@ -144,6 +144,10 @@ function LogbookForm() {
     headingRef.current?.focus();
   }
 
+  function handleRequestUnlock() {
+    if (window.confirm('Demander à l’administratrice de rouvrir cette fiche ?')) requestUnlock();
+  }
+
   function handleUnlock() {
     if (window.confirm('Rouvrir cette fiche ? Son auteur·rice pourra la modifier pendant 10 jours.')) unlock();
   }
@@ -179,10 +183,20 @@ function LogbookForm() {
           Rouverte le {formatInstant(entry.unlocked_at)} par {entry.unlocked_by.name}.
         </p>
       )}
+      {entry.unlock_requested_at && (
+        <p className="form-hint">Demande de réouverture envoyée le {formatInstant(entry.unlock_requested_at)}.</p>
+      )}
+      {entry.unlock_requestable && (
+        <div className="logbook-unlock">
+          <Button variant="line" onClick={handleRequestUnlock} disabled={busy}>
+            Demander la réouverture
+          </Button>
+        </div>
+      )}
       {entry.unlockable && (
         <div className="logbook-unlock">
           <Button variant="line" onClick={handleUnlock} disabled={busy}>
-            Déverrouiller la fiche
+            Rouvrir la fiche
           </Button>
         </div>
       )}
