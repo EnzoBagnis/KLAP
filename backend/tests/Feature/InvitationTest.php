@@ -119,6 +119,7 @@ class InvitationTest extends TestCase
     {
         return [
             'sans nom' => [['full_name' => ''], 'full_name'],
+            'nom absent' => [['full_name' => null], 'full_name'],
             'nom trop long' => [['full_name' => str_repeat('a', 161)], 'full_name'],
             'adresse invalide' => [['email' => 'paul'], 'email'],
             'rôle administratrice' => [['role' => 'admin'], 'role'],
@@ -142,17 +143,70 @@ class InvitationTest extends TestCase
         $this->invite()->assertUnprocessable()->assertJsonPath('errors.email.0', 'Un compte existe déjà avec cette adresse.');
     }
 
-    public function test_refuse_une_seconde_invitation_en_cours_mais_pas_apres_expiration(): void
+    public function test_une_nouvelle_invitation_remplace_celle_en_cours(): void
     {
         Mail::fake();
-        $this->travelTo(now()->setDate(2026, 11, 2)->setTime(10, 0));
-        $this->pending(['expires_at' => now()->addDays(7)]);
+        $old = $this->pending();
 
-        $this->invite()->assertUnprocessable()
-            ->assertJsonPath('errors.email.0', 'Une invitation est déjà en cours pour cette adresse, jusqu’au 09/11/2026.');
+        $this->invite()->assertCreated()->assertJsonPath('data.replaced', true);
+        $this->getJson('/api/invitations/'.self::TOKEN)->assertStatus(410); // l'ancien lien ne sert plus
+        $this->assertFalse($old->fresh()->isUsable());
+        $this->assertSame(1, Invitation::query()->pending()->count());
 
-        $this->travel(8)->days();
-        $this->invite()->assertCreated();
+        $this->invite(['email' => 'autre@example.org'])->assertJsonPath('data.replaced', false);
+    }
+
+    public function test_refuse_un_compte_existant_quelle_que_soit_la_casse(): void
+    {
+        Mail::fake();
+        User::factory()->create(['email' => 'Paul.Martin@Example.org']);
+
+        $this->invite()->assertUnprocessable()->assertJsonValidationErrors('email');
+    }
+
+    public function test_refuse_une_adresse_trop_longue_pour_se_connecter(): void
+    {
+        Mail::fake();
+        $this->invite(['email' => str_repeat('a', 180).'@example.org'])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.email.0', 'L’adresse mail ne doit pas dépasser 190 caractères.');
+    }
+
+    public function test_une_invitation_de_super_utilisatrice_donne_ce_role(): void
+    {
+        $this->pending(['role' => UserRole::SuperUser]);
+        $this->activate()->assertCreated();
+
+        $this->assertSame(UserRole::SuperUser, User::query()->where('email', 'paul.martin@example.org')->sole()->role);
+    }
+
+    public function test_seule_l_administratrice_qui_a_invite_est_prevenue(): void
+    {
+        $other = User::factory()->role(UserRole::Admin)->create();
+        $this->pending();
+        $this->activate()->assertCreated();
+
+        $this->assertSame(1, KlapNotification::query()->where('recipient_id', $this->admin->id)->count());
+        $this->assertSame(0, KlapNotification::query()->where('recipient_id', $other->id)->count());
+    }
+
+    public function test_un_mot_de_passe_absent_est_refuse(): void
+    {
+        $this->pending();
+        $this->postJson('/api/invitations/'.self::TOKEN.'/activate', [])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.password.0', 'Choisissez un mot de passe.');
+    }
+
+    public function test_les_liens_n_epuisent_pas_les_tentatives_de_connexion(): void
+    {
+        foreach (range(1, 9) as $attempt) {
+            $this->getJson('/api/invitations/'.str_repeat('z', 64))->assertNotFound();
+        }
+        // Les 5 tentatives de connexion restent disponibles (identifiants faux : 422, pas 429).
+        foreach (range(1, 5) as $attempt) {
+            $this->postJson('/api/login', ['email' => 'x@example.org', 'password' => 'faux'])->assertUnprocessable();
+        }
     }
 
     // Lecture publique

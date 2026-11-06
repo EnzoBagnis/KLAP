@@ -9,6 +9,7 @@ use App\Mail\InvitationMail;
 use App\Models\Invitation;
 use App\Models\KlapNotification;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,9 @@ class InvitationController extends Controller
 
         try {
             $invitation = DB::transaction(function () use ($request, $token) {
+                // L'invitation en cours pour cette adresse est remplacée : son lien ne sert plus.
+                $replaced = Invitation::query()->pending()->where('email', $request->validated('email'))
+                    ->update(['expires_at' => now()]) > 0;
                 $invitation = Invitation::query()->create([
                     ...$request->validated(),
                     'token_hash' => Invitation::hashToken($token),
@@ -45,17 +49,20 @@ class InvitationController extends Controller
                     rtrim(config('app.frontend_url'), '/').'/activation/'.$token,
                 ));
 
+                $invitation->replaced = $replaced;
+
                 return $invitation;
             });
         } catch (Throwable $exception) {
-            if ($exception instanceof ValidationException) {
+            // Seul un échec d'envoi devient un 503 ; une erreur de base reste une erreur de base.
+            if ($exception instanceof ValidationException || $exception instanceof QueryException) {
                 throw $exception;
             }
             Log::error('Invitation non envoyée', ['email' => $request->validated('email'), 'error' => $exception->getMessage()]);
             abort(503, 'Le mail d’invitation n’a pas pu être envoyé. Réessayez dans un instant.');
         }
 
-        return response()->json(['data' => $this->summary($invitation)], 201);
+        return response()->json(['data' => [...$this->summary($invitation), 'replaced' => $invitation->replaced]], 201);
     }
 
     public function show(string $token): JsonResponse
@@ -69,7 +76,7 @@ class InvitationController extends Controller
             $user = DB::transaction(function () use ($request, $token) {
                 // Ligne verrouillée : un double clic ne crée pas deux comptes.
                 $invitation = $this->usable($token, lock: true);
-                abort_if(User::query()->where('email', $invitation->email)->exists(), 409,
+                abort_if(User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($invitation->email)])->exists(), 409,
                     'Un compte existe déjà pour cette invitation. Connectez-vous avec votre adresse.');
 
                 $user = User::query()->create([
