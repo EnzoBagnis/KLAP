@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Invitations;
 
 use App\Enums\UserRole;
-use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,6 +11,8 @@ use Illuminate\Validation\Validator;
 /**
  * Inviter quelqu'un (administratrice, route role:admin). Rôles proposés : intervenant·e ou
  * super-utilisatrice ; inviter une autre administratrice est une décision de la cliente.
+ * Une invitation en cours pour la même adresse est remplacée (mail perdu, faute de frappe) :
+ * sans liste ni annulation, refuser bloquerait l'adresse jusqu'à l'expiration.
  */
 class StoreInvitationRequest extends FormRequest
 {
@@ -26,7 +27,8 @@ class StoreInvitationRequest extends FormRequest
     {
         return [
             'full_name' => ['required', 'string', 'max:160'],
-            'email' => ['required', 'string', 'email', 'max:255'],
+            // 190 : même limite que la connexion.
+            'email' => ['required', 'string', 'email', 'max:190'],
             'role' => ['required', Rule::in([UserRole::Contributor->value, UserRole::SuperUser->value])],
         ];
     }
@@ -38,16 +40,8 @@ class StoreInvitationRequest extends FormRequest
                 if ($validator->errors()->has('email')) {
                     return;
                 }
-                $email = $this->input('email');
-                if (User::query()->where('email', $email)->exists()) {
+                if (User::query()->whereRaw('LOWER(email) = ?', [$this->input('email')])->exists()) {
                     $validator->errors()->add('email', 'Un compte existe déjà avec cette adresse.');
-
-                    return;
-                }
-                $pending = Invitation::query()->pending()->where('email', $email)->first();
-                if ($pending) {
-                    $validator->errors()->add('email', 'Une invitation est déjà en cours pour cette adresse, jusqu’au '
-                        .$pending->expires_at->timezone('Europe/Paris')->format('d/m/Y').'.');
                 }
             },
         ];
@@ -60,6 +54,7 @@ class StoreInvitationRequest extends FormRequest
             'full_name.max' => 'Le nom ne doit pas dépasser 160 caractères.',
             'email.required' => 'Indiquez l’adresse mail.',
             'email.email' => 'L’adresse mail n’est pas valide.',
+            'email.max' => 'L’adresse mail ne doit pas dépasser 190 caractères.',
             'role.required' => 'Choisissez un rôle.',
             'role.in' => 'Le rôle choisi n’est pas proposé.',
         ];
