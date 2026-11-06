@@ -91,7 +91,9 @@ class LocationStoreTest extends TestCase
             'nom trop long' => [['name' => str_repeat('a', 151)], 'name', 'Le nom ne doit pas dépasser 150 caractères.'],
             'ville trop longue' => [['city' => str_repeat('a', 101)], 'city', 'La ville ne doit pas dépasser 100 caractères.'],
             'adresse trop longue' => [['address' => str_repeat('a', 256)], 'address', 'L’adresse ne doit pas dépasser 255 caractères.'],
-            'nom en tableau' => [['name' => ['a']], 'name', null],
+            'nom en tableau' => [['name' => ['a']], 'name', 'Le nom du lieu n’est pas valide.'],
+            'code postal en nombre' => [['postal_code' => 13014], 'postal_code', 'Le code postal doit compter 5 chiffres.'],
+            'code postal coupé par une espace' => [['postal_code' => '13 003'], 'postal_code', 'Le code postal doit compter 5 chiffres.'],
         ];
     }
 
@@ -112,6 +114,15 @@ class LocationStoreTest extends TestCase
         $this->store(['name' => '  Grand   studio ', 'postal_code' => '13003'])
             ->assertUnprocessable()
             ->assertJsonPath('errors.name.0', 'Ce lieu existe déjà pour ce code postal.');
+    }
+
+    public function test_code_postal_entoure_d_espaces_et_adresse_vide(): void
+    {
+        $id = $this->store(['postal_code' => ' 13014 ', 'address' => '   '])->assertCreated()->json('data.id');
+
+        $location = Location::query()->findOrFail($id);
+        $this->assertSame('13014', $location->postal_code);
+        $this->assertNull($location->address);
     }
 
     public function test_meme_nom_dans_une_autre_ville(): void

@@ -14,7 +14,15 @@ class StoreLocationRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        $tidy = fn ($value) => is_string($value) ? preg_replace('/\s+/u', ' ', trim($value)) : $value;
+        // Espaces réduits ; un champ vide après coup devient null (adresse facultative).
+        $tidy = function ($value) {
+            if (! is_string($value)) {
+                return $value;
+            }
+            $value = preg_replace('/\s+/u', ' ', trim($value));
+
+            return $value === '' ? null : $value;
+        };
         $this->merge(collect(['name', 'city', 'address', 'postal_code'])
             ->filter(fn ($key) => $this->has($key))
             ->mapWithKeys(fn ($key) => [$key => $tidy($this->input($key))])
@@ -36,6 +44,10 @@ class StoreLocationRequest extends FormRequest
     {
         return [
             'name.required' => 'Indiquez le nom du lieu.',
+            'name.string' => 'Le nom du lieu n’est pas valide.',
+            'postal_code.string' => 'Le code postal doit compter 5 chiffres.',
+            'city.string' => 'La ville n’est pas valide.',
+            'address.string' => 'L’adresse n’est pas valide.',
             'name.max' => 'Le nom ne doit pas dépasser 150 caractères.',
             'name.unique' => 'Ce lieu existe déjà pour ce code postal.',
             'postal_code.required' => 'Indiquez le code postal.',
