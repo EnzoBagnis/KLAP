@@ -6,6 +6,7 @@ import LoadingSpinner from '../Components/UI/LoadingSpinner.jsx';
 import useAuth from '../Hooks/useAuth.js';
 import { SESSION_TYPES } from '../Pages/Planning/sessionLabels.js';
 import { getProject, listProjects } from '../Services/ProjectService.js';
+import LocationSelect from '../Components/Form/LocationSelect.jsx';
 import { listLocations } from '../Services/ReferenceService.js';
 import { createSession } from '../Services/SessionService.js';
 import BaseModal, { focusFirst } from './BaseModal.jsx';
@@ -167,6 +168,13 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
     }
     loadProject(projectId);
   }
+
+  // Lieu créé depuis le menu (#135) : ajouté à la liste, rangée par nom.
+  const addLocation = (place) =>
+    setReferences((current) => ({
+      ...current,
+      locations: [...current.locations, place].sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    }));
 
   const update = (key) => (event) => {
     const value = event.target.value;
@@ -334,14 +342,15 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
               error={errors.session_type_detail}
             />
           )}
-          <SelectInput
+          <LocationSelect
             label="Lieu"
             name="location_id"
             required
-            value={form.location_id}
-            onChange={update('location_id')}
+            value={String(form.location_id)}
+            onChange={(value) => setForm((current) => ({ ...current, location_id: value }))}
+            onCreated={addLocation}
             error={errors.location_id}
-            options={references.locations.map((place) => ({ value: place.id, label: `${place.name} (${place.city})` }))}
+            locations={references.locations}
           />
 
           <div className="modal-actions">
