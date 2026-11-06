@@ -67,6 +67,30 @@ class LogbookEntry extends Model
         return $this->status === 'locked' || $this->deadlinePassed();
     }
 
+    /** Demandes de réouverture : une notification unlock_request par administratrice prévenue. */
+    public function unlockRequests(): HasMany
+    {
+        return $this->hasMany(KlapNotification::class)->where('type', 'unlock_request');
+    }
+
+    /**
+     * Date de la demande de réouverture en attente, sinon null. Une demande est en attente
+     * tant que la fiche n'a pas été rouverte après elle : la réouverture la clôt d'elle-même.
+     * Utilise withMax('unlockRequests', 'created_at') quand il a été chargé.
+     */
+    public function pendingUnlockRequestAt(): ?Carbon
+    {
+        $latest = array_key_exists('unlock_requests_max_created_at', $this->attributes)
+            ? $this->attributes['unlock_requests_max_created_at']
+            : $this->unlockRequests()->max('created_at');
+        if ($latest === null) {
+            return null;
+        }
+        $latest = Carbon::parse($latest);
+
+        return $this->unlocked_at === null || $latest->gt($this->unlocked_at) ? $latest : null;
+    }
+
     public function evaluation(): HasOne
     {
         return $this->hasOne(ParticipantEvaluation::class);
