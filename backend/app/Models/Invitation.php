@@ -22,6 +22,9 @@ class Invitation extends Model
 
     public $timestamps = false;
 
+    /** Renseigné à la création : une invitation en cours a-t-elle été remplacée ? */
+    public bool $replaced = false;
+
     protected $fillable = ['email', 'full_name', 'role', 'token_hash', 'invited_by', 'sent_at', 'expires_at'];
 
     protected function casts(): array
