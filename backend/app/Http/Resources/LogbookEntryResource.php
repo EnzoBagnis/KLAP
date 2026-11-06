@@ -28,8 +28,10 @@ class LogbookEntryResource extends JsonResource
             'unlockable' => $request->user()?->hasRole(UserRole::Admin) === true && $this->isLocked() && $active,
             'unlocked_at' => $this->unlocked_at?->toIso8601String(),
             'unlock_requested_at' => $pendingRequest?->toIso8601String(),
-            // L'auteur peut demander la réouverture d'une fiche verrouillée, une demande à la fois.
+            // L'auteur peut demander la réouverture d'une fiche verrouillée, une demande à la fois ;
+            // une administratrice auteure la rouvre elle-même.
             'unlock_requestable' => $this->author_id === $request->user()?->id
+                && $request->user()?->hasRole(UserRole::Admin) !== true
                 && $this->isLocked() && $active && $pendingRequest === null,
             'unlocked_by' => $this->unlockedBy ? ['id' => $this->unlockedBy->id, 'name' => $this->unlockedBy->name] : null,
             'author' => ['id' => $this->author->id, 'name' => $this->author->name],
