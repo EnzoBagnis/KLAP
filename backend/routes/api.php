@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FunderController;
+use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\LogbookEntryController;
 use App\Http\Controllers\Api\NotificationController;
@@ -14,6 +15,13 @@ use Illuminate\Support\Facades\Route;
 
 // 5 tentatives par minute et par IP, pour limiter le forçage de mot de passe.
 Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+
+// Invitations (#126) : lecture et activation publiques, par le jeton reçu par mail.
+// Compteur distinct de celui de la connexion (préfixe), sinon l'un épuise l'autre.
+Route::middleware('throttle:10,1,invitations')->group(function () {
+    Route::get('invitations/{token}', [InvitationController::class, 'show']);
+    Route::post('invitations/{token}/activate', [InvitationController::class, 'activate']);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
@@ -60,6 +68,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Listes pour les menus du formulaire projet (#92).
         Route::get('users', [UserController::class, 'index']);
         Route::get('funders', [FunderController::class, 'index']);
+
+        // Inviter une personne à créer son compte (#126).
+        Route::post('invitations', [InvitationController::class, 'store']);
 
         // Rouvrir une fiche verrouillée ou hors délai (#109), opération tracée.
         Route::post('logbook-entries/{entry}/unlock', [LogbookEntryController::class, 'unlock']);
