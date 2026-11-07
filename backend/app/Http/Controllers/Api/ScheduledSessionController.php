@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 /** Planning : séances programmées (#102). */
 class ScheduledSessionController extends Controller
 {
-    private const RELATIONS = ['project', 'location', 'referent', 'subProjects'];
+    private const RELATIONS = ['project', 'location', 'referent', 'subProjects', 'logbookEntry:id,scheduled_session_id,status'];
 
     /** Séances d'un projet, si l'utilisateur peut voir ce projet (RG02) ; sinon 404. */
     public function indexForProject(Request $request, string $project): AnonymousResourceCollection

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Logbook;
 
+use App\Enums\UserRole;
 use App\Models\LogbookEntry;
 use App\Models\ScheduledSession;
 use App\Support\LogbookRules;
@@ -10,8 +11,9 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
 
 /**
- * Ouvrir la fiche d'une séance. Seul·e le ou la référent·e de la séance la remplit
- * (« l'intervenant qui remplit la fiche », schéma). Une fiche par séance au plus.
+ * Ouvrir la fiche d'une séance : le ou la référent·e, ou l'administration pour lui ou elle
+ * (droits emboîtés du cahier des charges, #141). La fiche reste celle du ou de la référent·e.
+ * Une fiche par séance au plus.
  */
 class StoreLogbookEntryRequest extends FormRequest
 {
@@ -20,10 +22,12 @@ class StoreLogbookEntryRequest extends FormRequest
     public function authorize(): bool
     {
         $id = (string) $this->route('session');
-        $this->scheduledSession = ctype_digit($id) ? ScheduledSession::query()->with('project')->find($id) : null;
+        $this->scheduledSession = ctype_digit($id) ? ScheduledSession::query()->with(['project', 'referent'])->find($id) : null;
         abort_if($this->scheduledSession === null, 404);
-        abort_if($this->scheduledSession->referent_id !== $this->user()->id, 403,
-            'Seul·e l’intervenant·e référent·e de la séance peut en remplir la fiche.');
+        // Le ou la référent·e remplit sa fiche ; l'administration peut l'ouvrir pour lui ou elle (#141).
+        abort_unless($this->scheduledSession->referent_id === $this->user()->id
+            || $this->user()->hasRole(UserRole::Admin, UserRole::SuperUser), 403,
+            'Seul·e l’intervenant·e référent·e de la séance, l’administratrice ou la super-utilisatrice peut ouvrir sa fiche.');
         abort_if($this->scheduledSession->logbookEntry()->exists(), 409, 'Cette séance a déjà une fiche.');
 
         // Après J+10, la fiche ne pourrait plus être modifiée ni soumise : on ne l'ouvre pas.
@@ -31,6 +35,9 @@ class StoreLogbookEntryRequest extends FormRequest
         abort_if(LogbookEntry::localNow()->toDateString() > $deadline, 403,
             'Le délai de 10 jours après la séance est passé : la fiche ne peut plus être ouverte.');
 
+        if (! $this->scheduledSession->referent?->is_active) {
+            throw ValidationException::withMessages(['session' => 'L’intervenant·e référent·e de cette séance n’a plus de compte actif.']);
+        }
         if ($this->scheduledSession->status === 'cancelled') {
             throw ValidationException::withMessages(['session' => 'Cette séance est annulée : elle n’a pas de fiche.']);
         }

@@ -1,5 +1,7 @@
 import { createContext, useCallback, useMemo, useState } from 'react';
 import useAuth from '../Hooks/useAuth.js';
+import { ROLES } from './roles.js';
+import { todayKey } from '../Pages/Planning/sessionLabels.js';
 import { getEntry, requestUnlock as requestUnlockEntry, submitEntry, unlockEntry, updateEntry } from '../Services/LogbookService.js';
 import { flattenErrors, formatDate, formFromEntry, payloadFromForm, stepsWithErrors } from '../Pages/Logbook/logbookModel.js';
 
@@ -28,9 +30,14 @@ export function LogbookProvider({ initialEntry, children }) {
   const payload = useMemo(() => payloadFromForm(form, groupIds), [form, groupIds]);
   const dirty = JSON.stringify(payload) !== snapshot;
 
+  // L'administration peut modifier toutes les fiches (#141) : si elle ne le peut pas, c'est que la
+  // fiche est verrouillée, ou que sa séance est annulée ou son projet archivé.
+  const manages = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPER_USER;
   let readOnlyReason = lockedByApi;
   if (!readOnlyReason && !entry.editable) {
-    readOnlyReason = entry.author.id !== user?.id ? `Fiche de ${entry.author.name}, en lecture seule.` : LOCK_MESSAGE;
+    if (entry.author.id !== user?.id && !manages) readOnlyReason = `Fiche de ${entry.author.name}, en lecture seule.`;
+    else if (entry.status === 'locked' || (entry.edit_deadline && entry.edit_deadline < todayKey())) readOnlyReason = LOCK_MESSAGE;
+    else readOnlyReason = 'La séance a été annulée ou son projet archivé : la fiche ne se modifie plus.';
   }
 
   const set = useCallback((path, value) => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../../Components/UI/Button.jsx';
 import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import { ROLES } from '../../Context/roles.js';
@@ -85,6 +85,8 @@ export default function PlanningPage() {
   const closeModal = useCallback(() => setModalOpen(false), []);
   // La fiche se remplit à partir du jour de la séance (l'API le vérifie aussi).
   const today = todayKey();
+  // Droits emboîtés (#141) : l'administration ouvre et modifie la fiche de n'importe quelle séance.
+  const canManageEntries = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPER_USER;
 
   return (
     <section className="page">
@@ -151,11 +153,7 @@ export default function PlanningPage() {
                         <p className="planning-meta">
                           {session.location.name} · {session.referent.name}
                         </p>
-                        {session.status !== 'cancelled' && session.referent.id === user?.id && session.session_date <= today && (
-                          <Link to={`/planning/seances/${session.id}/fiche`} className="planning-entry-link">
-                            Remplir la fiche<span className="visually-hidden"> du {dayTitle(date).toLowerCase()}</span>
-                          </Link>
-                        )}
+                        <EntryLink session={session} label={dayTitle(date).toLowerCase()} userId={user?.id} manages={canManageEntries} today={today} />
                       </div>
                     </li>
                   ))}
@@ -169,4 +167,44 @@ export default function PlanningPage() {
       <ScheduleSessionModal open={modalOpen} onClose={closeModal} onCreated={handleCreated} />
     </section>
   );
+}
+
+/*
+ * Lien vers la fiche d'une séance (#141) :
+ * - le ou la référent·e la remplit (création au besoin) ;
+ * - une fiche existante se consulte : collègues du projet, administration ;
+ * - l'administration peut créer la fiche pour le ou la référent·e, après confirmation.
+ */
+function EntryLink({ session, label, userId, manages, today }) {
+  const navigate = useNavigate();
+  const fillable = session.status !== 'cancelled' && session.session_date <= today;
+  const hidden = <span className="visually-hidden"> du {label}</span>;
+
+  if (session.referent.id === userId && fillable) {
+    return (
+      <Link to={`/planning/seances/${session.id}/fiche`} className="planning-entry-link">
+        Remplir la fiche{hidden}
+      </Link>
+    );
+  }
+  if (session.logbook_entry) {
+    return (
+      <Link to={`/fiches/${session.logbook_entry.id}`} className="planning-entry-link">
+        Consulter la fiche{hidden}
+      </Link>
+    );
+  }
+  if (manages && fillable) {
+    const create = () => {
+      if (window.confirm(`Créer la fiche de cette séance pour ${session.referent.name} ?`)) {
+        navigate(`/planning/seances/${session.id}/fiche`);
+      }
+    };
+    return (
+      <button type="button" className="planning-entry-link planning-entry-button" onClick={create}>
+        Créer la fiche{hidden}
+      </button>
+    );
+  }
+  return null;
 }
