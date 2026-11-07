@@ -23,6 +23,10 @@ class ScheduledSessionResource extends JsonResource
             'referent' => $this->whenLoaded('referent', fn () => ['id' => $this->referent->id, 'name' => $this->referent->name]),
             'sub_projects' => $this->whenLoaded('subProjects', fn () => $this->subProjects
                 ->map(fn ($sub) => ['id' => $sub->id, 'name' => $sub->name])->values()),
+            // Fiche de la séance si elle existe : lien « Consulter » au planning (#141).
+            'logbook_entry' => $this->whenLoaded('logbookEntry', fn () => $this->logbookEntry
+                ? ['id' => $this->logbookEntry->id, 'status' => $this->logbookEntry->status]
+                : null),
         ];
     }
 }

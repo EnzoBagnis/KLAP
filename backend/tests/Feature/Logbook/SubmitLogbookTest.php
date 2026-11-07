@@ -112,11 +112,16 @@ class SubmitLogbookTest extends TestCase
             ->assertJsonValidationErrors('exercises');
     }
 
-    public function test_seul_l_auteur_soumet(): void
+    public function test_l_administration_peut_soumettre_et_pas_un_autre_intervenant(): void
     {
         $id = $this->createEntry($this->completePayload());
+        $colleague = User::factory()->role(UserRole::Contributor)->create();
+        $this->project->members()->attach($colleague->id, ['member_role' => 'occasional']);
 
+        $this->actingAs($colleague)->postJson("/api/logbook-entries/{$id}/submit")->assertForbidden();
+        $this->actingAs(User::factory()->role(UserRole::Contributor)->create())
+            ->postJson("/api/logbook-entries/{$id}/submit")->assertNotFound();
         $this->actingAs(User::factory()->role(UserRole::Admin)->create())
-            ->postJson("/api/logbook-entries/{$id}/submit")->assertForbidden();
+            ->postJson("/api/logbook-entries/{$id}/submit")->assertOk()->assertJsonPath('data.status', 'submitted');
     }
 }
