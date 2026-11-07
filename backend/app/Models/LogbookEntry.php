@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -53,6 +55,37 @@ class LogbookEntry extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
+    }
+
+    /*
+     * Droits emboîtés du cahier des charges (#141) : chaque rôle a ceux du rôle en dessous.
+     * - intervenant·e : écrit ses fiches, lit celles des projets où il ou elle intervient ;
+     * - super-utilisatrice : lit et modifie toutes les fiches, crée la fiche d'une séance ;
+     * - administratrice : la même chose (et rouvre les fiches verrouillées).
+     */
+
+    /** Fiches lisibles : toutes pour l'administration ; pour un·e intervenant·e, les siennes et celles de ses projets. */
+    public function scopeReadableBy(Builder $query, User $user): Builder
+    {
+        if ($user->hasRole(UserRole::Admin, UserRole::SuperUser)) {
+            return $query;
+        }
+
+        if ($user->hasRole(UserRole::Contributor)) {
+            return $query->where(fn (Builder $own) => $own
+                ->where('logbook_entries.author_id', $user->id)
+                ->orWhereHas('scheduledSession.project.members', fn (Builder $members) => $members->whereKey($user->id)));
+        }
+
+        // Rôle inconnu (ajouté plus tard à l'énumération) : rien, comme Project::scopeVisibleTo.
+        return $query->whereRaw('1 = 0');
+    }
+
+    /** Peut modifier la fiche (hors verrouillage) : son auteur, l'administratrice, la super-utilisatrice. */
+    public function canBeEditedBy(?User $user): bool
+    {
+        return $user !== null
+            && ($this->author_id === $user->id || $user->hasRole(UserRole::Admin, UserRole::SuperUser));
     }
 
     /** Administratrice qui a rouvert la fiche en dernier. */

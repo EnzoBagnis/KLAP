@@ -127,12 +127,13 @@ class UnlockLogbookTest extends TestCase
         $this->actingAs($this->admin)->postJson("/api/logbook-entries/{$id}/unlock")->assertForbidden();
     }
 
-    public function test_l_administratrice_ne_modifie_pas_la_fiche_qu_elle_a_rouverte(): void
+    public function test_l_administratrice_modifie_la_fiche_qu_elle_a_rouverte(): void
     {
         $id = $this->lockedEntry();
         $this->actingAs($this->admin)->postJson("/api/logbook-entries/{$id}/unlock")->assertOk();
 
-        $this->actingAs($this->admin)->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'x'])->assertForbidden();
+        // Droits emboîtés (#141) : l'administratrice modifie toutes les fiches non verrouillées.
+        $this->actingAs($this->admin)->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'Corrigé'])->assertOk();
     }
 
     public function test_unlockable_seulement_pour_l_administratrice_sur_une_fiche_verrouillee(): void

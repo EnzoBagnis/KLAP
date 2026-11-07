@@ -26,13 +26,10 @@ class LogbookEntryController extends Controller
 {
     private const RELATIONS = ['author', 'unlockedBy', 'evaluation', 'exercises', 'scheduledSession.project', 'scheduledSession.location', 'scheduledSession.subProjects'];
 
-    /** Fiches lisibles : toutes pour l'administration, les siennes pour un intervenant. */
+    /** Fiches lisibles (droits emboîtés, #141) : voir LogbookEntry::scopeReadableBy. */
     private function readable(User $user): Builder
     {
-        return LogbookEntry::query()->when(
-            ! $user->hasRole(UserRole::Admin, UserRole::SuperUser),
-            fn (Builder $query) => $query->where('logbook_entries.author_id', $user->id),
-        );
+        return LogbookEntry::query()->readableBy($user);
     }
 
     public function index(Request $request): AnonymousResourceCollection
@@ -82,12 +79,13 @@ class LogbookEntryController extends Controller
             $entry = DB::transaction(function () use ($request, $session) {
                 $entry = new LogbookEntry;
                 $entry->scheduled_session_id = $session->id;
-                $entry->author_id = $request->user()->id;
+                // La fiche est celle de l'intervenant·e référent·e, même si l'administration l'ouvre pour lui ou elle.
+                $entry->author_id = $session->referent_id;
                 $entry->status = 'draft';
                 $entry->edit_deadline = $session->session_date->copy()->addDays(LogbookEntry::EDIT_DAYS)->toDateString();
                 $this->apply($entry, $request->validated());
                 // L'auteur est l'artiste principal·e de la fiche (section 5).
-                $entry->artists()->attach($request->user()->id, ['member_role' => 'lead']);
+                $entry->artists()->attach($session->referent_id, ['member_role' => 'lead']);
 
                 return $entry;
             });
@@ -115,7 +113,8 @@ class LogbookEntryController extends Controller
             throw ValidationException::withMessages($errors);
         }
 
-        DB::transaction(function () use ($entry) {
+        $actor = $request->user();
+        DB::transaction(function () use ($entry, $actor) {
             // « Première soumission » décidée par la base, pas par la fiche chargée plus tôt :
             // un double appui sur « Soumettre » n'envoie qu'une notification.
             $first = LogbookEntry::query()->whereKey($entry->id)->whereNull('submitted_at')
@@ -126,7 +125,7 @@ class LogbookEntryController extends Controller
             // Cahier des charges : « Notification à l'admin quand une fiche est remplie » ;
             // la super-utilisatrice aussi (#84). Une seule fois, à la première soumission.
             if ($first) {
-                $this->notifySubmitted($entry);
+                $this->notifySubmitted($entry, $actor);
             }
         });
 
@@ -179,7 +178,7 @@ class LogbookEntryController extends Controller
         abort_unless($found->author_id === $user->id, 403, 'Seul·e l’auteur·rice de la fiche peut en demander la réouverture.');
         abort_if($user->hasRole(UserRole::Admin), 403, 'Vous pouvez rouvrir cette fiche vous-même.');
 
-        DB::transaction(function () use ($found) {
+        DB::transaction(function () use ($found, $user) {
             // Ligne verrouillée : un double appui ne crée qu'une demande.
             $entry = LogbookEntry::query()->lockForUpdate()->with('scheduledSession.project')->findOrFail($found->id);
             abort_if($entry->scheduledSession->status === 'cancelled'
@@ -189,30 +188,31 @@ class LogbookEntryController extends Controller
             abort_if($entry->pendingUnlockRequestAt() !== null, 409,
                 'Une demande de réouverture est déjà en attente pour cette fiche.');
 
-            $sent = $this->notifyAdministration($entry, 'unlock_request', '%s demande à rouvrir la fiche de la séance du %s : %s (%s).', [UserRole::Admin]);
+            $sent = $this->notifyAdministration($entry, 'unlock_request', '%s demande à rouvrir la fiche de la séance du %s : %s (%s).', [UserRole::Admin], $user);
             abort_if($sent === 0, 503, 'Aucune administratrice ne peut recevoir la demande pour le moment.');
         });
 
         return new LogbookEntryResource($found->fresh(self::RELATIONS));
     }
 
-    private function notifySubmitted(LogbookEntry $entry): void
+    private function notifySubmitted(LogbookEntry $entry, User $actor): void
     {
         $this->notifyAdministration($entry, 'entry_submitted', '%s a rempli la fiche de la séance du %s : %s (%s).',
-            [UserRole::Admin, UserRole::SuperUser]);
+            [UserRole::Admin, UserRole::SuperUser], $actor);
     }
 
     /**
-     * Notifie les comptes actifs des rôles donnés, sauf l'auteur. Message : auteur, date de la
-     * séance, nom complet du projet et groupes, pour distinguer les fiches d'un même jour.
+     * Notifie les comptes actifs des rôles donnés, sauf l'auteur de la fiche et la personne qui agit
+     * (l'administration peut soumettre pour un·e intervenant·e, #141). Message : qui agit, date de
+     * la séance, nom complet du projet et groupes, pour distinguer les fiches d'un même jour.
      * Renvoie le nombre de notifications créées.
      */
-    private function notifyAdministration(LogbookEntry $entry, string $type, string $format, array $roles): int
+    private function notifyAdministration(LogbookEntry $entry, string $type, string $format, array $roles, User $actor): int
     {
-        $entry->loadMissing(['author', 'scheduledSession.project', 'scheduledSession.subProjects']);
+        $entry->loadMissing(['scheduledSession.project', 'scheduledSession.subProjects']);
         $session = $entry->scheduledSession;
         $message = sprintf($format,
-            $entry->author->name,
+            $actor->name,
             $session->session_date->locale('fr')->translatedFormat('j F'),
             $session->project->name,
             $session->subProjects->pluck('name')->join(', '));
@@ -220,7 +220,7 @@ class LogbookEntryController extends Controller
         $recipients = User::query()
             ->whereIn('role', array_map(fn (UserRole $role) => $role->value, $roles))
             ->where('is_active', true)
-            ->whereKeyNot($entry->author_id)
+            ->whereNotIn('id', [$entry->author_id, $actor->id])
             ->pluck('id');
         $recipients->each(fn (int $recipient) => KlapNotification::query()->create([
             'recipient_id' => $recipient,

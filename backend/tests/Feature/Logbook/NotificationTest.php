@@ -209,4 +209,17 @@ class NotificationTest extends TestCase
         $this->postJson('/api/notifications/read-all')->assertUnauthorized();
         $this->patchJson('/api/notifications/1/read')->assertUnauthorized();
     }
+
+    public function test_l_administration_qui_soumet_pour_un_intervenant_n_est_pas_prevenue_d_elle_meme(): void
+    {
+        $id = $this->createEntry($this->completePayload());
+        $this->admin->update(['name' => 'Mariette Travard']);
+
+        $this->actingAs($this->admin)->postJson("/api/logbook-entries/{$id}/submit")->assertOk();
+
+        $this->assertCount(0, $this->notificationsOf($this->admin));
+        $this->assertCount(0, $this->notificationsOf($this->referent));
+        $notification = $this->notificationsOf($this->superUser)->sole();
+        $this->assertStringStartsWith('Mariette Travard a rempli la fiche de la séance du 5 octobre', $notification->message);
+    }
 }

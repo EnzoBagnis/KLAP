@@ -116,3 +116,11 @@
   font-weight: 500;
   color: var(--color-accent-strong);
 }
+
+.planning-entry-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
