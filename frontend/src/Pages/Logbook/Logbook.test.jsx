@@ -289,6 +289,53 @@ describe('Lien depuis le planning', () => {
     expect(screen.queryByRole('link', { name: /Remplir la fiche/ })).not.toBeInTheDocument();
   });
 
+  it('l’administration crée la fiche d’une séance après confirmation', async () => {
+    mockApi({
+      'GET /sessions': () => jsonResponse({ data: [session(), session({ id: 2, status: 'cancelled' })] }),
+      'GET /sessions/1/logbook-entry': () => jsonResponse({ message: 'Not found' }, 404),
+      'POST /sessions/1/logbook-entry': () => jsonResponse({ data: entry() }, 201),
+      'GET /logbook-entries/7': () => jsonResponse({ data: entry() }),
+    });
+    const confirm = vi.fn(() => false);
+    vi.stubGlobal('confirm', confirm);
+    const user = userEvent.setup();
+    renderAt('/planning?mois=2026-10', MOCK_USERS.super_user);
+    const buttons = await screen.findAllByRole('button', { name: /Créer la fiche/ });
+    expect(buttons).toHaveLength(1);
+    await user.click(buttons[0]);
+    expect(confirm).toHaveBeenCalledWith('Créer la fiche de cette séance pour Léa Fournier ?');
+    expect(screen.getByTestId('where')).toHaveTextContent('/planning');
+
+    confirm.mockReturnValue(true);
+    await user.click(buttons[0]);
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/fiches/7'));
+  });
+
+  it('une fiche existante se consulte depuis le planning, y compris par un collègue', async () => {
+    mockApi({
+      'GET /sessions': () =>
+        jsonResponse({ data: [session({ referent: { id: 9, name: 'Paul Martin' }, logbook_entry: { id: 7, status: 'submitted' } })] }),
+    });
+    renderAt('/planning?mois=2026-10');
+    expect(await screen.findByRole('link', { name: /Consulter la fiche/ })).toHaveAttribute('href', '/fiches/7');
+  });
+
+  it('la fiche d’un collègue s’affiche en lecture seule', async () => {
+    mockApi({ 'GET /logbook-entries/7': () => jsonResponse({ data: entry({ editable: false, author: { id: 9, name: 'Paul Martin' } }) }) });
+    renderAt('/fiches/7?etape=2');
+    expect(await screen.findByText('Fiche de Paul Martin, en lecture seule.')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Objectifs pédagogiques/)).toBeDisabled();
+  });
+
+  it('l’administration voit le motif réel quand elle ne peut pas modifier', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () =>
+        jsonResponse({ data: entry({ status: 'locked', editable: false, author: { id: 9, name: 'Paul Martin' } }) }),
+    });
+    renderAt('/fiches/7', MOCK_USERS.admin);
+    expect(await screen.findByText(/La fiche est verrouillée/)).toBeInTheDocument();
+  });
+
   it('n’apparaît que pour l’intervenant référent d’une séance non annulée', async () => {
     mockApi({
       'GET /sessions': () =>
@@ -379,13 +426,13 @@ describe('Cas d’erreur et garde-fous', () => {
     expect(bodyOf(fetchMock, 'PATCH').objectives).toBe('Écoute');
   });
 
-  it('montre en lecture seule la fiche d’un autre intervenant', async () => {
+  it('explique à l’administration une fiche non modifiable hors verrouillage (séance annulée, projet archivé)', async () => {
     mockApi({
       'GET /logbook-entries/7': () =>
         jsonResponse({ data: entry({ editable: false, author: { id: 9, name: 'Paul Martin' } }) }),
     });
     renderAt('/fiches/7', MOCK_USERS.admin);
-    expect(await screen.findByText('Fiche de Paul Martin, en lecture seule.')).toBeInTheDocument();
+    expect(await screen.findByText('La séance a été annulée ou son projet archivé : la fiche ne se modifie plus.')).toBeInTheDocument();
   });
 
   it('enregistre avant de revenir au planning', async () => {

@@ -2,15 +2,15 @@
 
 namespace App\Http\Requests\Logbook;
 
-use App\Enums\UserRole;
 use App\Models\LogbookEntry;
 use App\Support\LogbookRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 /**
- * Modifier une fiche : son auteur seul, tant qu'elle n'est pas verrouillée et que
- * l'échéance (J+10) n'est pas passée. Une fiche déjà soumise doit rester complète.
+ * Modifier une fiche : son auteur, l'administratrice ou la super-utilisatrice (#141), tant
+ * qu'elle n'est pas verrouillée et que l'échéance (J+10) n'est pas passée. Une fiche déjà
+ * soumise doit rester complète. Les collègues du projet la lisent sans la modifier.
  */
 class UpdateLogbookEntryRequest extends FormRequest
 {
@@ -25,10 +25,10 @@ class UpdateLogbookEntryRequest extends FormRequest
         abort_if($this->entry === null, 404);
 
         $user = $this->user();
-        if ($this->entry->author_id !== $user->id) {
-            // L'administration voit la fiche, mais ne la modifie pas ; pour les autres, elle n'existe pas.
-            abort_unless($user->hasRole(UserRole::Admin, UserRole::SuperUser), 404);
-            abort(403, 'Seul·e l’auteur·rice de la fiche peut la modifier.');
+        if (! $this->entry->canBeEditedBy($user)) {
+            // Fiche d'un autre intervenant du même projet : lisible, pas modifiable ; sinon, elle n'existe pas.
+            abort_unless(LogbookEntry::query()->readableBy($user)->whereKey($this->entry->id)->exists(), 404);
+            abort(403, 'Seul·e l’auteur·rice de la fiche, l’administratrice ou la super-utilisatrice peut la modifier.');
         }
         abort_if($this->entry->isLocked(), 403,
             'La fiche est verrouillée : le délai de 10 jours après la séance est passé.');
