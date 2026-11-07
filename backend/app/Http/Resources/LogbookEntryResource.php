@@ -22,8 +22,8 @@ class LogbookEntryResource extends JsonResource
             'status' => $this->status,
             'edit_deadline' => $this->edit_deadline?->toDateString(),
             'submitted_at' => $this->submitted_at?->toIso8601String(),
-            'editable' => $this->author_id === $request->user()?->id
-                && ! $this->isLocked() && $active,
+            // Auteur, administratrice ou super-utilisatrice (#141), hors verrouillage.
+            'editable' => $this->resource->canBeEditedBy($request->user()) && ! $this->isLocked() && $active,
             // Rouvrable par l'administratrice : verrouillée ou hors délai, séance et projet actifs.
             'unlockable' => $request->user()?->hasRole(UserRole::Admin) === true && $this->isLocked() && $active,
             'unlocked_at' => $this->unlocked_at?->toIso8601String(),

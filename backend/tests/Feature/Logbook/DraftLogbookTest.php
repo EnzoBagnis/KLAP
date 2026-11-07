@@ -37,22 +37,33 @@ class DraftLogbookTest extends TestCase
         $this->assertDatabaseHas('logbook_entry_user', ['logbook_entry_id' => $entry->id, 'user_id' => $this->referent->id, 'member_role' => 'lead']);
     }
 
-    public static function notReferent(): array
+    public function test_un_autre_intervenant_n_ouvre_pas_la_fiche(): void
     {
-        return [
-            'administratrice' => [UserRole::Admin],
-            'super-utilisatrice' => [UserRole::SuperUser],
-            'autre intervenant' => [UserRole::Contributor],
-        ];
-    }
-
-    #[DataProvider('notReferent')]
-    public function test_seul_le_referent_ouvre_la_fiche(UserRole $role): void
-    {
-        $this->actingAs(User::factory()->role($role)->create())
+        $this->actingAs(User::factory()->role(UserRole::Contributor)->create())
             ->postJson("/api/sessions/{$this->session->id}/logbook-entry")
             ->assertForbidden()
-            ->assertJsonPath('message', 'Seul·e l’intervenant·e référent·e de la séance peut en remplir la fiche.');
+            ->assertJsonPath('message', 'Seul·e l’intervenant·e référent·e de la séance, l’administratrice ou la super-utilisatrice peut ouvrir sa fiche.');
+    }
+
+    public static function administration(): array
+    {
+        return ['administratrice' => [UserRole::Admin], 'super-utilisatrice' => [UserRole::SuperUser]];
+    }
+
+    #[DataProvider('administration')]
+    public function test_l_administration_ouvre_la_fiche_pour_le_referent(UserRole $role): void
+    {
+        // Cahier des charges : création de fiche « pour elle et pour d'autres utilisateurs » (#141).
+        $id = $this->actingAs(User::factory()->role($role)->create())
+            ->postJson("/api/sessions/{$this->session->id}/logbook-entry")
+            ->assertCreated()
+            ->assertJsonPath('data.author.id', $this->referent->id)
+            ->assertJsonPath('data.editable', true)
+            ->json('data.id');
+
+        // Le ou la référent·e la retrouve et la remplit.
+        $this->actingAs($this->referent)->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'Écoute'])->assertOk();
+        $this->assertDatabaseHas('logbook_entry_user', ['logbook_entry_id' => $id, 'user_id' => $this->referent->id, 'member_role' => 'lead']);
     }
 
     public function test_une_seule_fiche_par_seance(): void
@@ -138,14 +149,40 @@ class DraftLogbookTest extends TestCase
             ->assertJsonValidationErrors(['attendees.0.sub_project_id' => 'Ce groupe ne fait pas partie de la séance.']);
     }
 
-    public function test_seul_l_auteur_modifie_et_les_autres_intervenants_ne_voient_rien(): void
+    #[DataProvider('administration')]
+    public function test_l_administration_modifie_toutes_les_fiches(UserRole $role): void
     {
         $id = $this->createEntry();
 
-        $this->actingAs(User::factory()->role(UserRole::Admin)->create())
-            ->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'x'])->assertForbidden();
+        $this->actingAs(User::factory()->role($role)->create())
+            ->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'Corrigé par l’administration'])
+            ->assertOk()
+            ->assertJsonPath('data.objectives', 'Corrigé par l’administration')
+            ->assertJsonPath('data.author.id', $this->referent->id);
+    }
+
+    public function test_un_intervenant_du_projet_lit_mais_ne_modifie_pas_et_les_autres_ne_voient_rien(): void
+    {
+        $id = $this->createEntry();
+        $colleague = User::factory()->role(UserRole::Contributor)->create();
+        $this->project->members()->attach($colleague->id, ['member_role' => 'occasional']);
+
+        $this->actingAs($colleague)->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'x'])
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Seul·e l’auteur·rice de la fiche, l’administratrice ou la super-utilisatrice peut la modifier.');
         $this->actingAs(User::factory()->role(UserRole::Contributor)->create())
             ->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'x'])->assertNotFound();
+    }
+
+    public function test_le_verrouillage_vaut_aussi_pour_l_administration(): void
+    {
+        $id = $this->createEntry();
+        $this->travelTo(now()->setDate(2026, 10, 16));
+
+        $this->actingAs(User::factory()->role(UserRole::Admin)->create())
+            ->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'x'])
+            ->assertForbidden()
+            ->assertJsonPath('message', 'La fiche est verrouillée : le délai de 10 jours après la séance est passé.');
     }
 
     public function test_la_fiche_est_verrouillee_apres_l_echeance(): void
@@ -247,5 +284,28 @@ class DraftLogbookTest extends TestCase
         $this->travelTo(now()->setDate(2026, 10, 6)->setTime(21, 59)); // 23 h 59 à Paris
 
         $this->actingAs($this->referent)->postJson("/api/sessions/{$this->session->id}/logbook-entry")->assertUnprocessable();
+    }
+
+    public function test_l_administration_ne_cree_pas_la_fiche_d_un_compte_desactive(): void
+    {
+        $this->referent->update(['is_active' => false]);
+
+        $this->actingAs(User::factory()->role(UserRole::Admin)->create())
+            ->postJson("/api/sessions/{$this->session->id}/logbook-entry")
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.session.0', 'L’intervenant·e référent·e de cette séance n’a plus de compte actif.');
+    }
+
+    public function test_l_administration_suit_les_memes_regles_de_creation(): void
+    {
+        $admin = User::factory()->role(UserRole::Admin)->create();
+        $this->session->forceFill(['status' => 'cancelled'])->save();
+        $this->actingAs($admin)->postJson("/api/sessions/{$this->session->id}/logbook-entry")->assertUnprocessable();
+
+        $this->session->forceFill(['status' => 'planned', 'session_date' => '2026-10-08'])->save();
+        $this->actingAs($admin)->postJson("/api/sessions/{$this->session->id}/logbook-entry")->assertUnprocessable(); // séance à venir
+
+        $this->session->forceFill(['session_date' => '2026-09-01'])->save();
+        $this->actingAs($admin)->postJson("/api/sessions/{$this->session->id}/logbook-entry")->assertForbidden(); // hors délai
     }
 }
