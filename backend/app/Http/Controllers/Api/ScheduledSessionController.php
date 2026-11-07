@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Sessions\ListSessionsRequest;
 use App\Http\Requests\Sessions\StoreScheduledSessionRequest;
 use App\Http\Resources\ScheduledSessionResource;
 use App\Models\Project;
 use App\Models\ScheduledSession;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -51,16 +49,7 @@ class ScheduledSessionController extends Controller
             // Comparaison sur la date seule : sous SQLite, la colonne contient aussi l'heure (00:00:00).
             ->whereDate('session_date', '>=', $request->validated('from'))
             ->whereDate('session_date', '<=', $request->validated('to'))
-            ->when(! $user->hasRole(UserRole::Admin, UserRole::SuperUser), function (Builder $query) use ($user) {
-                if (! $user->hasRole(UserRole::Contributor)) {
-                    $query->whereRaw('1 = 0');
-
-                    return;
-                }
-                $query->where(fn (Builder $mine) => $mine
-                    ->where('referent_id', $user->id)
-                    ->orWhereHas('project', fn (Builder $project) => $project->visibleTo($user)));
-            })
+            ->visibleTo($user)
             ->with(self::RELATIONS)
             ->orderBy('session_date')
             ->orderBy('start_time')
