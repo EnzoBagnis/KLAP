@@ -126,6 +126,12 @@ class StatisticsService
             ->all();
     }
 
+    /** Fiches manquantes (toutes, en retard, encore à remplir) : mêmes chiffres que l'écran Statistiques. */
+    public function missingSummary(): array
+    {
+        return $this->missingCounts($this->missingEntries());
+    }
+
     /**
      * Fiches manquantes, en retard (échéance passée : J+10, ou nouvelle échéance après
      * réouverture d'un brouillon) ou à remplir (encore dans le délai).

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FunderController;
 use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LocationController;
@@ -27,6 +28,9 @@ Route::middleware('throttle:10,1,invitations')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
+
+    // Tableau de bord (#146) : page d'accueil, tous les rôles.
+    Route::get('dashboard', DashboardController::class);
 
     // Lieux : tout utilisateur peut en choisir un (contexte client).
     Route::get('locations', [LocationController::class, 'index']);
