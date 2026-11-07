@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\LogbookEntryController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectTypeController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScheduledSessionController;
 use App\Http\Controllers\Api\StatisticsController;
 use App\Http\Controllers\Api\UserController;
@@ -58,6 +59,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Statistiques (#113) : administration seulement, en lecture.
     Route::get('statistics', StatisticsController::class)->middleware('role:admin,super_user');
+    // Pré-bilan Word d'un projet pour un financeur (#143).
+    Route::get('projects/{project}/pre-report', [ReportController::class, 'preReport'])->middleware('role:admin,super_user');
 
     // Projets : création réservée à l'administratrice (RG02, #55).
     Route::middleware('role:admin')->group(function () {
