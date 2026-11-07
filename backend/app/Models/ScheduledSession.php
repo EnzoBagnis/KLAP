@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +39,24 @@ class ScheduledSession extends Model
         return [
             'session_date' => 'date',
         ];
+    }
+
+    /**
+     * Séances visibles au planning. Administratrice et super-utilisatrice : toutes.
+     * Intervenant : celles de ses projets, plus celles dont il est référent.
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->hasRole(UserRole::Admin, UserRole::SuperUser)) {
+            return $query;
+        }
+        if (! $user->hasRole(UserRole::Contributor)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(fn (Builder $mine) => $mine
+            ->where('scheduled_sessions.referent_id', $user->id)
+            ->orWhereHas('project', fn (Builder $project) => $project->visibleTo($user)));
     }
 
     public function project(): BelongsTo
