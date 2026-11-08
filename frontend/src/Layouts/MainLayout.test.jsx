@@ -157,7 +157,7 @@ describe('Menu mobile', () => {
     await user.click(menuButton());
     await user.click(screen.getByRole('link', { name: /Mariette Travard/ }));
     expect(menuButton()).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('heading', { name: 'Profil' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Mon profil' })).toBeInTheDocument();
   });
 });
 
