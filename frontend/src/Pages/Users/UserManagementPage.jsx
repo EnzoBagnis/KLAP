@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import SelectInput from '../../Components/Form/SelectInput.jsx';
 import TextInput from '../../Components/Form/TextInput.jsx';
+import AccountList from '../../Components/Management/AccountList.jsx';
 import ManagementTabs from '../../Components/Management/ManagementTabs.jsx';
 import Button from '../../Components/UI/Button.jsx';
 import useAuth from '../../Hooks/useAuth.js';
@@ -27,7 +28,7 @@ function validate(form) {
 /*
  * Gestion, onglet Utilisateurs (maquette, écran 08) : inviter une personne (#127). Elle reçoit
  * un mail avec un lien pour choisir son mot de passe ; son nom et son adresse sont ceux saisis ici.
- * La liste des comptes et des invitations en cours viendra avec la gestion des utilisateurs.
+ * Sous le formulaire, la liste des comptes, à désactiver ou réactiver (#159).
  */
 export default function UserManagementPage() {
   const { logout } = useAuth();
@@ -145,6 +146,8 @@ export default function UserManagementPage() {
           </Button>
         </div>
       </form>
+
+      <AccountList />
     </section>
   );
 }
