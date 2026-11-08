@@ -114,4 +114,11 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    | Durée minimale (microsecondes) des réponses « mot de passe oublié » (#81) : elle couvre le
+    | hachage du jeton, pour qu'un compte existant ne réponde pas plus lentement qu'un inconnu.
+    */
+
+    'timebox_duration' => env('AUTH_TIMEBOX_DURATION', 1000000),
+
 ];
