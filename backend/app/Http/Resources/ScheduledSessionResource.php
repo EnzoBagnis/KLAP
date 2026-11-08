@@ -18,7 +18,8 @@ class ScheduledSessionResource extends JsonResource
             'session_type' => $this->session_type,
             'session_type_detail' => $this->session_type_detail,
             'status' => $this->status,
-            'project' => $this->whenLoaded('project', fn () => ['id' => $this->project->id, 'name' => $this->project->name]),
+            // Statut du projet : une séance d'un projet archivé n'ouvre plus de fiche (#152).
+            'project' => $this->whenLoaded('project', fn () => ['id' => $this->project->id, 'name' => $this->project->name, 'status' => $this->project->status]),
             'location' => $this->whenLoaded('location', fn () => ['id' => $this->location->id, 'name' => $this->location->name]),
             'referent' => $this->whenLoaded('referent', fn () => ['id' => $this->referent->id, 'name' => $this->referent->name]),
             'sub_projects' => $this->whenLoaded('subProjects', fn () => $this->subProjects

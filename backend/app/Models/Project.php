@@ -17,6 +17,9 @@ class Project extends Model
     /** Statuts autorisés à la création : un projet ne naît ni terminé ni archivé. */
     public const CREATION_STATUSES = ['draft', 'active'];
 
+    /** Statuts qu'on choisit en modifiant un projet ; l'archivage a sa propre route (#152). */
+    public const EDITABLE_STATUSES = ['draft', 'active', 'finished'];
+
     protected $fillable = [
         'name',
         'description',
