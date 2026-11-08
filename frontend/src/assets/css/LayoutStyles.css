@@ -300,6 +300,17 @@
   color: var(--color-mute);
 }
 
+/* Lien sous un formulaire d'accès : mot de passe oublié, retour à la connexion (#81). */
+.auth-link {
+  margin: 20px 0 0;
+  font-size: var(--text-14);
+  text-align: center;
+}
+
+.auth-link a {
+  color: var(--color-ink);
+}
+
 .auth-form {
   display: flex;
   flex-direction: column;

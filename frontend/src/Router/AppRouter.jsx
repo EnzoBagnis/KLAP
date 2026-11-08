@@ -8,6 +8,8 @@ import NotificationsPage from '../Pages/Notifications/NotificationsPage.jsx';
 import { ROLES } from '../Context/roles.js';
 import ProjectDetailsPage from '../Pages/Projects/ProjectDetailsPage.jsx';
 import ActivationPage from '../Pages/Auth/ActivationPage.jsx';
+import ForgotPasswordPage from '../Pages/Auth/ForgotPasswordPage.jsx';
+import ResetPasswordPage from '../Pages/Auth/ResetPasswordPage.jsx';
 import LoginPage from '../Pages/Auth/LoginPage.jsx';
 import UserManagementPage from '../Pages/Users/UserManagementPage.jsx';
 import LogbookEntryPage from '../Pages/Logbook/LogbookEntryPage.jsx';
@@ -27,6 +29,9 @@ export default function AppRouter() {
         <Route path="/connexion" element={<LoginPage />} />
         {/* Lien reçu par mail (#127) : hors connexion. */}
         <Route path="/activation/:token" element={<ActivationPage />} />
+        {/* Mot de passe oublié (#81) : hors connexion, lien reçu par mail. */}
+        <Route path="/mot-de-passe-oublie" element={<ForgotPasswordPage />} />
+        <Route path="/reinitialisation/:token" element={<ResetPasswordPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
