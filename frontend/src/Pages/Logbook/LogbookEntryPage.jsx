@@ -178,6 +178,12 @@ function LogbookForm() {
       {!readOnlyReason && entry.edit_deadline && (
         <p className="form-hint">Modifiable jusqu’au {formatDate(entry.edit_deadline)} inclus.</p>
       )}
+      {/* Mineurs (document RGPD, #157) : les textes sont lus par l'équipe et en partie repris dans le pré-bilan. */}
+      {!readOnlyReason && (
+        <p className="form-hint logbook-privacy">
+          Ne citez pas d’élève par son nom : la fiche est lue par l’équipe, et une partie est reprise dans les bilans envoyés aux financeurs.
+        </p>
+      )}
       {entry.unlocked_at && entry.unlocked_by && (
         <p className="form-hint">
           Rouverte le {formatInstant(entry.unlocked_at)} par {entry.unlocked_by.name}.

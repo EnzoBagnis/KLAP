@@ -41,7 +41,7 @@ Les ateliers s'adressent surtout à des élèves mineurs. L'application applique
 - un intervenant ne lit que les fiches des projets où il intervient (section 4) ;
 - le **pré-bilan envoyé aux financeurs** ne reprend que les « temps forts » et les « notes complémentaires ».
   Le bilan de l'intervenant·e et les suites restent internes (#143) ;
-- à faire : un rappel dans l'écran de la fiche, « ne pas citer d'élève par son nom » (section 6).
+- un rappel en haut de chaque fiche modifiable : « Ne citez pas d'élève par son nom » (#157).
 
 ---
 
@@ -78,6 +78,7 @@ Trois rôles, emboîtés comme le demande le cahier des charges (#141) :
 - **Jetons d'API** : jetons Laravel Sanctum, envoyés en en-tête `Authorization: Bearer`.
   - Seule leur empreinte SHA-256 est stockée en base.
   - La déconnexion supprime le jeton de l'appareil utilisé.
+  - Un jeton expire au bout de 30 jours (`SANCTUM_EXPIRATION`). Les jetons expirés sont purgés chaque nuit (#157).
 - **Tentatives de connexion limitées** (#150) : au plus 5 par minute pour un même compte depuis une même adresse IP,
   et 30 par minute par adresse IP. Au-delà, la réponse est 429 avec un délai d'attente.
   Des collègues sur le même Wi-Fi ne se bloquent pas entre eux.
@@ -109,10 +110,8 @@ Trois rôles, emboîtés comme le demande le cahier des charges (#141) :
 | Durées de conservation | Rien n'est purgé | Fixer une durée avec KLAP (par exemple la durée des conventions de financement), puis ajouter une purge ou une anonymisation des fiches anciennes |
 | Hébergement | Prévu sur Alwaysdata (#79) | Vérifier le lieu d'hébergement des données et signer l'accord de sous-traitance (article 28) |
 | HTTPS | À la mise en ligne | HTTPS obligatoire en production (identifiants et jetons circulent dans les requêtes) |
-| Expiration des jetons | Aucune expiration aujourd'hui | Fixer une durée de vie aux jetons Sanctum, par exemple 30 jours, ou une expiration après inactivité |
 | Écran de gestion des comptes | Liste et invitations seulement | Désactiver un compte et changer un rôle depuis l'écran Utilisateurs |
 | Droits des personnes (accès, rectification) | Par l'administratrice | Procédure à écrire : une demande d'un·e intervenant·e passe par Mariette |
-| Texte libre et mineurs | Pas de rappel à l'écran | Aide sous les champs libres de la fiche : « ne citez pas d'élève par son nom » |
 | Champs personnalisés | Tables présentes (`custom_fields`), non utilisées | Seulement si la cliente le demande |
 | Export des statistiques | Seul le pré-bilan Word existe | Format à décider avec la cliente (question ouverte) |
 
@@ -125,6 +124,6 @@ Trois rôles, emboîtés comme le demande le cahier des charges (#141) :
 | Mineurs | Aucun élève enregistré, présents comptés par groupe, notes collectives | `participant_evaluations`, pivot des présents |
 | Comptes | Invitation seulement, jeton haché valable 7 jours, mot de passe fort, désactivation immédiate | `InvitationController`, `AppServiceProvider` |
 | Accès | Trois rôles vérifiés côté serveur, 404 sur un projet non accessible | `EnsureUserHasRole`, scopes `visibleTo` et `readableBy` |
-| Attaques | Bcrypt, empreintes des jetons, limite des connexions par compte et par IP | `AppServiceProvider`, `routes/api.php` |
+| Attaques | Bcrypt, empreintes des jetons, jetons expirés après 30 jours, limite des connexions par compte et par IP | `AppServiceProvider`, `config/sanctum.php`, `routes/api.php` |
 | Intégrité | Verrouillage J+10 planifié, réouverture par l'administratrice seule, archivage sans effacement | `LockExpiredLogbookEntries`, `LogbookEntryController`, `ProjectController` |
 | Financeurs | Pré-bilan Word sans nom de personne, export tracé | `PreReportService`, `report_exports` |
