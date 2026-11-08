@@ -143,6 +143,16 @@ class InvitationTest extends TestCase
         $this->invite()->assertUnprocessable()->assertJsonPath('errors.email.0', 'Un compte existe déjà avec cette adresse.');
     }
 
+    public function test_un_compte_desactive_se_reactive_au_lieu_d_etre_reinvite(): void
+    {
+        Mail::fake();
+        User::factory()->create(['email' => 'paul.martin@example.org', 'is_active' => false]);
+
+        $this->invite(['email' => 'Paul.Martin@example.org'])->assertUnprocessable()
+            ->assertJsonPath('errors.email.0', 'Un compte désactivé existe avec cette adresse : réactivez-le dans la liste des comptes.');
+        Mail::assertNothingSent();
+    }
+
     public function test_une_nouvelle_invitation_remplace_celle_en_cours(): void
     {
         Mail::fake();

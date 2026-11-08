@@ -40,8 +40,12 @@ class StoreInvitationRequest extends FormRequest
                 if ($validator->errors()->has('email')) {
                     return;
                 }
-                if (User::query()->whereRaw('LOWER(email) = ?', [$this->input('email')])->exists()) {
-                    $validator->errors()->add('email', 'Un compte existe déjà avec cette adresse.');
+                $existing = User::query()->whereRaw('LOWER(email) = ?', [$this->input('email')])->first(['id', 'is_active']);
+                if ($existing !== null) {
+                    // Compte désactivé : on le réactive plutôt que de réinviter (#159). Route réservée à l'admin.
+                    $validator->errors()->add('email', $existing->is_active
+                        ? 'Un compte existe déjà avec cette adresse.'
+                        : 'Un compte désactivé existe avec cette adresse : réactivez-le dans la liste des comptes.');
                 }
             },
         ];
