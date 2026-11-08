@@ -8,6 +8,17 @@
   margin-bottom: 32px;
 }
 
+/* Un champ de grille ne rétrécit pas sous la largeur de son contenu : sans cela, le nom de
+   projet le plus long élargit le menu et fait déborder la page sur téléphone. */
+.statistics-filters > * {
+  min-width: 0;
+}
+
+.statistics-filters .field-input {
+  width: 100%;
+  min-width: 0;
+}
+
 .statistics-filter-actions {
   display: flex;
   gap: 8px;
@@ -57,6 +68,11 @@
   grid-template-columns: 3fr 2fr;
   gap: 32px;
   margin-bottom: 32px;
+}
+
+/* Même règle : le tableau défile dans sa case au lieu d'élargir la page. */
+.statistics-breakdowns > * {
+  min-width: 0;
 }
 
 .statistics-group-meta {
