@@ -42,6 +42,15 @@ class PrepareDemoTest extends TestCase
         $this->assertSame('2026-09-08', substr((string) $firstSession, 0, 10));
         $this->assertSame('2026-11-06', substr((string) DB::table('scheduled_sessions')->where('id', 1)->value('session_date'), 0, 10));
 
+        // Un projet garde son année scolaire.
+        $this->assertSame('2026-09-01', substr((string) DB::table('projects')->where('name', 'Arts Danse au Lycée Charles')->value('start_date'), 0, 10));
+
+        // Les messages de la cloche citent la date décalée, au format de l'application.
+        $request = DB::table('klap_notifications')->where('type', 'unlock_request')->first();
+        $this->assertNotNull($request);
+        $this->assertStringNotContainsString('septembre', $request->message);
+        $this->assertStringContainsString('demande à rouvrir la fiche de la séance du', $request->message);
+
         // Les 59 participants de la cliente sont toujours là.
         $admin = User::query()->where('email', 'mariette.travard@klap.demo')->firstOrFail();
         $project = DB::table('projects')->where('name', 'Arts Danse au Lycée Charles')->first();

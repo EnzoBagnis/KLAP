@@ -284,6 +284,23 @@ describe('Lien depuis le planning', () => {
     expect(await screen.findByRole('link', { name: /Remplir la fiche/ })).toBeInTheDocument();
   });
 
+  it('propose de reprendre un brouillon et de consulter une fiche rendue', async () => {
+    mockApi({
+      'GET /sessions': () =>
+        jsonResponse({
+          data: [
+            session({ id: 1, session_date: '2026-10-05', logbook_entry: { id: 7, status: 'draft' } }),
+            session({ id: 2, session_date: '2026-10-06', logbook_entry: { id: 8, status: 'submitted' } }),
+          ],
+        }),
+    });
+    renderAt('/planning?mois=2026-10');
+
+    expect(await screen.findByRole('link', { name: /Reprendre la fiche/ })).toHaveAttribute('href', '/planning/seances/1/fiche');
+    expect(screen.getByRole('link', { name: /Consulter la fiche/ })).toHaveAttribute('href', '/fiches/8');
+    expect(screen.queryByRole('link', { name: /Remplir la fiche/ })).not.toBeInTheDocument();
+  });
+
   it('n’apparaît pas sur une séance à venir', async () => {
     mockApi({ 'GET /sessions': () => jsonResponse({ data: [session({ session_date: '2026-10-07' })] }) });
     renderAt('/planning?mois=2026-10');
