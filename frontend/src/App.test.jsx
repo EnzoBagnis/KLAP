@@ -19,6 +19,8 @@ describe('AppRouter', () => {
   it('affiche le tableau de bord sur /', () => {
     renderAt('/');
     expect(screen.getByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument();
+    // L'onglet ne garde pas le titre de la page précédente.
+    expect(document.title).toBe('Tableau de bord · KLAP');
   });
 
   it.each(NAV_ITEMS.map((item) => [item.path, item.label]))(
