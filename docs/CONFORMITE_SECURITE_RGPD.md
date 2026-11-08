@@ -56,7 +56,7 @@ Les ateliers s'adressent surtout à des élèves mineurs. L'application applique
   - ne peut plus se connecter ;
   - perd aussitôt l'accès, même avec un jeton déjà ouvert, et ses jetons sont supprimés (#148).
 
-  L'écran pour désactiver un compte reste à faire (section 6).
+  Mariette désactive ou réactive un compte depuis Gestion, onglet Utilisateurs (#159). Elle ne peut pas désactiver le sien.
 
 ---
 
@@ -110,7 +110,7 @@ Trois rôles, emboîtés comme le demande le cahier des charges (#141) :
 | Durées de conservation | Rien n'est purgé | Fixer une durée avec KLAP (par exemple la durée des conventions de financement), puis ajouter une purge ou une anonymisation des fiches anciennes |
 | Hébergement | Prévu sur Alwaysdata (#79) | Vérifier le lieu d'hébergement des données et signer l'accord de sous-traitance (article 28) |
 | HTTPS | À la mise en ligne | HTTPS obligatoire en production (identifiants et jetons circulent dans les requêtes) |
-| Écran de gestion des comptes | Liste et invitations seulement | Désactiver un compte et changer un rôle depuis l'écran Utilisateurs |
+| Changement de rôle | Impossible depuis l'écran | À décider avec la cliente : la désactivation et la réactivation sont faites (#159), pas le changement de rôle |
 | Droits des personnes (accès, rectification) | Par l'administratrice | Procédure à écrire : une demande d'un·e intervenant·e passe par Mariette |
 | Champs personnalisés | Tables présentes (`custom_fields`), non utilisées | Seulement si la cliente le demande |
 | Export des statistiques | Seul le pré-bilan Word existe | Format à décider avec la cliente (question ouverte) |
