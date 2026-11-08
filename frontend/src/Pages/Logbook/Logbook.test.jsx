@@ -179,6 +179,7 @@ describe('Fiche de séance', () => {
     renderAt('/fiches/7');
     expect(await screen.findByText('Grand studio')).toBeInTheDocument();
     expect(screen.getByText(/Modifiable jusqu’au 15\/10\/2026 inclus/)).toBeInTheDocument();
+    expect(screen.getByText(/Ne citez pas d’élève par son nom/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Généralités/ })).toHaveAttribute('aria-current', 'step');
   });
 
@@ -251,6 +252,7 @@ describe('Fiche de séance', () => {
     renderAt('/fiches/7?etape=2');
     expect(await screen.findByLabelText(/Objectifs pédagogiques/)).toBeDisabled();
     expect(screen.queryByRole('button', { name: /Enregistrer/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ne citez pas d’élève par son nom/)).not.toBeInTheDocument();
   });
 
   it('signale une fiche introuvable', async () => {
