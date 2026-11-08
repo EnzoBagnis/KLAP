@@ -180,10 +180,13 @@ function EntryLink({ session, label, userId, manages, today }) {
   const fillable = session.status !== 'cancelled' && session.session_date <= today;
   const hidden = <span className="visually-hidden"> du {label}</span>;
 
-  if (session.referent.id === userId && fillable) {
+  // Référent·e : remplir, reprendre un brouillon ; une fiche rendue se consulte (#163).
+  const rendered = session.logbook_entry && session.logbook_entry.status !== 'draft';
+  if (session.referent.id === userId && fillable && !rendered) {
     return (
       <Link to={`/planning/seances/${session.id}/fiche`} className="planning-entry-link">
-        Remplir la fiche{hidden}
+        {session.logbook_entry ? 'Reprendre la fiche' : 'Remplir la fiche'}
+        {hidden}
       </Link>
     );
   }

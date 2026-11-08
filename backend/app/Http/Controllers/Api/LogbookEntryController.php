@@ -188,7 +188,7 @@ class LogbookEntryController extends Controller
             abort_if($entry->pendingUnlockRequestAt() !== null, 409,
                 'Une demande de réouverture est déjà en attente pour cette fiche.');
 
-            $sent = $this->notifyAdministration($entry, 'unlock_request', '%s demande à rouvrir la fiche de la séance du %s : %s (%s).', [UserRole::Admin], $user);
+            $sent = $this->notifyAdministration($entry, 'unlock_request', [UserRole::Admin], $user);
             abort_if($sent === 0, 503, 'Aucune administratrice ne peut recevoir la demande pour le moment.');
         });
 
@@ -197,8 +197,7 @@ class LogbookEntryController extends Controller
 
     private function notifySubmitted(LogbookEntry $entry, User $actor): void
     {
-        $this->notifyAdministration($entry, 'entry_submitted', '%s a rempli la fiche de la séance du %s : %s (%s).',
-            [UserRole::Admin, UserRole::SuperUser], $actor);
+        $this->notifyAdministration($entry, 'entry_submitted', [UserRole::Admin, UserRole::SuperUser], $actor);
     }
 
     /**
@@ -207,15 +206,9 @@ class LogbookEntryController extends Controller
      * la séance, nom complet du projet et groupes, pour distinguer les fiches d'un même jour.
      * Renvoie le nombre de notifications créées.
      */
-    private function notifyAdministration(LogbookEntry $entry, string $type, string $format, array $roles, User $actor): int
+    private function notifyAdministration(LogbookEntry $entry, string $type, array $roles, User $actor): int
     {
-        $entry->loadMissing(['scheduledSession.project', 'scheduledSession.subProjects']);
-        $session = $entry->scheduledSession;
-        $message = sprintf($format,
-            $actor->name,
-            $session->session_date->locale('fr')->translatedFormat('j F'),
-            $session->project->name,
-            $session->subProjects->pluck('name')->join(', '));
+        $message = KlapNotification::messageFor($type, $actor->name, $entry);
 
         $recipients = User::query()
             ->whereIn('role', array_map(fn (UserRole $role) => $role->value, $roles))
@@ -226,8 +219,7 @@ class LogbookEntryController extends Controller
             'recipient_id' => $recipient,
             'type' => $type,
             'logbook_entry_id' => $entry->id,
-            // La colonne est un VARCHAR(255) : un nom de projet très long est tronqué.
-            'message' => mb_strimwidth($message, 0, 255, '…'),
+            'message' => $message,
         ]));
 
         return $recipients->count();
