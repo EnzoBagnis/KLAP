@@ -1,17 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import TextInput from '../../Components/Form/TextInput.jsx';
+import NewPasswordFields, { newPasswordErrors } from '../../Components/Form/NewPasswordFields.jsx';
 import Button from '../../Components/UI/Button.jsx';
 import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import { activateInvitation, getInvitation } from '../../Services/InvitationService.js';
-
-// Mêmes classes que l'API (Password::mixedCase, numbers, symbols) : lettres accentuées comprises.
-const RULES = [
-  ['au moins 8 caractères', (value) => [...value].length >= 8],
-  ['une majuscule et une minuscule', (value) => /\p{Lu}/u.test(value) && /\p{Ll}/u.test(value)],
-  ['un chiffre', (value) => /\p{N}/u.test(value)],
-  ['un caractère spécial (@, #, !…)', (value) => /[\p{S}\p{P}\p{Z}]/u.test(value)],
-];
 
 const loadError = (error) =>
   error.status === 0 || error.status === 404 || error.status === 410
@@ -49,9 +41,7 @@ export default function ActivationPage() {
     event.preventDefault();
     if (submitting) return;
     setFormError('');
-    const found = {};
-    if (RULES.some(([, test]) => !test(password))) found.password = 'Le mot de passe ne respecte pas toutes les règles.';
-    else if (password !== confirmation) found.password_confirmation = 'La confirmation ne correspond pas au mot de passe.';
+    const found = newPasswordErrors(password, confirmation);
     setErrors(found);
     const firstInvalid = Object.keys(found)[0];
     if (firstInvalid) {
@@ -113,34 +103,12 @@ export default function ActivationPage() {
           <dt>Adresse mail</dt>
           <dd>{invitation.email}</dd>
         </dl>
-        <TextInput
-          label="Mot de passe"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          error={errors.password}
-          aria-describedby="regles-mot-de-passe"
-        />
-        <ul id="regles-mot-de-passe" className="password-rules" aria-label="Le mot de passe doit contenir">
-          {RULES.map(([label, test]) => (
-            <li key={label} className={test(password) ? 'is-met' : undefined}>
-              {label}
-              <span className="visually-hidden">{test(password) ? ' : respecté' : ' : manquant'}</span>
-            </li>
-          ))}
-        </ul>
-        <TextInput
-          label="Confirmer le mot de passe"
-          name="password_confirmation"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={confirmation}
-          onChange={(event) => setConfirmation(event.target.value)}
-          error={errors.password_confirmation}
+        <NewPasswordFields
+          password={password}
+          confirmation={confirmation}
+          onPassword={setPassword}
+          onConfirmation={setConfirmation}
+          errors={errors}
         />
         <Button type="submit" className="btn-block" disabled={submitting}>
           {submitting ? 'Activation…' : 'Activer mon compte'}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import TextInput from '../../Components/Form/TextInput.jsx';
 import Button from '../../Components/UI/Button.jsx';
 import useAuth from '../../Hooks/useAuth.js';
@@ -83,6 +83,11 @@ export default function LoginPage() {
           Votre compte est activé. Connectez-vous avec votre mot de passe.
         </p>
       )}
+      {arrival?.passwordReset && (
+        <p className="form-success" role="status">
+          Votre mot de passe est changé. Connectez-vous avec le nouveau.
+        </p>
+      )}
 
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         {formError && (
@@ -116,6 +121,9 @@ export default function LoginPage() {
           {submitting ? 'Connexion…' : 'Se connecter'}
         </Button>
       </form>
+      <p className="auth-link">
+        <Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link>
+      </p>
     </>
   );
 }
