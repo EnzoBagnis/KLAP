@@ -1,0 +1,43 @@
+# Préparer la démonstration
+
+## 1. Les données du jour
+
+Les données de démonstration décrivent la situation au 21/09/2026. La commande suivante les recrée
+et les **date du jour de la démo**. Les états restent les mêmes : des fiches rendues, d'autres
+verrouillées, un brouillon, une demande de réouverture en attente. Elle ajoute aussi une séance de
+Léa Fournier le jour même, sans fiche, pour la remplir en direct.
+
+```bash
+docker compose exec backend php artisan klap:demo                  # jour de la démo : aujourd'hui
+docker compose exec backend php artisan klap:demo --date=2026-11-19
+```
+
+**La base entière est effacée** : la commande demande une confirmation (ou `--force` pour l'éviter).
+À lancer le matin de la démo, puis de nouveau entre deux répétitions.
+
+## 2. Les comptes
+
+Mot de passe commun : `Klap2026!`
+
+| Qui | Adresse | Écran |
+|---|---|---|
+| Mariette Travard (administratrice) | `mariette.travard@klap.demo` | Ordinateur |
+| Léa Fournier (intervenante) | `lea.fournier@klap.demo` | Téléphone |
+| Emilie Garetier (super-utilisatrice) | `emilie.garetier@klap.demo` | En réserve |
+
+## 3. Le parcours : du terrain au financeur
+
+1. **Téléphone, Léa** : tableau de bord, « Fiches à remplir », séance du jour (Arts Danse au Lycée
+   Charles, Terminales spécialité danse). Elle remplit les six étapes et soumet.
+2. **Ordinateur, Mariette** : la cloche s'allume, avec le message « Léa Fournier a rempli la fiche de la séance… ».
+3. **Statistiques** : projet Arts Danse au Lycée Charles. Le nombre de participants suit la règle
+   de la cliente (59 avant la fiche du jour : le maximum par groupe, puis la somme), avec la provenance et l'âge.
+4. **Pré-bilan** : projet Arts Danse au Lycée Charles, financeur « DRAC Provence-Alpes-Côte d'Azur »,
+   puis télécharger. Le Word contient les chiffres et les temps forts des fiches, y compris celle que
+   Léa vient de remplir. L'écran dépend de #144 ; en attendant, l'API répond sur
+   `GET /api/projects/1/pre-report?funder_id=1`.
+
+## 4. Plan B
+
+- La vidéo enregistrée du même parcours.
+- Une version locale prête sur un portable : `docker compose up -d`, puis `klap:demo`.
