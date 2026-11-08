@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import AuthLayout from '../Layouts/AuthLayout.jsx';
 import MainLayout from '../Layouts/MainLayout.jsx';
@@ -85,6 +86,10 @@ export default function AppRouter() {
 
 // Écran provisoire, à supprimer quand les vraies pages seront branchées.
 function Placeholder({ title }) {
+  // Titre d'onglet : sans lui, l'onglet garde celui de la page précédente (« Activer mon compte »).
+  useEffect(() => {
+    document.title = `${title} · KLAP`;
+  }, [title]);
   return (
     <section className="placeholder">
       <h1>{title}</h1>
