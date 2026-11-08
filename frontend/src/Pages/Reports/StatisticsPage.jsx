@@ -232,7 +232,8 @@ export default function StatisticsPage() {
             <h2 id="projets-titre" className="section-title">
               Par projet
             </h2>
-            <div className="statistics-table-wrapper" role="region" aria-labelledby="projets-titre" tabIndex={0}>
+            {/* Nom distinct de la section : deux repères de même nom gênent la navigation au lecteur d’écran. */}
+            <div className="statistics-table-wrapper" role="region" aria-label="Tableau : par projet" tabIndex={0}>
               <table className="statistics-table" aria-labelledby="projets-titre">
                 <thead>
                   <tr>
@@ -333,7 +334,7 @@ function Breakdown({ id, title, rows, columns }) {
       {rows.length === 0 ? (
         <p className="page-empty">Aucun participant compté sur la période.</p>
       ) : (
-        <div className="statistics-table-wrapper" role="region" aria-labelledby={id} tabIndex={0}>
+        <div className="statistics-table-wrapper" role="region" aria-label={`Tableau : ${title}`} tabIndex={0}>
         <table className="statistics-table" aria-labelledby={id}>
           <thead>
             <tr>

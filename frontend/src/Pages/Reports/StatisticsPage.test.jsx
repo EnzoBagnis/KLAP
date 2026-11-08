@@ -157,6 +157,11 @@ describe('Page Statistiques', () => {
     expect(seconde).toHaveTextContent('15-16 ans · Marseille (13003)');
     expect(seconde).toHaveTextContent('21,5 présents en moyenne, 86 % des 25 prévus');
     expect(within(projectsTable).getByRole('row', { name: /Première 1/ })).toHaveTextContent(/30 présents en moyenne$/);
+
+    // Chaque tableau défilant a son propre nom de repère, distinct de celui de sa section.
+    expect(screen.getByRole('region', { name: 'Tableau : Provenance' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('region', { name: 'Tableau : Âge' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Tableau : par projet' })).toBeInTheDocument();
   });
 
   it('ne plante pas sur un groupe sans données d’assiduité', async () => {
