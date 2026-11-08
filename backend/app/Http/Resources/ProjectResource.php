@@ -21,6 +21,7 @@ class ProjectResource extends JsonResource
             'start_date' => $this->start_date?->toDateString(),
             'end_date' => $this->end_date?->toDateString(),
             'status' => $this->status,
+            'archived_at' => $this->archived_at?->toIso8601String(),
             'default_location' => $this->whenLoaded('defaultLocation', fn () => [
                 'id' => $this->defaultLocation->id,
                 'name' => $this->defaultLocation->name,

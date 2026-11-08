@@ -69,6 +69,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Projets : création réservée à l'administratrice (RG02, #55).
     Route::middleware('role:admin')->group(function () {
         Route::post('projects', [ProjectController::class, 'store']);
+        // Modifier, archiver (nom confirmé) et restaurer un projet (#152) : jamais effacé.
+        Route::patch('projects/{project}', [ProjectController::class, 'update']);
+        Route::post('projects/{project}/archive', [ProjectController::class, 'archive']);
+        Route::post('projects/{project}/restore', [ProjectController::class, 'restore']);
         Route::post('projects/{project}/sessions', [ScheduledSessionController::class, 'store']);
 
         // Types de projet : liste gérée par l'administratrice, sans suppression.
