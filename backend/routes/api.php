@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FunderController;
@@ -82,6 +83,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Listes pour les menus du formulaire projet (#92).
         Route::get('users', [UserController::class, 'index']);
+        // Gestion des comptes (#159) : liste, désactivation et réactivation, jamais de suppression.
+        Route::get('accounts', [AccountController::class, 'index']);
+        Route::patch('accounts/{account}', [AccountController::class, 'update']);
         Route::get('funders', [FunderController::class, 'index']);
 
         // Inviter une personne à créer son compte (#126).
