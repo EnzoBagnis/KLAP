@@ -132,7 +132,7 @@ class LogbookSeeder extends Seeder
 
         // P5 artistes présents
         $artists = [[1, 3, 'lead'], [2, 3, 'lead'], [3, 3, 'lead'], [3, 5, 'occasional'], [4, 3, 'lead'],
-                    [5, 4, 'lead'], [6, 4, 'lead'], [6, 5, 'occasional'], [7, 6, 'lead'], [8, 6, 'lead'], [8, 4, 'occasional']];
+            [5, 4, 'lead'], [6, 4, 'lead'], [6, 5, 'occasional'], [7, 6, 'lead'], [8, 6, 'lead'], [8, 4, 'occasional']];
         foreach ($artists as [$entry, $user, $role]) {
             DB::table('logbook_entry_user')->insert(['logbook_entry_id' => $entry, 'user_id' => $user, 'member_role' => $role]);
         }
