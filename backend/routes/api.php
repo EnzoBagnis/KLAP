@@ -36,6 +36,8 @@ Route::middleware('throttle:10,1,invitations')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
+    // Profil (#71) : changer son mot de passe, en donnant l'actuel. Limité contre l'essai de mots de passe.
+    Route::put('me/password', [AuthController::class, 'changePassword'])->middleware('throttle:5,1,change-password');
 
     // Tableau de bord (#146) : page d'accueil, tous les rôles.
     Route::get('dashboard', DashboardController::class);

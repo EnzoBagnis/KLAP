@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\ChangePasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -60,6 +61,19 @@ class AuthController extends Controller
         return response()->json(['user' => $this->userPayload($request->user())]);
     }
 
+    /**
+     * Changer son mot de passe depuis son profil (#71). Les autres appareils sont déconnectés ;
+     * la session en cours reste ouverte.
+     */
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->forceFill(['password' => $request->validated('password')])->save();
+        $user->tokens()->whereKeyNot($user->currentAccessToken()->getKey())->delete();
+
+        return response()->json(['message' => 'Mot de passe changé. Vos autres appareils sont déconnectés.']);
+    }
+
     private function userPayload(User $user): array
     {
         return [
@@ -68,6 +82,9 @@ class AuthController extends Controller
             'email' => $user->email,
             'role' => $user->role->value,
             'role_label' => $user->role->label(),
+            // Affichés sur le profil (#71).
+            'phone' => $user->phone,
+            'last_login_at' => $user->last_login_at?->toIso8601String(),
         ];
     }
 }

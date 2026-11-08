@@ -494,3 +494,14 @@
   color: var(--color-mute);
   overflow-wrap: anywhere;
 }
+
+/* Mon profil (#71). */
+.profile-facts {
+  margin-bottom: 16px;
+}
+
+.profile-password {
+  display: grid;
+  gap: 16px;
+  max-width: 480px;
+}
