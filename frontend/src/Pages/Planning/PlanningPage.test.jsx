@@ -229,6 +229,27 @@ describe('Programmer une séance', () => {
     expect(within(dialog).getByLabelText(/Intervenant·e/)).toHaveValue('3');
   });
 
+  it('préselectionne le lieu par défaut du projet, s’il est encore proposé', async () => {
+    const detail = (place) => () =>
+      jsonResponse({ data: { id: 5, default_location: place, sub_projects: [{ id: 51, name: 'AIMER', is_active: true }], team: [] } });
+    const { user, dialog } = await openModal(routes({ 'GET /projects/5': detail({ id: 2, name: 'Grand studio' }) }));
+    await user.selectOptions(within(dialog).getByLabelText(/Projet/), '5');
+    await within(dialog).findByRole('checkbox', { name: 'AIMER' });
+    expect(within(dialog).getByLabelText(/^Lieu/)).toHaveValue('2');
+  });
+
+  it('ne préselectionne pas un lieu par défaut devenu inactif', async () => {
+    const { user, dialog } = await openModal(
+      routes({
+        'GET /projects/5': () =>
+          jsonResponse({ data: { id: 5, default_location: { id: 99, name: 'Ancienne salle' }, sub_projects: [{ id: 51, name: 'AIMER', is_active: true }], team: [] } }),
+      }),
+    );
+    await user.selectOptions(within(dialog).getByLabelText(/Projet/), '5');
+    await within(dialog).findByRole('checkbox', { name: 'AIMER' });
+    expect(within(dialog).getByLabelText(/^Lieu/)).toHaveValue('');
+  });
+
   it('un projet à un seul groupe le coche d’office, et sans équipe l’envoi est bloqué', async () => {
     const { fetchMock, user, dialog } = await openModal(routes());
 
