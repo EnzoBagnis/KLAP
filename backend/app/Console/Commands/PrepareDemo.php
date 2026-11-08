@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\KlapNotification;
 use App\Models\LogbookEntry;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -34,6 +35,12 @@ class PrepareDemo extends Command
     /** Tables techniques, ou dont les dates ne racontent rien. */
     private const SKIPPED_TABLES = ['migrations', 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs', 'sessions', 'password_reset_tokens', 'personal_access_tokens'];
 
+    /**
+     * Dates qui ne bougent pas : un projet garde son année scolaire (septembre à juin), et les
+     * séances décalées y restent comprises.
+     */
+    private const FIXED_COLUMNS = ['projects.start_date', 'projects.end_date', 'project_user.start_date', 'project_user.end_date'];
+
     public function handle(): int
     {
         $day = $this->option('date') ?: LogbookEntry::localNow()->toDateString();
@@ -56,6 +63,7 @@ class PrepareDemo extends Command
         $days = (int) Carbon::parse(self::REFERENCE_DAY)->diffInDays(Carbon::parse($day), false);
         DB::transaction(function () use ($days, $seededAt) {
             $this->shiftDates($days, $seededAt);
+            $this->rewriteNotificationMessages();
             $this->addTodaySession();
         });
         // États cohérents avec la nouvelle date (verrouillage à J+10).
@@ -86,6 +94,7 @@ class PrepareDemo extends Command
             }
             $columns = collect(Schema::getColumns($name))
                 ->filter(fn ($column) => preg_match('/^(date|datetime|timestamp)/i', $column['type_name']))
+                ->reject(fn ($column) => in_array("{$name}.{$column['name']}", self::FIXED_COLUMNS, true))
                 ->mapWithKeys(fn ($column) => [$column['name'] => strtolower($column['type_name']) === 'date'])
                 ->all();
             if ($columns === []) {
@@ -109,6 +118,27 @@ class PrepareDemo extends Command
                 if ($changes !== []) {
                     DB::table($name)->where(array_intersect_key((array) $row, array_flip($keys)))->update($changes);
                 }
+            }
+        }
+    }
+
+    /**
+     * Les messages citent la date de la séance en toutes lettres : réécrits après le décalage,
+     * au format de l'application, pour que la cloche dise la même chose que le planning.
+     */
+    private function rewriteNotificationMessages(): void
+    {
+        $notifications = KlapNotification::query()
+            ->whereIn('type', array_keys(KlapNotification::MESSAGES))
+            ->whereNotNull('logbook_entry_id')
+            ->with('logbookEntry.author')
+            ->get();
+        foreach ($notifications as $notification) {
+            $entry = $notification->logbookEntry;
+            if ($entry?->author !== null) {
+                // Requête directe : les dates de la notification ne changent pas.
+                DB::table('klap_notifications')->where('id', $notification->id)
+                    ->update(['message' => KlapNotification::messageFor($notification->type, $entry->author->name, $entry)]);
             }
         }
     }
