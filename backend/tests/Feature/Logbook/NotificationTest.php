@@ -210,6 +210,18 @@ class NotificationTest extends TestCase
         $this->patchJson('/api/notifications/1/read')->assertUnauthorized();
     }
 
+    public function test_un_groupe_unique_au_nom_du_projet_n_est_pas_repete(): void
+    {
+        $this->session->subProjects()->first()->update(['name' => 'Arts Danse']);
+        $this->session->subProjects()->detach($this->session->subProjects()->skip(1)->first()->id);
+        $id = $this->createEntry($this->completePayload());
+
+        $this->actingAs($this->referent)->postJson("/api/logbook-entries/{$id}/submit")->assertOk();
+
+        $this->assertSame('Léa Fournier a rempli la fiche de la séance du 5 octobre : Arts Danse.',
+            $this->notificationsOf($this->admin)->sole()->message);
+    }
+
     public function test_l_administration_qui_soumet_pour_un_intervenant_n_est_pas_prevenue_d_elle_meme(): void
     {
         $id = $this->createEntry($this->completePayload());

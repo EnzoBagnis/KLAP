@@ -16,8 +16,8 @@ class KlapNotification extends Model
 
     /** Message par type : qui agit, date de la séance, projet et groupes (#122, #130). */
     public const MESSAGES = [
-        'entry_submitted' => '%s a rempli la fiche de la séance du %s : %s (%s).',
-        'unlock_request' => '%s demande à rouvrir la fiche de la séance du %s : %s (%s).',
+        'entry_submitted' => '%s a rempli la fiche de la séance du %s : %s.',
+        'unlock_request' => '%s demande à rouvrir la fiche de la séance du %s : %s.',
     ];
 
     /**
@@ -28,12 +28,16 @@ class KlapNotification extends Model
     {
         $entry->loadMissing(['scheduledSession.project', 'scheduledSession.subProjects']);
         $session = $entry->scheduledSession;
+        // Projet et groupes ; un groupe unique au nom du projet n'est pas répété (« Étincelles (Étincelles) »).
+        $groups = $session->subProjects->pluck('name')->join(', ');
+        $where = $groups === '' || $groups === $session->project->name
+            ? $session->project->name
+            : "{$session->project->name} ({$groups})";
 
         return mb_strimwidth(sprintf(self::MESSAGES[$type],
             $actorName,
             $session->session_date->locale('fr')->translatedFormat('j F'),
-            $session->project->name,
-            $session->subProjects->pluck('name')->join(', ')), 0, 255, '…');
+            $where), 0, 255, '…');
     }
 
     protected $table = 'klap_notifications';
