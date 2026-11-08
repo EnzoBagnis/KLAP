@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import AuthLayout from '../Layouts/AuthLayout.jsx';
 import MainLayout from '../Layouts/MainLayout.jsx';
 import NewProjectPage from '../Pages/Projects/NewProjectPage.jsx';
+import EditProjectPage from '../Pages/Projects/EditProjectPage.jsx';
 import NotificationsPage from '../Pages/Notifications/NotificationsPage.jsx';
 import { ROLES } from '../Context/roles.js';
 import ProjectDetailsPage from '../Pages/Projects/ProjectDetailsPage.jsx';
@@ -57,6 +58,15 @@ export default function AppRouter() {
             element={
               <ProtectedRoute roles={[ROLES.ADMIN]}>
                 <NewProjectPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* Modifier, archiver, restaurer un projet (#154) : administratrice seulement. */}
+          <Route
+            path="/gestion/projets/:id/modifier"
+            element={
+              <ProtectedRoute roles={[ROLES.ADMIN]}>
+                <EditProjectPage />
               </ProtectedRoute>
             }
           />
