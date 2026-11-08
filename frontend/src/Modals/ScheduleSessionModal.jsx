@@ -146,6 +146,13 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
         if (groups.length === 1) setForm((current) => ({ ...current, sub_project_ids: [groups[0].id] }));
         const lead = team.find((member) => member.member_role === 'lead');
         if (lead) setForm((current) => ({ ...current, referent_id: String(lead.id) }));
+        // Lieu par défaut du projet (#168), s'il est encore proposé et qu'aucun lieu n'est choisi.
+        const place = detail.default_location;
+        setForm((current) =>
+          place && !current.location_id && references.locations?.some((item) => item.id === place.id)
+            ? { ...current, location_id: String(place.id) }
+            : current,
+        );
       })
       .catch((error) => {
         if (request !== projectRequest.current) return;

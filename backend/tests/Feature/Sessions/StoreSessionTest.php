@@ -40,6 +40,39 @@ class StoreSessionTest extends TestCase
         ], $overrides);
     }
 
+    public function test_refuse_une_seance_qui_chevauche_une_autre_du_meme_intervenant(): void
+    {
+        [$project, $groups, $lead] = $this->projectWithTeam();
+        $this->postJson("/api/projects/{$project->id}/sessions", $this->payload($groups, $lead))->assertCreated();
+
+        // Doublon exact, puis chevauchement partiel : refusés, sans rien créer.
+        foreach ([['10:00', '12:00'], ['11:30', '13:00'], ['09:00', '10:30']] as [$start, $end]) {
+            $this->postJson("/api/projects/{$project->id}/sessions", $this->payload($groups, $lead, ['start_time' => $start, 'end_time' => $end]))
+                ->assertUnprocessable()
+                ->assertJsonPath('errors.start_time.0', 'Cet·te intervenant·e a déjà une séance de 10:00 à 12:00 ce jour-là ('.$project->name.').');
+        }
+        $this->assertSame(1, ScheduledSession::query()->count());
+    }
+
+    public function test_accepte_les_seances_accolees_annulees_ou_d_un_autre_intervenant(): void
+    {
+        [$project, $groups, $lead] = $this->projectWithTeam();
+        $this->postJson("/api/projects/{$project->id}/sessions", $this->payload($groups, $lead))->assertCreated();
+
+        // Accolée : de 12 h à 14 h, juste après.
+        $this->postJson("/api/projects/{$project->id}/sessions", $this->payload($groups, $lead, ['start_time' => '12:00', 'end_time' => '14:00']))->assertCreated();
+        // Un autre jour.
+        $this->postJson("/api/projects/{$project->id}/sessions", $this->payload($groups, $lead, ['session_date' => '2026-10-06']))->assertCreated();
+        // Une autre intervenante au même moment.
+        $other = User::factory()->role(UserRole::Contributor)->create();
+        $project->members()->attach($other->id, ['member_role' => 'occasional']);
+        $this->postJson("/api/projects/{$project->id}/sessions", $this->payload($groups, $other))->assertCreated();
+        // La séance annulée libère le créneau.
+        ScheduledSession::query()->where('referent_id', $lead->id)->where('start_time', 'like', '10:00%')->whereDate('session_date', '2026-10-05')
+            ->update(['status' => 'cancelled']);
+        $this->postJson("/api/projects/{$project->id}/sessions", $this->payload($groups, $lead))->assertCreated();
+    }
+
     public function test_programme_une_seance_transversale(): void
     {
         [$project, $groups, $lead] = $this->projectWithTeam();
