@@ -88,8 +88,36 @@ class StoreScheduledSessionRequest extends FormRequest
                         $errors->add('referent_id', 'L’intervenant·e n’est pas affecté·e au projet à cette date.');
                     }
                 }
+
+                // Un·e intervenant·e n'anime pas deux séances à la fois (#168) : doublon ou erreur de saisie.
+                if (! $errors->hasAny(['referent_id', 'session_date', 'start_time', 'end_time'])) {
+                    $clash = $this->overlappingSession();
+                    if ($clash !== null) {
+                        $errors->add('start_time', sprintf('Cet·te intervenant·e a déjà une séance de %s à %s ce jour-là (%s).',
+                            substr((string) $clash->start_time, 0, 5), substr((string) $clash->end_time, 0, 5), $clash->project_name));
+                    }
+                }
             },
         ];
+    }
+
+    /**
+     * Séance non annulée du même référent, le même jour, dont l'horaire chevauche celui demandé.
+     * Comparaison en PHP sur « HH:MM » : SQLite et MariaDB ne stockent pas l'heure au même format,
+     * et deux séances accolées (10 h - 12 h, puis 12 h - 14 h) ne se chevauchent pas.
+     */
+    private function overlappingSession(): ?object
+    {
+        $start = substr((string) $this->input('start_time'), 0, 5);
+        $end = substr((string) $this->input('end_time'), 0, 5);
+
+        return DB::table('scheduled_sessions as s')
+            ->join('projects as p', 'p.id', '=', 's.project_id')
+            ->where('s.referent_id', $this->input('referent_id'))
+            ->whereDate('s.session_date', $this->input('session_date'))
+            ->where('s.status', '<>', 'cancelled')
+            ->get(['s.start_time', 's.end_time', 'p.name as project_name'])
+            ->first(fn ($other) => substr((string) $other->start_time, 0, 5) < $end && $start < substr((string) $other->end_time, 0, 5));
     }
 
     public function messages(): array
