@@ -143,4 +143,14 @@ class LoginTest extends TestCase
         $this->withToken($ordinateur)->getJson('/api/me')->assertOk();
         $this->assertSame(1, $user->tokens()->count());
     }
+
+    public function test_les_erreurs_de_saisie_sont_en_francais(): void
+    {
+        $this->postJson('/api/login', [])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.email.0', 'Saisissez votre adresse e-mail.')
+            ->assertJsonPath('errors.password.0', 'Saisissez votre mot de passe.');
+        $this->postJson('/api/login', ['email' => str_repeat('a', 190).'@klap.demo', 'password' => 'x'])
+            ->assertJsonPath('errors.email.0', 'Cette adresse e-mail n’est pas valide.');
+    }
 }

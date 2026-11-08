@@ -16,6 +16,18 @@ class LoginRequest extends FormRequest
         ];
     }
 
+    /** En français : l'écran de connexion affiche tel quel le message de l'API. */
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'Saisissez votre adresse e-mail.',
+            'email.*' => 'Cette adresse e-mail n’est pas valide.',
+            'password.required' => 'Saisissez votre mot de passe.',
+            'password.*' => 'Le mot de passe n’est pas valide.',
+            'device_name.*' => 'Le nom de l’appareil n’est pas valide.',
+        ];
+    }
+
     public function attributes(): array
     {
         return [
