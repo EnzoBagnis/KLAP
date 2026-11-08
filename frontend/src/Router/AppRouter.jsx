@@ -12,6 +12,7 @@ import ForgotPasswordPage from '../Pages/Auth/ForgotPasswordPage.jsx';
 import ResetPasswordPage from '../Pages/Auth/ResetPasswordPage.jsx';
 import LoginPage from '../Pages/Auth/LoginPage.jsx';
 import UserManagementPage from '../Pages/Users/UserManagementPage.jsx';
+import ProfilePage from '../Pages/Profile/ProfilePage.jsx';
 import LogbookEntryPage from '../Pages/Logbook/LogbookEntryPage.jsx';
 import OpenLogbookPage from '../Pages/Logbook/OpenLogbookPage.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
@@ -80,7 +81,8 @@ export default function AppRouter() {
           <Route path="/planning/seances/:sessionId/fiche" element={<OpenLogbookPage />} />
           <Route path="/fiches/:id" element={<LogbookEntryPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/profil" element={<Placeholder title="Profil" />} />
+          {/* Mon profil (#71) : lien du nom en bas du menu. */}
+          <Route path="/profil" element={<ProfilePage />} />
         </Route>
       </Route>
 

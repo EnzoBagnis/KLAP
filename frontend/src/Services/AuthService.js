@@ -60,3 +60,13 @@ export async function logout() {
     // Jeton déjà révoqué ou serveur injoignable : la déconnexion locale suffit.
   }
 }
+
+/** PUT /me/password : change son mot de passe (#71). Les autres appareils sont déconnectés. */
+export async function changePassword(currentPassword, password, passwordConfirmation) {
+  const response = await apiRequest('/me/password', {
+    method: 'PUT',
+    body: { current_password: currentPassword, password, password_confirmation: passwordConfirmation },
+    token: getToken(),
+  });
+  return response.message;
+}
