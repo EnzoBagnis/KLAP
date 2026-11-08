@@ -83,6 +83,10 @@ Trois rôles, emboîtés comme le demande le cahier des charges (#141) :
   et 30 par minute par adresse IP. Au-delà, la réponse est 429 avec un délai d'attente.
   Des collègues sur le même Wi-Fi ne se bloquent pas entre eux.
 - **Message d'échec identique** que l'adresse existe ou non : la connexion ne révèle pas quels comptes existent.
+- **Mot de passe oublié** (#81) : un lien par mail, valable 60 minutes et à usage unique, avec le jeton stocké haché.
+  - La réponse est la même, et dans le même temps, que l'adresse existe ou non.
+  - Un compte désactivé ne reçoit rien.
+  - Le nouveau mot de passe suit les mêmes règles qu'à l'activation, et toutes les sessions du compte sont fermées.
 - **Projets jamais effacés** : la suppression n'existe pas. L'archivage demande de saisir le nom exact du projet et se défait (#152).
 
 ---
