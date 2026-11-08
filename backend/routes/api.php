@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\LogbookEntryController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProjectTypeController;
 use App\Http\Controllers\Api\ReportController;
@@ -16,8 +17,14 @@ use App\Http\Controllers\Api\StatisticsController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
-// 5 tentatives par minute et par IP, pour limiter le forçage de mot de passe.
+// Limiteur « login » (AppServiceProvider, #150) : 5 essais par minute pour un compte depuis une IP, 30 par IP.
 Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
+
+// Mot de passe oublié (#81) : routes publiques, limitées par adresse IP (compteur à part).
+Route::middleware('throttle:5,1,password-reset')->group(function () {
+    Route::post('forgot-password', [PasswordResetController::class, 'forgot']);
+    Route::post('reset-password', [PasswordResetController::class, 'reset']);
+});
 
 // Invitations (#126) : lecture et activation publiques, par le jeton reçu par mail.
 // Compteur distinct de celui de la connexion (préfixe), sinon l'un épuise l'autre.
