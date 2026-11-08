@@ -14,6 +14,28 @@ class KlapNotification extends Model
 {
     public const MAX_LISTED = 30;
 
+    /** Message par type : qui agit, date de la séance, projet et groupes (#122, #130). */
+    public const MESSAGES = [
+        'entry_submitted' => '%s a rempli la fiche de la séance du %s : %s (%s).',
+        'unlock_request' => '%s demande à rouvrir la fiche de la séance du %s : %s (%s).',
+    ];
+
+    /**
+     * Texte d'une notification liée à une fiche. La colonne est un VARCHAR(255) : un nom de
+     * projet très long est tronqué.
+     */
+    public static function messageFor(string $type, string $actorName, LogbookEntry $entry): string
+    {
+        $entry->loadMissing(['scheduledSession.project', 'scheduledSession.subProjects']);
+        $session = $entry->scheduledSession;
+
+        return mb_strimwidth(sprintf(self::MESSAGES[$type],
+            $actorName,
+            $session->session_date->locale('fr')->translatedFormat('j F'),
+            $session->project->name,
+            $session->subProjects->pluck('name')->join(', ')), 0, 255, '…');
+    }
+
     protected $table = 'klap_notifications';
 
     protected $fillable = ['recipient_id', 'type', 'logbook_entry_id', 'message', 'read_at'];
