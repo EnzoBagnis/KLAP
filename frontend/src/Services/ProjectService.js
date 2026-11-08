@@ -27,3 +27,25 @@ export async function listProjectTypes() {
   const response = await apiRequest('/project-types', { token: getToken() });
   return response.data;
 }
+
+/** PATCH /projects/{id} : modifie les champs envoyés (administratrice), renvoie le projet. */
+export async function updateProject(id, changes) {
+  const response = await apiRequest(`/projects/${encodeURIComponent(id)}`, { method: 'PATCH', body: changes, token: getToken() });
+  return response.data;
+}
+
+/** POST /projects/{id}/archive : archive après confirmation par le nom exact. Rien n'est effacé. */
+export async function archiveProject(id, confirmName) {
+  const response = await apiRequest(`/projects/${encodeURIComponent(id)}/archive`, {
+    method: 'POST',
+    body: { confirm_name: confirmName },
+    token: getToken(),
+  });
+  return response.data;
+}
+
+/** POST /projects/{id}/restore : remet un projet archivé en cours. */
+export async function restoreProject(id) {
+  const response = await apiRequest(`/projects/${encodeURIComponent(id)}/restore`, { method: 'POST', token: getToken() });
+  return response.data;
+}

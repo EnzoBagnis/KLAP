@@ -436,3 +436,20 @@
   max-width: 520px;
   margin-top: 16px;
 }
+
+/* Modifier un projet (#154) : sous-projets en lecture seule, zone d'archivage séparée. */
+.project-edit-subprojects {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--text-14);
+}
+
+.project-archive-zone,
+.project-archived {
+  margin-top: 32px;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
