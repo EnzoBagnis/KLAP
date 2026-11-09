@@ -73,6 +73,28 @@ class PrepareDemoTest extends TestCase
         $this->actingAs($lea)->postJson("/api/sessions/{$today['id']}/logbook-entry")->assertCreated();
     }
 
+    public function test_le_matin_la_seance_du_jour_est_deja_terminee(): void
+    {
+        // 9 h 40 à Paris (8 h 40 UTC) : la séance se termine à 9 h 30, la fiche peut être soumise.
+        $this->travelTo(now()->setDate(2026, 11, 19)->setTime(8, 40));
+        $this->artisan('klap:demo', ['--force' => true])->assertSuccessful();
+
+        $session = DB::table('scheduled_sessions')->whereDate('session_date', '2026-11-19')
+            ->where('referent_id', User::query()->where('email', 'lea.fournier@klap.demo')->value('id'))->first();
+        $this->assertSame('07:30', substr((string) $session->start_time, 0, 5));
+        $this->assertSame('09:30', substr((string) $session->end_time, 0, 5));
+    }
+
+    public function test_l_apres_midi_la_seance_du_jour_reste_de_10_h_a_12_h(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 19)->setTime(13, 0));
+        $this->artisan('klap:demo', ['--force' => true])->assertSuccessful();
+
+        $session = DB::table('scheduled_sessions')->whereDate('session_date', '2026-11-19')
+            ->where('referent_id', User::query()->where('email', 'lea.fournier@klap.demo')->value('id'))->first();
+        $this->assertSame('10:00', substr((string) $session->start_time, 0, 5));
+    }
+
     public function test_demande_confirmation_et_refuse_une_date_invalide(): void
     {
         $this->artisan('migrate:fresh');
