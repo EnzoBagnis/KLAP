@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import TextInput from '../../Components/Form/TextInput.jsx';
 import Button from '../../Components/UI/Button.jsx';
@@ -38,6 +38,11 @@ export default function LoginPage() {
   const navigate = useNavigate();
   // Après l'activation d'un compte (#127) : adresse pré-remplie et message d'accueil.
   const { state: arrival } = useLocation();
+
+  // Sans titre propre, l'onglet gardait celui de la page d'avant (« Activer mon compte »).
+  useEffect(() => {
+    document.title = 'Connexion · KLAP';
+  }, []);
   const [email, setEmail] = useState(arrival?.email ?? '');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
