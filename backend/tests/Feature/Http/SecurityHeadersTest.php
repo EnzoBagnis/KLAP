@@ -7,7 +7,10 @@ use App\Http\Middleware\SecurityHeaders;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 
 /** Durcissement relevé par l'audit de sécurité (#200). */
@@ -48,6 +51,38 @@ class SecurityHeadersTest extends TestCase
 
         $this->getJson("/api/projects/{$project->id}")->assertOk();
         $this->getJson("/api/projects/{$project->id}abc")->assertNotFound();
-        $this->getJson("/api/projects/{$project->id}%20OR%201=1")->assertNotFound();
+    }
+
+    public function test_aucune_route_n_accepte_un_identifiant_non_numerique(): void
+    {
+        // SQLite ne lit pas « 1abc » comme 1, contrairement à MySQL : on vérifie donc le routeur
+        // lui-même, qui ne doit plus laisser passer ces identifiants jusqu'à la base.
+        foreach (['/api/projects/1abc', '/api/projects/1%20OR%201=1', '/api/logbook-entries/2x', '/api/sessions/3x/logbook-entry', '/api/accounts/4x'] as $uri) {
+            try {
+                Route::getRoutes()->match(Request::create($uri, $uri === '/api/accounts/4x' ? 'PATCH' : 'GET'));
+                $this->fail("La route {$uri} ne devrait pas exister.");
+            } catch (NotFoundHttpException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+
+        // Le jeton d'invitation, lui, reste libre.
+        $this->assertSame('api/invitations/{token}', Route::getRoutes()->match(Request::create('/api/invitations/abc-DEF_123'))->uri());
+    }
+
+    public function test_une_variable_cors_vide_revient_a_toutes_les_origines(): void
+    {
+        putenv('CORS_ALLOWED_ORIGINS=');
+        try {
+            $this->assertSame(['*'], (require config_path('cors.php'))['allowed_origins']);
+        } finally {
+            putenv('CORS_ALLOWED_ORIGINS');
+        }
+        putenv('CORS_ALLOWED_ORIGINS=https://klap.example.org, https://autre.example.org');
+        try {
+            $this->assertSame(['https://klap.example.org', 'https://autre.example.org'], (require config_path('cors.php'))['allowed_origins']);
+        } finally {
+            putenv('CORS_ALLOWED_ORIGINS');
+        }
     }
 }
