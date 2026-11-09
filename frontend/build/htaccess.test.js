@@ -7,6 +7,12 @@ describe('.htaccess du frontend (#203)', () => {
     expect(apiOrigin(undefined)).toBe('http://localhost:8080');
   });
 
+  it('se contente du site lui-même pour une adresse vide ou relative', () => {
+    expect(apiOrigin('')).toBeNull();
+    expect(apiOrigin('/api')).toBeNull();
+    expect(contentSecurityPolicy('/api')).toContain("connect-src 'self';");
+  });
+
   it('n’autorise les appels réseau que vers le site et l’API', () => {
     const csp = contentSecurityPolicy('https://api-klap.alwaysdata.net/api');
     expect(csp).toContain("connect-src 'self' https://api-klap.alwaysdata.net;");
