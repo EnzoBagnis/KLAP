@@ -352,6 +352,7 @@ describe('Page Statistiques', () => {
     const fetchMock = mockApi({});
     renderAt('/statistiques', MOCK_USERS.contributor);
     expect(screen.queryByRole('heading', { name: 'Statistiques' })).not.toBeInTheDocument();
-    expect(screenCalls(fetchMock)).toHaveLength(0);
+    // Renvoyé au tableau de bord : aucune statistique demandée.
+    expect(screenCalls(fetchMock).filter(([url]) => new URL(url).pathname.startsWith('/api/statistics'))).toHaveLength(0);
   });
 });
