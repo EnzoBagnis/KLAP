@@ -20,13 +20,29 @@ export class ApiError extends Error {
  * de validation par une redirection, et à un 401 par une erreur 500.
  */
 export async function apiRequest(path, { method = 'GET', body, token } = {}) {
+  const response = await send(path, { method, body, token });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw errorFrom(response, data);
+  return data;
+}
+
+/**
+ * Télécharge un fichier (pré-bilan Word, #144) : renvoie le contenu et le nom donné par
+ * l'en-tête Content-Disposition (null s'il est absent). Les erreurs restent en JSON.
+ */
+export async function apiDownload(path, { token } = {}) {
+  const response = await send(path, { method: 'GET', token });
+  if (!response.ok) throw errorFrom(response, await response.json().catch(() => null));
+  return { blob: await response.blob(), filename: filenameFrom(response.headers.get('Content-Disposition')) };
+}
+
+async function send(path, { method, body, token }) {
   const headers = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  let response;
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
+    return await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -34,18 +50,31 @@ export async function apiRequest(path, { method = 'GET', body, token } = {}) {
   } catch {
     throw new ApiError({ status: 0, message: NETWORK_ERROR_MESSAGE });
   }
+}
 
-  const data = await response.json().catch(() => null);
+function errorFrom(response, data) {
+  const retryAfter = Number.parseInt(response.headers.get('Retry-After') ?? '', 10);
+  return new ApiError({
+    status: response.status,
+    message: data?.message ?? '',
+    errors: data?.errors ?? {},
+    retryAfter: Number.isNaN(retryAfter) ? null : retryAfter,
+  });
+}
 
-  if (!response.ok) {
-    const retryAfter = Number.parseInt(response.headers.get('Retry-After') ?? '', 10);
-    throw new ApiError({
-      status: response.status,
-      message: data?.message ?? '',
-      errors: data?.errors ?? {},
-      retryAfter: Number.isNaN(retryAfter) ? null : retryAfter,
-    });
+/** `attachment; filename=pre-bilan.docx` ou `filename*=UTF-8''...` : le nom, sans chemin. */
+export function filenameFrom(disposition) {
+  if (!disposition) return null;
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  let name = null;
+  if (encoded) {
+    try {
+      name = decodeURIComponent(encoded[1]);
+    } catch {
+      name = null;
+    }
   }
-
-  return data;
+  name ??= /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? null;
+  // Jamais de dossier dans le nom proposé à l'enregistrement.
+  return name ? name.split(/[\\/]/).pop().trim() || null : null;
 }
