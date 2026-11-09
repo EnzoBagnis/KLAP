@@ -5,7 +5,7 @@ import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import { ROLES } from '../../Context/roles.js';
 import useAuth from '../../Hooks/useAuth.js';
 import ScheduleSessionModal from '../../Modals/ScheduleSessionModal.jsx';
-import { listSessions } from '../../Services/SessionService.js';
+import { cancelSession, listSessions, restoreSession } from '../../Services/SessionService.js';
 import {
   SESSION_STATUS_LABELS,
   currentMonth,
@@ -42,6 +42,9 @@ export default function PlanningPage() {
   const month = parseMonth(monthKey);
   const [state, setState] = useState({ status: 'loading', sessions: [], error: '' });
   const [modalOpen, setModalOpen] = useState(false);
+  // Séance en cours de modification (#180) ; null pour programmer une nouvelle séance.
+  const [editing, setEditing] = useState(null);
+  const [actionError, setActionError] = useState('');
   const lastRequest = useRef(0);
 
   const load = useCallback(() => {
@@ -77,12 +80,47 @@ export default function PlanningPage() {
 
   function handleCreated(session) {
     setModalOpen(false);
+    setEditing(null);
     const sessionMonth = session.session_date.slice(0, 7);
     if (sessionMonth === monthKey) load();
     else goTo(sessionMonth);
   }
 
-  const closeModal = useCallback(() => setModalOpen(false), []);
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+    setEditing(null);
+  }, []);
+  const openEdit = (session) => {
+    setActionError('');
+    setEditing(session);
+    setModalOpen(true);
+  };
+
+  // Annuler ou rétablir une séance (#180), après confirmation ; le planning est relu ensuite.
+  async function changeStatus(session, action) {
+    const question =
+      action === 'cancel'
+        ? `Annuler la séance du ${dayTitle(session.session_date).toLowerCase()} (${session.project.name}) ? Elle restera visible, marquée « annulée ».`
+        : `Rétablir la séance du ${dayTitle(session.session_date).toLowerCase()} (${session.project.name}) ?`;
+    if (!window.confirm(question)) return;
+    setActionError('');
+    try {
+      await (action === 'cancel' ? cancelSession(session.id) : restoreSession(session.id));
+      load();
+    } catch (error) {
+      if (error.status === 401) {
+        logout();
+        return;
+      }
+      setActionError(
+        error.status === 422
+          ? Object.values(error.errors ?? {})[0]?.[0] ?? error.message
+          : [0, 409].includes(error.status)
+            ? error.message
+            : 'La séance n’a pas pu être modifiée. Réessayez dans un instant.',
+      );
+    }
+  }
   // La fiche se remplit à partir du jour de la séance (l'API le vérifie aussi).
   const today = todayKey();
   // Droits emboîtés (#141) : l'administration ouvre et modifie la fiche de n'importe quelle séance.
@@ -113,6 +151,12 @@ export default function PlanningPage() {
             Mois suivant<span aria-hidden="true">&nbsp;→</span>
           </Button>
         </nav>
+
+        {actionError && (
+          <p className="form-alert" role="alert">
+            {actionError}
+          </p>
+        )}
 
         {state.status === 'loading' && <LoadingSpinner label="Chargement du planning…" />}
 
@@ -154,6 +198,9 @@ export default function PlanningPage() {
                           {session.location.name} · {session.referent.name}
                         </p>
                         <EntryLink session={session} label={dayTitle(date).toLowerCase()} userId={user?.id} manages={canManageEntries} today={today} />
+                        {user?.role === ROLES.ADMIN && (
+                          <SessionActions session={session} label={dayTitle(date).toLowerCase()} onEdit={openEdit} onStatus={changeStatus} />
+                        )}
                       </div>
                     </li>
                   ))}
@@ -164,8 +211,39 @@ export default function PlanningPage() {
         )}
       </div>
 
-      <ScheduleSessionModal open={modalOpen} onClose={closeModal} onCreated={handleCreated} />
+      <ScheduleSessionModal open={modalOpen} onClose={closeModal} onCreated={handleCreated} session={editing} />
     </section>
+  );
+}
+
+/*
+ * Actions de l'administratrice sur une séance (#180) : une séance sans fiche se modifie ou
+ * s'annule ; une séance annulée se rétablit. Une séance qui a une fiche ne bouge plus.
+ */
+function SessionActions({ session, label, onEdit, onStatus }) {
+  // Jour, horaire et projet : deux séances du même jour ont des boutons distincts au lecteur d'écran.
+  const hidden = <span className="visually-hidden"> du {label}, {session.start_time}, {session.project.name}</span>;
+  // Projet archivé : ses séances ne bougent plus (l'API refuserait).
+  if (session.project.status === 'archived') return null;
+  if (session.status === 'cancelled') {
+    return (
+      <div className="planning-actions">
+        <button type="button" className="planning-entry-link planning-entry-button" onClick={() => onStatus(session, 'restore')}>
+          Rétablir{hidden}
+        </button>
+      </div>
+    );
+  }
+  if (session.logbook_entry) return null;
+  return (
+    <div className="planning-actions">
+      <button type="button" className="planning-entry-link planning-entry-button" onClick={() => onEdit(session)}>
+        Modifier{hidden}
+      </button>
+      <button type="button" className="planning-entry-link planning-entry-button" onClick={() => onStatus(session, 'cancel')}>
+        Annuler la séance{hidden}
+      </button>
+    </div>
   );
 }
 
