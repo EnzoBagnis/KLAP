@@ -152,6 +152,37 @@ describe('Pré-bilan', () => {
     expect(screen.queryByRole('button', { name: 'Télécharger le pré-bilan' })).not.toBeInTheDocument();
   });
 
+  it('demande de restaurer un projet archivé avant de lui ajouter un financeur', async () => {
+    mockApi(routes({ 'GET /projects/1': () => jsonResponse({ data: project({ status: 'archived', funders: [] }) }) }));
+    renderAt('/pre-bilan?projet=1');
+
+    expect(await screen.findByText(/Restaurez d’abord le projet/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Ajouter un financeur au projet' })).not.toBeInTheDocument();
+  });
+
+  it('n’affiche pas le résultat d’un ancien projet sous le nouveau', async () => {
+    const user = userEvent.setup();
+    let finish;
+    mockApi(
+      routes({
+        'GET /projects/2': () => jsonResponse({ data: project({ id: 2, name: 'AIMER', funders: [{ id: 6, name: 'Fondation' }, { id: 7, name: 'Ville' }] }) }),
+        'GET /projects/1/pre-report': () => new Promise((resolve) => (finish = resolve)),
+      }),
+    );
+    renderAt('/pre-bilan?projet=1');
+
+    await user.selectOptions(await screen.findByLabelText(/^Financeur/), '4');
+    await user.click(screen.getByRole('button', { name: 'Télécharger le pré-bilan' }));
+    await user.selectOptions(screen.getByLabelText(/^Projet/), '2');
+    await screen.findByRole('option', { name: 'Fondation' });
+    finish(jsonResponse({ message: 'Invalide', errors: { funder_id: ['Ce financeur ne finance pas ce projet.'] } }, 422));
+
+    // Le bouton du nouveau projet est disponible, sans l'erreur de l'ancien.
+    expect(await screen.findByRole('button', { name: 'Télécharger le pré-bilan' })).toBeEnabled();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByText('Ce financeur ne finance pas ce projet.')).not.toBeInTheDocument();
+  });
+
   it('renvoie la super-utilisatrice vers l’administratrice pour ajouter un financeur', async () => {
     mockApi(routes({ 'GET /projects/1': () => jsonResponse({ data: project({ funders: [] }) }) }));
     renderAt('/pre-bilan?projet=1', MOCK_USERS.super_user);
