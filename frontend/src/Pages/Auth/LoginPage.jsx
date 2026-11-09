@@ -40,6 +40,7 @@ export default function LoginPage() {
   const { state: arrival } = useLocation();
   const [email, setEmail] = useState(arrival?.email ?? '');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -65,7 +66,7 @@ export default function LoginPage() {
 
     setSubmitting(true);
     try {
-      await login(email.trim(), password);
+      await login(email.trim(), password, { remember });
       navigate('/', { replace: true });
     } catch (error) {
       setFormError(loginErrorMessage(error));
@@ -116,6 +117,16 @@ export default function LoginPage() {
           onChange={(event) => setPassword(event.target.value)}
           error={fieldErrors.password}
         />
+
+        <div className="auth-remember">
+          <label className="auth-remember-label">
+            <input type="checkbox" name="remember" checked={remember} onChange={(event) => setRemember(event.target.checked)} aria-describedby="rester-connecte-aide" />
+            Rester connecté·e sur cet appareil
+          </label>
+          <p id="rester-connecte-aide" className="auth-remember-hint">
+            Pratique sur votre téléphone. À laisser décoché sur un ordinateur partagé : la session se ferme avec le navigateur.
+          </p>
+        </div>
 
         <Button type="submit" className="btn-block" disabled={submitting}>
           {submitting ? 'Connexion…' : 'Se connecter'}

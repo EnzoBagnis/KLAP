@@ -1,44 +1,69 @@
 import { apiRequest } from './ApiClient.js';
 
 /*
- * Jeton de session : sessionStorage plutôt que localStorage.
- * Les jetons Sanctum n'expirent pas, et les intervenants se connectent parfois sur des
- * postes partagés (lycée, collège) : fermer le navigateur doit fermer la session.
- * Pour changer de stockage, seules ces trois fonctions sont à modifier.
+ * Jeton de connexion, à deux endroits possibles :
+ * - sessionStorage par défaut : fermer le navigateur ferme la session. C'est le bon choix
+ *   sur un poste partagé (lycée, collège) ;
+ * - localStorage si la personne coche « Rester connecté·e » : sur son téléphone, une
+ *   intervenante n'a pas à se reconnecter à chaque fiche. Le jeton expire de toute façon
+ *   au bout de 30 jours, et il est refusé dès que le compte est désactivé.
+ * Un seul des deux est rempli à la fois ; la déconnexion vide les deux.
  */
 const TOKEN_KEY = 'klap.token';
 
+function storages() {
+  // L'accès lui-même peut lever une erreur (navigation privée stricte, stockage bloqué).
+  const read = (name) => {
+    try {
+      return window[name];
+    } catch {
+      return null;
+    }
+  };
+  return { session: read('sessionStorage'), local: read('localStorage') };
+}
+
 export function getToken() {
+  const { session, local } = storages();
   try {
-    return window.sessionStorage.getItem(TOKEN_KEY);
+    return session?.getItem(TOKEN_KEY) ?? local?.getItem(TOKEN_KEY) ?? null;
   } catch {
     return null;
   }
 }
 
-export function setToken(token) {
+/** Enregistre le jeton ; `remember` le garde après la fermeture du navigateur. */
+export function setToken(token, remember = false) {
+  const { session, local } = storages();
+  clearToken();
   try {
-    window.sessionStorage.setItem(TOKEN_KEY, token);
+    (remember ? local : session)?.setItem(TOKEN_KEY, token);
   } catch {
     // Stockage indisponible (navigation privée stricte) : la session vivra le temps de la page.
   }
 }
 
 export function clearToken() {
-  try {
-    window.sessionStorage.removeItem(TOKEN_KEY);
-  } catch {
-    // Rien à effacer.
+  const { session, local } = storages();
+  for (const storage of [session, local]) {
+    try {
+      storage?.removeItem(TOKEN_KEY);
+    } catch {
+      // Rien à effacer.
+    }
   }
 }
 
-/** POST /login : enregistre le jeton et renvoie l'utilisateur ({ id, name, email, role, role_label }). */
-export async function login(email, password) {
+/**
+ * POST /login : enregistre le jeton et renvoie l'utilisateur ({ id, name, email, role, role_label }).
+ * `remember` : rester connecté·e après la fermeture du navigateur.
+ */
+export async function login(email, password, { remember = false } = {}) {
   const data = await apiRequest('/login', {
     method: 'POST',
     body: { email, password, device_name: 'navigateur' },
   });
-  setToken(data.token);
+  setToken(data.token, remember);
   return data.user;
 }
 
