@@ -19,7 +19,8 @@ return [
     // Origines autorisées, séparées par des virgules (#200). Par défaut toutes : le jeton Bearer
     // n'est jamais envoyé automatiquement par le navigateur, le risque reste faible. En production,
     // mettre l'adresse du frontend : CORS_ALLOWED_ORIGINS=https://klap.example.org
-    'allowed_origins' => array_values(array_filter(array_map('trim', explode(',', (string) env('CORS_ALLOWED_ORIGINS', '*'))))),
+    // Une variable vide revient à « * », plutôt que de bloquer tout le frontend.
+    'allowed_origins' => array_values(array_filter(array_map('trim', explode(',', (string) env('CORS_ALLOWED_ORIGINS', '*'))))) ?: ['*'],
 
     'allowed_origins_patterns' => [],
 
