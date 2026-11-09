@@ -370,3 +370,32 @@
     display: none;
   }
 }
+
+/* « Rester connecté·e » (connexion) : case cochable au doigt, aide en dessous. */
+.auth-remember {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auth-remember-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap-target);
+  font-size: var(--text-14);
+  cursor: pointer;
+}
+
+.auth-remember-label input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-ink);
+}
+
+.auth-remember-hint {
+  margin: 0;
+  font-size: var(--text-13);
+  color: var(--color-mute);
+}
