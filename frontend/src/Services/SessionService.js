@@ -19,3 +19,18 @@ export async function createSession(projectId, payload) {
     })
   ).data;
 }
+
+/** PATCH /sessions/{id} : modifier une séance sans fiche (#180, administratrice). */
+export async function updateSession(sessionId, payload) {
+  return (await apiRequest(`/sessions/${encodeURIComponent(sessionId)}`, { method: 'PATCH', body: payload, token: getToken() })).data;
+}
+
+/** POST /sessions/{id}/cancel : annuler une séance sans fiche (#180). */
+export async function cancelSession(sessionId) {
+  return (await apiRequest(`/sessions/${encodeURIComponent(sessionId)}/cancel`, { method: 'POST', token: getToken() })).data;
+}
+
+/** POST /sessions/{id}/restore : rétablir une séance annulée (#180). */
+export async function restoreSession(sessionId) {
+  return (await apiRequest(`/sessions/${encodeURIComponent(sessionId)}/restore`, { method: 'POST', token: getToken() })).data;
+}

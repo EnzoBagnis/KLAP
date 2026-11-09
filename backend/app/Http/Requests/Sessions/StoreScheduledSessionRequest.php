@@ -17,7 +17,7 @@ use Illuminate\Validation\Validator;
  */
 class StoreScheduledSessionRequest extends FormRequest
 {
-    private ?Project $project = null;
+    protected ?Project $project = null;
 
     /** Projet inexistant : 404, avant toute validation. */
     public function authorize(): bool
@@ -91,33 +91,20 @@ class StoreScheduledSessionRequest extends FormRequest
 
                 // Un·e intervenant·e n'anime pas deux séances à la fois (#168) : doublon ou erreur de saisie.
                 if (! $errors->hasAny(['referent_id', 'session_date', 'start_time', 'end_time'])) {
-                    $clash = $this->overlappingSession();
+                    $clash = ScheduledSession::overlapping((int) $this->input('referent_id'), (string) $this->input('session_date'),
+                        (string) $this->input('start_time'), (string) $this->input('end_time'), $this->ignoredSessionId());
                     if ($clash !== null) {
-                        $errors->add('start_time', sprintf('Cet·te intervenant·e a déjà une séance de %s à %s ce jour-là (%s).',
-                            substr((string) $clash->start_time, 0, 5), substr((string) $clash->end_time, 0, 5), $clash->project_name));
+                        $errors->add('start_time', ScheduledSession::overlapMessage($clash));
                     }
                 }
             },
         ];
     }
 
-    /**
-     * Séance non annulée du même référent, le même jour, dont l'horaire chevauche celui demandé.
-     * Comparaison en PHP sur « HH:MM » : SQLite et MariaDB ne stockent pas l'heure au même format,
-     * et deux séances accolées (10 h - 12 h, puis 12 h - 14 h) ne se chevauchent pas.
-     */
-    private function overlappingSession(): ?object
+    /** Séance à ne pas compter dans les chevauchements : aucune à la programmation. */
+    protected function ignoredSessionId(): ?int
     {
-        $start = substr((string) $this->input('start_time'), 0, 5);
-        $end = substr((string) $this->input('end_time'), 0, 5);
-
-        return DB::table('scheduled_sessions as s')
-            ->join('projects as p', 'p.id', '=', 's.project_id')
-            ->where('s.referent_id', $this->input('referent_id'))
-            ->whereDate('s.session_date', $this->input('session_date'))
-            ->where('s.status', '<>', 'cancelled')
-            ->get(['s.start_time', 's.end_time', 'p.name as project_name'])
-            ->first(fn ($other) => substr((string) $other->start_time, 0, 5) < $end && $start < substr((string) $other->end_time, 0, 5));
+        return null;
     }
 
     public function messages(): array

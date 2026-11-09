@@ -124,3 +124,10 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* Actions de l'administratrice sur une séance (#180) : modifier, annuler, rétablir. */
+.planning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
