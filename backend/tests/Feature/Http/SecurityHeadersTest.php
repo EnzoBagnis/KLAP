@@ -72,17 +72,39 @@ class SecurityHeadersTest extends TestCase
 
     public function test_une_variable_cors_vide_revient_a_toutes_les_origines(): void
     {
-        putenv('CORS_ALLOWED_ORIGINS=');
+        $this->assertSame(['*'], $this->corsOriginsWith(''));
+        $this->assertSame(
+            ['https://klap.example.org', 'https://autre.example.org'],
+            $this->corsOriginsWith('https://klap.example.org, https://autre.example.org'),
+        );
+    }
+
+    /**
+     * Relit config/cors.php avec CORS_ALLOWED_ORIGINS forcée. Laravel lit $_SERVER, puis $_ENV,
+     * puis getenv() : les trois sont forcés, puis rétablis, sinon un .env qui définit déjà la
+     * variable (celui de la CI, copié de .env.example) l'emporterait.
+     */
+    private function corsOriginsWith(string $value): array
+    {
+        $saved = [$_SERVER['CORS_ALLOWED_ORIGINS'] ?? null, $_ENV['CORS_ALLOWED_ORIGINS'] ?? null, getenv('CORS_ALLOWED_ORIGINS')];
+        $_SERVER['CORS_ALLOWED_ORIGINS'] = $_ENV['CORS_ALLOWED_ORIGINS'] = $value;
+        putenv("CORS_ALLOWED_ORIGINS={$value}");
+
         try {
-            $this->assertSame(['*'], (require config_path('cors.php'))['allowed_origins']);
+            return (require config_path('cors.php'))['allowed_origins'];
         } finally {
-            putenv('CORS_ALLOWED_ORIGINS');
-        }
-        putenv('CORS_ALLOWED_ORIGINS=https://klap.example.org, https://autre.example.org');
-        try {
-            $this->assertSame(['https://klap.example.org', 'https://autre.example.org'], (require config_path('cors.php'))['allowed_origins']);
-        } finally {
-            putenv('CORS_ALLOWED_ORIGINS');
+            [$server, $env, $getenv] = $saved;
+            if ($server === null) {
+                unset($_SERVER['CORS_ALLOWED_ORIGINS']);
+            } else {
+                $_SERVER['CORS_ALLOWED_ORIGINS'] = $server;
+            }
+            if ($env === null) {
+                unset($_ENV['CORS_ALLOWED_ORIGINS']);
+            } else {
+                $_ENV['CORS_ALLOWED_ORIGINS'] = $env;
+            }
+            putenv($getenv === false ? 'CORS_ALLOWED_ORIGINS' : "CORS_ALLOWED_ORIGINS={$getenv}");
         }
     }
 }
