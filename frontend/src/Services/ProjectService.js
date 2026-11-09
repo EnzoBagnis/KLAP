@@ -4,9 +4,9 @@ import { getToken } from './AuthService.js';
 // Lecture des projets. L'API filtre selon le rôle (RG02) : un intervenant ne reçoit que
 // ses projets, et une 404 pour les autres. Les erreurs remontent en ApiError.
 
-/** GET /projects : projets non archivés visibles par l'utilisateur. */
-export async function listProjects() {
-  const response = await apiRequest('/projects', { token: getToken() });
+/** GET /projects : projets non archivés visibles par l'utilisateur (archivés compris sur demande). */
+export async function listProjects({ includeArchived = false } = {}) {
+  const response = await apiRequest(includeArchived ? '/projects?include_archived=1' : '/projects', { token: getToken() });
   return response.data;
 }
 
