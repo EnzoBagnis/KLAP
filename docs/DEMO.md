@@ -31,9 +31,10 @@ Mot de passe commun : `Klap2026!`
 
 ## 3. Le parcours : du terrain au financeur
 
-1. **Téléphone, Léa** : tableau de bord, « Fiches à remplir », séance du jour (Arts Danse au Lycée
-   Charles, Terminales spécialité danse). Elle remplit les six étapes et soumet. Tant que le tableau de
-   bord n'est pas fait (#72), on passe par Planning, puis « Remplir la fiche » sur la séance du jour.
+1. **Téléphone, Léa** : dès la connexion, le tableau de bord montre « Fiches à remplir », avec leur
+   échéance. La séance du jour (Arts Danse au Lycée Charles, Terminales spécialité danse) est la dernière
+   de la liste, marquée « Aujourd'hui » : les plus anciennes, donc les plus urgentes, viennent d'abord.
+   Elle touche « Remplir la fiche », remplit les six étapes et soumet.
 2. **Ordinateur, Mariette** : la cloche s'allume, avec le message « Léa Fournier a rempli la fiche de la séance… ».
 3. **Statistiques** : projet Arts Danse au Lycée Charles, puis « Appliquer ». Le nombre de participants suit
    la règle de la cliente : le maximum par groupe, puis la somme. Il vaut 59 avant la fiche du jour. Si Léa
@@ -41,8 +42,8 @@ Mot de passe commun : `Klap2026!`
    avec 18 ou moins, il ne bouge pas (c'est la règle).
 4. **Pré-bilan** : projet Arts Danse au Lycée Charles, financeur « DRAC Provence-Alpes-Côte d'Azur »,
    puis télécharger. Le Word contient les chiffres et les temps forts des fiches, y compris celle que
-   Léa vient de remplir. L'écran dépend de #144 ; en attendant, l'API répond sur
-   `GET /api/projects/1/pre-report?funder_id=1`.
+   Léa vient de remplir. On y arrive par le menu « Pré-bilan », ou par le bouton « Pré-bilan » de la
+   page du projet, qui le présélectionne. Il reste à choisir le financeur, puis à télécharger.
 
 ## 4. Plan B
 
