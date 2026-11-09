@@ -34,5 +34,8 @@ describe('AppRouter', () => {
   it('affiche une page introuvable sur une route inconnue', () => {
     renderAt('/nimporte-quoi');
     expect(screen.getByRole('heading', { name: 'Page introuvable' })).toBeInTheDocument();
+    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Retour à l’accueil' })).toHaveAttribute('href', '/');
+    expect(document.title).toBe('Page introuvable · KLAP');
   });
 });
