@@ -13,7 +13,11 @@ docker compose exec backend php artisan klap:demo --date=2026-11-19
 ```
 
 **La base entière est effacée** : la commande demande une confirmation (ou `--force` pour l'éviter).
-À lancer le matin de la démo, puis de nouveau entre deux répétitions.
+À lancer **juste avant la démo**, puis de nouveau entre deux répétitions.
+
+Une fiche ne se soumet qu'**après la fin de la séance**. La séance du jour de Léa se termine donc au
+quart d'heure qui précède le lancement de la commande (de 10 h à 12 h si on la lance l'après-midi).
+Si la démo a lieu le matin, relancer la commande peu avant, sinon Léa ne pourra pas soumettre sa fiche.
 
 ## 2. Les comptes
 
