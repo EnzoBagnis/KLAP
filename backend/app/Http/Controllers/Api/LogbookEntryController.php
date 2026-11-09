@@ -10,6 +10,7 @@ use App\Http\Requests\Logbook\UpdateLogbookEntryRequest;
 use App\Http\Resources\LogbookEntryResource;
 use App\Models\KlapNotification;
 use App\Models\LogbookEntry;
+use App\Models\ScheduledSession;
 use App\Models\User;
 use App\Support\LogbookRules;
 use Illuminate\Database\Eloquent\Builder;
@@ -77,6 +78,10 @@ class LogbookEntryController extends Controller
 
         try {
             $entry = DB::transaction(function () use ($request, $session) {
+                // Relue verrouillée : une annulation ou une modification concurrente de la séance (#180)
+                // ne peut pas passer entre les contrôles de la requête et la création de la fiche.
+                $session = ScheduledSession::query()->lockForUpdate()->findOrFail($session->id);
+                abort_if($session->status === 'cancelled', 409, 'Cette séance vient d’être annulée : elle n’a pas de fiche.');
                 $entry = new LogbookEntry;
                 $entry->scheduled_session_id = $session->id;
                 // La fiche est celle de l'intervenant·e référent·e, même si l'administration l'ouvre pour lui ou elle.

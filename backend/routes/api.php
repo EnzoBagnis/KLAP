@@ -84,6 +84,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('projects/{project}/archive', [ProjectController::class, 'archive']);
         Route::post('projects/{project}/restore', [ProjectController::class, 'restore']);
         Route::post('projects/{project}/sessions', [ScheduledSessionController::class, 'store']);
+        // Modifier, annuler et rétablir une séance sans fiche (#180) : rien n'est effacé.
+        Route::patch('sessions/{session}', [ScheduledSessionController::class, 'update']);
+        Route::post('sessions/{session}/cancel', [ScheduledSessionController::class, 'cancel']);
+        Route::post('sessions/{session}/restore', [ScheduledSessionController::class, 'restore']);
 
         // Types de projet : liste gérée par l'administratrice, sans suppression.
         Route::get('project-types', [ProjectTypeController::class, 'index']);

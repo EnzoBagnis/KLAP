@@ -66,6 +66,9 @@ doute, c'est le code qui fait foi (`php artisan route:list --path=api`).
 | `GET /sessions?from=&to=` | tous | Séances de la période (366 jours au plus), selon les droits. Chaque séance indique sa fiche et le statut de son projet. |
 | `GET /projects/{id}/sessions` | tous | Séances d'un projet visible. |
 | `POST /projects/{id}/sessions` | admin | Programmer une séance. Refusée si l'intervenant·e a déjà une séance au même moment. |
+| `PATCH /sessions/{id}` | admin | Modifier une séance sans fiche (mêmes règles). 409 si elle a une fiche ou si elle est annulée. |
+| `POST /sessions/{id}/cancel` | admin | Annuler une séance sans fiche. Rien n'est effacé. |
+| `POST /sessions/{id}/restore` | admin | Rétablir une séance annulée, si l'intervenant·e est libre à ce moment-là. |
 | `GET /sessions/{id}/logbook-entry` | tous | La fiche d'une séance, si on peut la lire. |
 | `POST /sessions/{id}/logbook-entry` | référent·e, admin, super_user | Ouvrir la fiche : du jour de la séance à J+10, ni séance annulée, ni projet archivé. |
 | `GET /logbook-entries` · `GET /logbook-entries/{id}` | tous | Fiches lisibles : les siennes et celles de ses projets ; tout pour l'administration. |
