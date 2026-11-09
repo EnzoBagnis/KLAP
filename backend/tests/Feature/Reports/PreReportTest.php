@@ -118,6 +118,26 @@ class PreReportTest extends TestCase
         $this->assertStringNotContainsString('Tensions entre deux élèves.', $text);
     }
 
+    public function test_les_tableaux_tiennent_dans_la_largeur_de_la_page(): void
+    {
+        $this->submitted();
+        $path = tempnam(sys_get_temp_dir(), 'pre-bilan');
+        file_put_contents($path, $this->download()->assertOk()->streamedContent());
+        $zip = new \ZipArchive;
+        $zip->open($path);
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+        unlink($path);
+
+        // A4 (11 906 twips) moins deux marges de 1 440 : 9 026 twips utiles.
+        preg_match_all('#<w:tbl>.*?</w:tbl>#s', $xml, $tables);
+        $this->assertNotEmpty($tables[0]);
+        foreach ($tables[0] as $table) {
+            preg_match_all('#<w:gridCol w:w="(\d+)"#', $table, $columns);
+            $this->assertLessThanOrEqual(9026, array_sum($columns[1]), 'Un tableau déborde de la page.');
+        }
+    }
+
     public function test_ne_reprend_pas_les_reponses_vides(): void
     {
         $this->submitted(['highlights' => 'Rien à signaler.', 'additional_notes' => '']);

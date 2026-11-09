@@ -24,6 +24,11 @@ class PreReportService
 
     private const BODY = 'Corps';
 
+    /** Largeur utile d'une page A4 aux marges par défaut de phpword (2,54 cm), en twips, arrondie. */
+    private const USABLE_WIDTH = 9000;
+
+    private const MAX_COLUMN_WIDTH = 2600;
+
     /**
      * Champs de la fiche repris (contexte client) : les temps forts et les notes complémentaires.
      * Le bilan de l'intervenant·e et « à reprendre » restent internes : ce sont des remarques sur
@@ -166,15 +171,18 @@ class PreReportService
 
             return;
         }
+        // Colonnes réparties sur la largeur utile de la page : à 2 600 twips chacune, un tableau de
+        // 5 colonnes débordait de la marge droite et la dernière était coupée.
+        $width = min(self::MAX_COLUMN_WIDTH, intdiv(self::USABLE_WIDTH, max(1, count($header))));
         $table = $section->addTable('Grille');
         $table->addRow();
         foreach ($header as $cell) {
-            $table->addCell(2600)->addText($cell, ['bold' => true], self::BODY);
+            $table->addCell($width)->addText($cell, ['bold' => true], self::BODY);
         }
         foreach ($rows as $row) {
             $table->addRow();
             foreach ($row as $cell) {
-                $table->addCell(2600)->addText($cell, null, self::BODY);
+                $table->addCell($width)->addText($cell, null, self::BODY);
             }
         }
     }
