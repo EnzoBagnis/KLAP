@@ -20,7 +20,7 @@ class CorsTest extends TestCase
         $this->getJson('/api/test-cors', ['Origin' => 'http://localhost:5173'])
             ->assertStatus(429)
             ->assertHeader('Access-Control-Allow-Origin', '*')
-            ->assertHeader('Access-Control-Expose-Headers', 'Retry-After')
+            ->assertHeader('Access-Control-Expose-Headers', 'Retry-After, Content-Disposition')
             ->assertHeader('Retry-After', '42');
     }
 
