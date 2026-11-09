@@ -2,6 +2,7 @@ import { ROLES } from '../../Context/roles.js';
 import PlanningPage from '../../Pages/Planning/PlanningPage.jsx';
 import ProjectListPage from '../../Pages/Projects/ProjectListPage.jsx';
 import ProjectManagementPage from '../../Pages/Projects/ProjectManagementPage.jsx';
+import PreAssessmentPage from '../../Pages/Reports/PreAssessmentPage.jsx';
 import StatisticsPage from '../../Pages/Reports/StatisticsPage.jsx';
 
 const { ADMIN, SUPER_USER, CONTRIBUTOR } = ROLES;
@@ -29,7 +30,7 @@ export const NAV_ITEMS = Object.freeze([
   { path: '/projets', label: 'Projets', roles: ALL_ROLES, page: ProjectListPage },
   { path: '/planning', label: 'Planning', roles: ALL_ROLES, page: PlanningPage },
   { path: '/statistiques', label: 'Statistiques', roles: [ADMIN, SUPER_USER], page: StatisticsPage },
-  { path: '/pre-bilan', label: 'Pré-bilan', roles: [ADMIN, SUPER_USER] },
+  { path: '/pre-bilan', label: 'Pré-bilan', roles: [ADMIN, SUPER_USER], page: PreAssessmentPage },
   { path: '/gestion', label: 'Gestion', roles: [ADMIN], page: ProjectManagementPage },
 ]);
 

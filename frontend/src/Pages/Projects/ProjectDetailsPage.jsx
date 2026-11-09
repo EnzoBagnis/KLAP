@@ -106,12 +106,18 @@ export default function ProjectDetailsPage() {
         </div>
       )}
 
-      {state.status === 'ready' && <ProjectDetails project={state.project} canEdit={user?.role === ROLES.ADMIN} />}
+      {state.status === 'ready' && (
+        <ProjectDetails
+          project={state.project}
+          canEdit={user?.role === ROLES.ADMIN}
+          canReport={user?.role === ROLES.ADMIN || user?.role === ROLES.SUPER_USER}
+        />
+      )}
     </section>
   );
 }
 
-function ProjectDetails({ project, canEdit }) {
+function ProjectDetails({ project, canEdit, canReport }) {
   const lead = project.team?.filter((member) => member.member_role === 'lead') ?? [];
   const occasional = project.team?.filter((member) => member.member_role === 'occasional') ?? [];
   const subProjects = project.sub_projects ?? [];
@@ -129,11 +135,19 @@ function ProjectDetails({ project, canEdit }) {
           {locality && <span className="project-locality">{locality}</span>}
         </p>
         <h1 className="project-title">{project.name}</h1>
-        {canEdit && (
-          <p>
-            <Link to={`/gestion/projets/${project.id}/modifier`} className="btn btn-line">
-              {project.status === 'archived' ? 'Restaurer' : 'Modifier'}
-            </Link>
+        {(canEdit || canReport) && (
+          <p className="project-actions">
+            {canEdit && (
+              <Link to={`/gestion/projets/${project.id}/modifier`} className="btn btn-line">
+                {project.status === 'archived' ? 'Restaurer' : 'Modifier'}
+              </Link>
+            )}
+            {/* Pré-bilan Word (#144) : administratrice et super-utilisatrice. */}
+            {canReport && (
+              <Link to={`/pre-bilan?projet=${project.id}`} className="btn btn-line">
+                Pré-bilan
+              </Link>
+            )}
           </p>
         )}
         {project.description && <p className="project-description">{project.description}</p>}
