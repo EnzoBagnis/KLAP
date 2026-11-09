@@ -167,24 +167,26 @@ Les avertissements qui restent sont informatifs, ou ne s'appliquent pas en produ
 4. **`FRONTEND_URL`** : la même adresse. Les liens d'invitation et de mot de passe oublié en dépendent.
 5. **La racine web pointe sur `backend/public`**, jamais sur `backend/`. Sinon `.env` est lisible depuis le web.
 6. **PHP** : `expose_php = Off`, pour retirer aussi `X-Powered-By` des fichiers statiques.
-7. **En-têtes du frontend.** Le frontend est un ensemble de fichiers statiques : ses en-têtes viennent de
-   l'hébergement. Proposition de `.htaccess` à placer à côté de `index.html`, à adapter à l'adresse de l'API :
+7. **En-têtes du frontend.** Le frontend est un ensemble de fichiers statiques, servi par Apache.
+   Depuis #203, le build produit `dist/.htaccess` (`frontend/build/htaccess.js`), qui :
+   - renvoie les routes React vers `index.html`, sinon recharger `/projets/1` donne une 404 ;
+   - envoie la CSP, avec l'adresse de l'API tirée de `VITE_API_URL`, ainsi que `nosniff`,
+     `Referrer-Policy` et `Permissions-Policy` ;
+   - met en cache long les fichiers `assets/`, mais jamais `index.html`.
 
-   ```apache
-   Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://ADRESSE-DE-L-API; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
-   Header always set X-Content-Type-Options "nosniff"
-   Header always set Referrer-Policy "strict-origin-when-cross-origin"
-   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+   Il suffit de construire avec la bonne adresse d'API, puis de copier **tout** `dist/`, fichier caché
+   compris :
+
+   ```bash
+   VITE_API_URL=https://ADRESSE-DE-L-API/api npm run build
    ```
 
-   Cette politique a été **testée sur le build de production**, en local. Avec elle :
-   - la connexion, tous les écrans et le téléchargement du pré-bilan fonctionnent ;
-   - la console du navigateur ne montre aucune erreur.
+   Testé dans Apache 2.4 avec le build de production :
+   - connexion, rechargement de pages profondes, téléchargement du pré-bilan ;
+   - aucune erreur dans la console ;
+   - `.htaccess` et la liste des dossiers restent inaccessibles.
 
    `font-src data:` est nécessaire, car les polices sont intégrées au CSS.
-
-   Le même fichier doit aussi renvoyer toutes les adresses vers `index.html`, sinon un rechargement sur
-   `/projets/1` donne une erreur 404.
 8. **Sauvegardes** de la base, et procédure de restauration testée une fois.
 9. **Tâches planifiées.** `php artisan schedule:run` doit tourner chaque minute (tâche cron d'Alwaysdata),
    sinon deux mécanismes s'arrêtent :
