@@ -72,7 +72,9 @@ class PrepareDemo extends Command
         $this->newLine();
         $this->info("Données de démonstration prêtes pour le {$day} (dates décalées de {$days} jours).");
         $this->line('Comptes (mot de passe Klap2026!) : mariette.travard@klap.demo (admin), emilie.garetier@klap.demo (super-user), lea.fournier@klap.demo (intervenante).');
-        $this->line('Séance du jour sans fiche : Léa Fournier, Arts Danse au Lycée Charles, Terminales spécialité danse, 10 h - 12 h.');
+        [$start, $end] = $this->todaySlot();
+        $this->line("Séance du jour sans fiche : Léa Fournier, Arts Danse au Lycée Charles, Terminales spécialité danse, {$start} - {$end}.");
+        $this->line('La fiche se soumet après la fin de la séance : relancez la commande si la démo a lieu avant.');
 
         return self::SUCCESS;
     }
@@ -153,8 +155,8 @@ class PrepareDemo extends Command
         $id = DB::table('scheduled_sessions')->insertGetId([
             'project_id' => $project->id,
             'session_date' => $this->demoDay(),
-            'start_time' => '10:00',
-            'end_time' => '12:00',
+            'start_time' => $this->todaySlot()[0],
+            'end_time' => $this->todaySlot()[1],
             'location_id' => $project->default_location_id,
             'referent_id' => $lea->id,
             'session_type' => 'practice_workshop',
@@ -166,6 +168,29 @@ class PrepareDemo extends Command
         DB::table('scheduled_session_sub_project')->insert([
             'scheduled_session_id' => $id, 'sub_project_id' => $group->id, 'project_id' => $project->id, 'attendees' => null,
         ]);
+    }
+
+    /**
+     * Horaire de la séance du jour (#182). Une fiche ne se soumet qu'après la fin de la séance :
+     * la séance doit donc être terminée au moment de la démo. Lancée l'après-midi, la commande
+     * garde 10 h - 12 h ; lancée avant midi, la séance se termine au quart d'heure qui précède.
+     * Pour une démo un autre jour (--date), on garde 10 h - 12 h.
+     */
+    private function todaySlot(): array
+    {
+        $now = LogbookEntry::localNow();
+        if ($this->option('date') && $this->option('date') !== $now->toDateString()) {
+            return ['10:00', '12:00'];
+        }
+        $end = $now->copy()->setTime($now->hour, intdiv($now->minute, 15) * 15);
+        if ($end->format('H:i') >= '12:00') {
+            return ['10:00', '12:00'];
+        }
+        // Au moins 15 minutes de séance, sans passer avant minuit.
+        $end = $end->max($now->copy()->setTime(0, 15));
+        $start = $end->copy()->subHours(2)->max($now->copy()->startOfDay());
+
+        return [$start->format('H:i'), $end->format('H:i')];
     }
 
     private function demoDay(): string
