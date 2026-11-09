@@ -240,6 +240,7 @@
   margin: 0;
   padding: 0;
   border: 0;
+}
 
 /* Graphiques (#185) : barres horizontales, valeur écrite, échelle depuis zéro. */
 .bar-chart {
