@@ -348,6 +348,52 @@ describe('Page Statistiques', () => {
     expect(await screen.findByText('Aucun projet à afficher.')).toBeInTheDocument();
   });
 
+  it('dessine les participants par projet, provenance et âge, masqués au lecteur d’écran', async () => {
+    mockApi({
+      'GET /statistics': () => jsonResponse({ data: statistics() }),
+      'GET /projects': () => jsonResponse({ data: projects }),
+    });
+    renderAt('/statistiques');
+
+    await screen.findByRole('list', { name: 'Totaux' });
+    const charts = [...document.querySelectorAll('figure.bar-chart')];
+    expect(charts.map((chart) => chart.querySelector('figcaption').textContent)).toEqual([
+      'Participants par provenance',
+      'Participants par tranche d’âge',
+      'Participants par projet',
+    ]);
+    // Le tableau qui suit donne les mêmes chiffres : le graphique n'est pas lu deux fois.
+    charts.forEach((chart) => expect(chart).toHaveAttribute('aria-hidden', 'true'));
+
+    const byProject = charts[2];
+    const bars = [...byProject.querySelectorAll('.bar-chart-bar')].map((bar) => bar.style.width);
+    expect(bars[0]).toBe('100%');
+    expect(Number.parseFloat(bars[1])).toBeCloseTo((15 / 59) * 100, 1);
+    expect(within(byProject).getByText('Atelier Belle de Mai').nextSibling.nextSibling).toHaveTextContent('15');
+    expect(within(charts[0]).getByText('Non renseignée · Non renseigné')).toBeInTheDocument();
+    // Plusieurs projets : pas d'assiduité par groupe, qui mélangerait les projets.
+    expect(document.body).not.toHaveTextContent('Assiduité par groupe');
+  });
+
+  it('dessine l’assiduité des groupes quand un projet est filtré', async () => {
+    const single = statistics({ projects: [statistics().projects[0]] });
+    mockApi({
+      'GET /statistics': () => jsonResponse({ data: single }),
+      'GET /projects': () => jsonResponse({ data: projects }),
+    });
+    renderAt('/statistiques?projet=1');
+
+    await screen.findByRole('list', { name: 'Totaux' });
+    const captions = [...document.querySelectorAll('figure.bar-chart figcaption')].map((caption) => caption.textContent);
+    expect(captions).not.toContain('Participants par projet');
+    const attendance = [...document.querySelectorAll('figure.bar-chart')].find((chart) => chart.textContent.includes('Assiduité'));
+    // Seul le groupe qui a un effectif prévu a un taux ; l'échelle va jusqu'à 100 %.
+    expect(within(attendance).getByText('Seconde 3')).toBeInTheDocument();
+    expect(within(attendance).queryByText('Première 1')).not.toBeInTheDocument();
+    expect(within(attendance).getByText('86 %')).toBeInTheDocument();
+    expect(attendance.querySelector('.bar-chart-bar').style.width).toBe('86%');
+  });
+
   it('n’est pas accessible à un intervenant', async () => {
     const fetchMock = mockApi({});
     renderAt('/statistiques', MOCK_USERS.contributor);
