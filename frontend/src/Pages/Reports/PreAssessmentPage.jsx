@@ -57,6 +57,7 @@ export default function PreAssessmentPage() {
   // Les financeurs viennent du détail du projet choisi ; un seul financeur est présélectionné.
   useEffect(() => {
     const request = ++lastProject.current;
+    setBusy(false);
     setForm(EMPTY_FORM);
     setErrors({});
     setMessage(null);
@@ -100,13 +101,18 @@ export default function PreAssessmentPage() {
     setErrors(found);
     if (Object.keys(found).length) return;
 
+    // Projet changé pendant la préparation : le fichier est enregistré, mais le message et les
+    // erreurs de l'ancien projet ne s'affichent pas sous le formulaire du nouveau.
+    const request = lastProject.current;
+    const current = () => request === lastProject.current;
     setBusy(true);
     try {
       const { blob, filename } = await downloadPreReport(projectId, form);
       const name = filename ?? fallbackName(project.data);
       saveFile(blob, name);
-      setMessage({ tone: 'success', text: `Pré-bilan téléchargé : ${name}` });
+      if (current()) setMessage({ tone: 'success', text: `Pré-bilan téléchargé : ${name}` });
     } catch (error) {
+      if (!current()) return;
       if (error.status === 401) {
         logout();
         return;
@@ -125,7 +131,7 @@ export default function PreAssessmentPage() {
         });
       }
     } finally {
-      setBusy(false);
+      if (current()) setBusy(false);
     }
   }
 
@@ -180,7 +186,9 @@ export default function PreAssessmentPage() {
         {project.status === 'ready' && funders.length === 0 && (
           <p className="form-alert" role="alert">
             Ce projet n’a aucun financeur : le pré-bilan s’adresse à un financeur.
-            {user?.role === ROLES.ADMIN ? (
+            {user?.role === ROLES.ADMIN && project.data.status === 'archived' ? (
+              ' Restaurez d’abord le projet pour lui ajouter un financeur.'
+            ) : user?.role === ROLES.ADMIN ? (
               <>
                 {' '}
                 <Link to={`/gestion/projets/${projectId}/modifier`}>Ajouter un financeur au projet</Link>.
