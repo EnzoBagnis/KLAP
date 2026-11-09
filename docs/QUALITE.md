@@ -77,6 +77,7 @@ Pour le refaire : ouvrir un écran, puis dans la console du navigateur charger
   - limite des essais de connexion par compte et par IP ;
   - mot de passe oublié sans fuite : même réponse et même temps de réponse, mesurés (environ 1,05 s), que l'adresse existe ou non.
 - **Dépendances** : `composer audit` et `npm audit` ne trouvent aucune faille connue.
+- **Audit outillé** (gitleaks, Trivy, Semgrep, OWASP ZAP, tests manuels de l'API) : voir `docs/AUDIT_SECURITE.md`. Aucune faille exploitable ; en-têtes HTTP de l'API ajoutés (#200).
 - **Données personnelles** : voir `docs/CONFORMITE_SECURITE_RGPD.md`. Aucun élève n'est enregistré, et le pré-bilan ne contient aucun nom de personne.
 
 ## 6. Performances
