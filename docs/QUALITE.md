@@ -20,7 +20,7 @@ Rien n'est fusionné dans `premain` sans CI verte.
 | | Fichiers | Tests | Résultat |
 |---|---|---|---|
 | Backend (PHPUnit) | 39 | 512, dont 13 propres à MariaDB | tous passent sur SQLite et MariaDB |
-| Frontend (Vitest) | 20 | 291 | tous passent |
+| Frontend (Vitest) | 22 | 316 | tous passent |
 
 Les tests backend passent par l'API, comme le ferait le frontend :
 - droits de chaque rôle ;
@@ -49,7 +49,8 @@ et d'ordinateur :
 - **Modifier, annuler, rétablir une séance** (#180).
 - **Mon profil** : changer son mot de passe.
 - **Droits vus par Emilie (super-utilisatrice) et Hugo (intervenant).**
-- **Statistiques** : filtres de période.
+- **Statistiques** : filtres de période, graphiques (#185).
+- **Tableau de bord** (#72) et **pré-bilan** téléchargé depuis l'écran (#144).
 
 Chaque défaut trouvé a fait l'objet d'une issue et d'une correction : #163, #166, #168, #170, #175, #178, #182.
 
@@ -86,6 +87,5 @@ Nombre de requêtes SQL par écran, sur les données de démo, puis avec deux fo
 
 ## 7. Ce qui reste à faire (connu)
 
-- **Écrans** : le tableau de bord (#72) et le pré-bilan (#144).
 - **Mise en ligne** : la liste de contrôle est sur #79 (HTTPS, adresse d'expédition des mails, tâche planifiée, CORS).
 - **Questions à la cliente** : durées de conservation, champs du pré-bilan, brouillons visibles par les collègues.
