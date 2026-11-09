@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes } from 'react-router-dom';
 import AuthLayout from '../Layouts/AuthLayout.jsx';
 import MainLayout from '../Layouts/MainLayout.jsx';
 import NewProjectPage from '../Pages/Projects/NewProjectPage.jsx';
@@ -86,7 +86,7 @@ export default function AppRouter() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Placeholder title="Page introuvable" />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
@@ -102,5 +102,24 @@ function Placeholder({ title }) {
       <h1>{title}</h1>
       <p>Écran en cours de développement.</p>
     </section>
+  );
+}
+
+/*
+ * Adresse inconnue : hors des gabarits, donc avec sa propre zone principale (repère <main>
+ * pour les lecteurs d'écran), et un chemin de retour.
+ */
+function NotFound() {
+  useEffect(() => {
+    document.title = 'Page introuvable · KLAP';
+  }, []);
+  return (
+    <main className="placeholder">
+      <h1>Page introuvable</h1>
+      <p>Cette adresse ne correspond à aucune page. Le lien est peut-être incomplet.</p>
+      <p>
+        <Link to="/">Retour à l’accueil</Link>
+      </p>
+    </main>
   );
 }

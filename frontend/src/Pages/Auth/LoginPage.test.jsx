@@ -44,6 +44,7 @@ describe('Page de connexion', () => {
     mockApi({ 'POST /login': () => jsonResponse({ token: 'jeton', user: MOCK_USERS.contributor }) });
     renderApp();
 
+    expect(document.title).toBe('Connexion · KLAP');
     const remember = screen.getByRole('checkbox', { name: 'Rester connecté·e sur cet appareil' });
     expect(remember).not.toBeChecked();
     expect(remember).toHaveAccessibleDescription(/ordinateur partagé/);
