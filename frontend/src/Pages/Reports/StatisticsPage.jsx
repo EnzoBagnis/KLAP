@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import BarChart from '../../Components/Charts/BarChart.jsx';
 import SelectInput from '../../Components/Form/SelectInput.jsx';
 import TextInput from '../../Components/Form/TextInput.jsx';
 import Button from '../../Components/UI/Button.jsx';
@@ -214,6 +215,7 @@ export default function StatisticsPage() {
             <Breakdown
               id="provenance-titre"
               title="Provenance"
+              chartTitle="Participants par provenance"
               rows={data.by_city}
               columns={[
                 ['Ville', (row) => row.city || 'Non renseignée'],
@@ -223,6 +225,7 @@ export default function StatisticsPage() {
             <Breakdown
               id="age-titre"
               title="Âge"
+              chartTitle="Participants par tranche d’âge"
               rows={data.by_age_range}
               columns={[['Tranche d’âge', (row) => row.age_range || 'Non renseignée']]}
             />
@@ -232,6 +235,13 @@ export default function StatisticsPage() {
             <h2 id="projets-titre" className="section-title">
               Par projet
             </h2>
+            {data.projects.length > 1 && (
+              <BarChart
+                title="Participants par projet"
+                rows={data.projects.map((project) => ({ key: project.id, label: project.name, value: project.participants }))}
+              />
+            )}
+            <AttendanceChart projects={data.projects} />
             {/* Nom distinct de la section : deux repères de même nom gênent la navigation au lecteur d’écran. */}
             <div className="statistics-table-wrapper" role="region" aria-label="Tableau : par projet" tabIndex={0}>
               <table className="statistics-table" aria-labelledby="projets-titre">
@@ -325,7 +335,8 @@ function formatAttendance(group) {
 }
 
 /** Participants répartis par provenance ou par âge (somme des groupes concernés). */
-function Breakdown({ id, title, rows, columns }) {
+function Breakdown({ id, title, chartTitle, rows, columns }) {
+  const keyOf = (row) => columns.map(([, value]) => value(row)).join('|');
   return (
     <section aria-labelledby={id}>
       <h2 id={id} className="section-title">
@@ -334,40 +345,71 @@ function Breakdown({ id, title, rows, columns }) {
       {rows.length === 0 ? (
         <p className="page-empty">Aucun participant compté sur la période.</p>
       ) : (
-        <div className="statistics-table-wrapper" role="region" aria-label={`Tableau : ${title}`} tabIndex={0}>
-        <table className="statistics-table" aria-labelledby={id}>
-          <thead>
-            <tr>
-              {columns.map(([label]) => (
-                <th key={label} scope="col">
-                  {label}
-                </th>
-              ))}
-              <th scope="col">Groupes documentés</th>
-              <th scope="col">Participants</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={columns.map(([, value]) => value(row)).join('|')}>
-                {columns.map(([label, value], index) =>
-                  index === 0 ? (
-                    <th key={label} scope="row">
-                      {value(row)}
+        <>
+          <BarChart
+            title={chartTitle}
+            rows={rows.map((row) => ({
+              key: keyOf(row),
+              label: columns.map(([, value]) => value(row)).join(' · '),
+              value: row.participants,
+            }))}
+          />
+          <div className="statistics-table-wrapper" role="region" aria-label={`Tableau : ${title}`} tabIndex={0}>
+            <table className="statistics-table" aria-labelledby={id}>
+              <thead>
+                <tr>
+                  {columns.map(([label]) => (
+                    <th key={label} scope="col">
+                      {label}
                     </th>
-                  ) : (
-                    <td key={label}>{value(row)}</td>
-                  ),
-                )}
-                <td>{formatCount(row.groups)}</td>
-                <td>{formatCount(row.participants)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
+                  ))}
+                  <th scope="col">Groupes documentés</th>
+                  <th scope="col">Participants</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={keyOf(row)}>
+                    {columns.map(([label, value], index) =>
+                      index === 0 ? (
+                        <th key={label} scope="row">
+                          {value(row)}
+                        </th>
+                      ) : (
+                        <td key={label}>{value(row)}</td>
+                      ),
+                    )}
+                    <td>{formatCount(row.groups)}</td>
+                    <td>{formatCount(row.participants)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </section>
+  );
+}
+
+/*
+ * Assiduité par groupe, quand un seul projet est affiché (filtre) : taux de présence par
+ * rapport à l'effectif prévu. Les groupes sans effectif prévu ou sans fiche sont absents.
+ */
+function AttendanceChart({ projects }) {
+  if (projects.length !== 1) return null;
+  const rows = projects[0].sub_projects
+    .filter((group) => group.attendance_rate != null)
+    .map((group) => ({ key: group.id, label: group.name, value: group.attendance_rate }));
+  if (rows.length === 0) return null;
+  return (
+    <BarChart
+      title="Assiduité par groupe (présents en moyenne, en % de l’effectif prévu)"
+      rows={rows}
+      tone="attendance"
+      max={Math.max(100, ...rows.map((row) => row.value))}
+      format={(value) => `${value} %`}
+    />
   );
 }
 
