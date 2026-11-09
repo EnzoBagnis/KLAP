@@ -1,4 +1,5 @@
 import { ROLES } from '../../Context/roles.js';
+import DashboardPage from '../../Pages/Dashboard/DashboardPage.jsx';
 import PlanningPage from '../../Pages/Planning/PlanningPage.jsx';
 import ProjectListPage from '../../Pages/Projects/ProjectListPage.jsx';
 import ProjectManagementPage from '../../Pages/Projects/ProjectManagementPage.jsx';
@@ -25,7 +26,7 @@ const ALL_ROLES = [ADMIN, SUPER_USER, CONTRIBUTOR];
  * Masquer une entrée n'est pas une protection : l'API doit refuser l'accès de son côté.
  */
 export const NAV_ITEMS = Object.freeze([
-  { path: '/', label: 'Tableau de bord', roles: ALL_ROLES, end: true },
+  { path: '/', label: 'Tableau de bord', roles: ALL_ROLES, end: true, page: DashboardPage },
   { path: '/projets', label: 'Projets', roles: ALL_ROLES, page: ProjectListPage },
   { path: '/planning', label: 'Planning', roles: ALL_ROLES, page: PlanningPage },
   { path: '/statistiques', label: 'Statistiques', roles: [ADMIN, SUPER_USER], page: StatisticsPage },
