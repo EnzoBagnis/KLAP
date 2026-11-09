@@ -9,9 +9,17 @@
 
 const DEFAULT_API_URL = 'http://localhost:8080/api';
 
-/** Origine de l'API (schéma, hôte, port), sans chemin. */
+/**
+ * Origine de l'API (schéma, hôte, port), sans chemin. Même règle que ApiClient.js : sans
+ * variable, l'adresse locale par défaut ; une adresse vide ou relative (« /api ») vise le site
+ * lui-même, déjà autorisé par 'self' : null.
+ */
 export function apiOrigin(apiUrl) {
-  return new URL(apiUrl || DEFAULT_API_URL).origin;
+  try {
+    return new URL(apiUrl ?? DEFAULT_API_URL).origin;
+  } catch {
+    return null;
+  }
 }
 
 export function contentSecurityPolicy(apiUrl) {
@@ -22,7 +30,7 @@ export function contentSecurityPolicy(apiUrl) {
     "img-src 'self' data: blob:",
     // Les polices sont intégrées au CSS en data:.
     "font-src 'self' data:",
-    `connect-src 'self' ${apiOrigin(apiUrl)}`,
+    ['connect-src', "'self'", apiOrigin(apiUrl)].filter(Boolean).join(' '),
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
