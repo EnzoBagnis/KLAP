@@ -1,0 +1,114 @@
+/* Tableau de bord (#72) : suivi, fiches à remplir, prochaines séances, dernières fiches. */
+
+.dashboard-section {
+  margin-bottom: 40px;
+}
+
+/* Deux cartes au plus : elles prennent la largeur disponible, sans les cinq colonnes des statistiques. */
+.dashboard-follow-up {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-bottom: 0;
+}
+
+.dashboard-card-link,
+.dashboard-more {
+  font-size: var(--text-14);
+  color: var(--color-ink);
+}
+
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.dashboard-columns > * {
+  min-width: 0;
+}
+
+.dashboard-list {
+  margin: 0 0 12px;
+  padding: 0;
+  border: 1px solid var(--color-line);
+  list-style: none;
+}
+
+.dashboard-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.dashboard-item:last-child {
+  border-bottom: 0;
+}
+
+/* Une fiche à remplir attend une action : filet rouge, comme les cartes d'alerte. */
+.dashboard-item.is-todo {
+  border-left: 3px solid var(--color-accent);
+}
+
+.dashboard-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-item-body p {
+  margin: 0;
+}
+
+.dashboard-item-when {
+  font-family: var(--font-mono);
+  font-size: var(--text-12);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--color-mute);
+}
+
+.dashboard-item-body .dashboard-item-title {
+  margin-top: 4px;
+  font-size: var(--text-15);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-item-title a {
+  color: inherit;
+}
+
+.dashboard-item-body .dashboard-item-meta,
+.dashboard-item-body .dashboard-item-deadline {
+  margin-top: 2px;
+  font-size: var(--text-14);
+  color: var(--color-mute);
+  overflow-wrap: anywhere;
+}
+
+.dashboard-item-body .dashboard-item-deadline {
+  color: var(--color-ink);
+}
+
+.dashboard-item-action {
+  flex: none;
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+@media (max-width: 479px) {
+  .dashboard-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-item-action {
+    width: 100%;
+  }
+}
