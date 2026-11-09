@@ -8,7 +8,7 @@ import { SESSION_TYPES } from '../Pages/Planning/sessionLabels.js';
 import { getProject, listProjects } from '../Services/ProjectService.js';
 import LocationSelect from '../Components/Form/LocationSelect.jsx';
 import { listLocations } from '../Services/ReferenceService.js';
-import { createSession } from '../Services/SessionService.js';
+import { createSession, updateSession } from '../Services/SessionService.js';
 import BaseModal, { focusFirst } from './BaseModal.jsx';
 import '../assets/css/FormStyles.css';
 
@@ -84,7 +84,27 @@ export function mapSessionErrors(errors) {
 }
 
 /** Modale « Programmer une séance » (maquette, écran 52), réservée à l'administratrice. */
-export default function ScheduleSessionModal({ open, onClose, onCreated }) {
+/** Formulaire prérempli avec une séance existante (#180). */
+export function sessionToForm(session) {
+  return {
+    project_id: String(session.project.id),
+    sub_project_ids: session.sub_projects.map((group) => group.id),
+    session_date: session.session_date,
+    start_time: session.start_time,
+    end_time: session.end_time,
+    session_type: session.session_type,
+    session_type_detail: session.session_type_detail ?? '',
+    location_id: String(session.location.id),
+    referent_id: String(session.referent.id),
+  };
+}
+
+/*
+ * Programmer une séance, ou modifier une séance sans fiche quand `session` est donnée (#180).
+ * En modification, le projet ne change pas et les valeurs de la séance sont gardées.
+ */
+export default function ScheduleSessionModal({ open, onClose, onCreated, session = null }) {
+  const editing = session !== null;
   const { logout } = useAuth();
   const formRef = useRef(null);
   const [references, setReferences] = useState({ status: 'loading' });
@@ -104,7 +124,10 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
     Promise.all([listProjects(), listLocations()])
       .then(([projects, locations]) => {
         if (request !== referencesRequest.current) return;
-        setReferences({ status: 'ready', projects: projects.filter((p) => p.status !== 'archived'), locations });
+        // En modification, le lieu actuel reste proposé même s'il a été désactivé depuis.
+        const place = session?.location;
+        const withCurrent = place && !locations.some((item) => item.id === place.id) ? [...locations, place] : locations;
+        setReferences({ status: 'ready', projects: projects.filter((p) => p.status !== 'archived'), locations: withCurrent });
       })
       .catch((error) => {
         if (request !== referencesRequest.current) return;
@@ -114,18 +137,20 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
         }
         setReferences({ status: 'error', error: error.status === 0 ? error.message : 'Les listes n’ont pas pu être chargées.' });
       });
-  }, [logout]);
+  }, [logout, session]);
 
   useEffect(() => {
     if (!open) return;
     openCount.current += 1;
     projectRequest.current += 1;
-    setForm(EMPTY);
+    setForm(session ? sessionToForm(session) : EMPTY);
     setErrors({});
     setFormError('');
     setSubmitting(false);
     setProject({ status: 'none', groups: [], team: [] });
     loadReferences();
+    if (session) loadProject(String(session.project.id), { keepValues: true });
+    // loadProject est stable pour une ouverture donnée : seule l'ouverture relance le chargement.
   }, [open, loadReferences]);
 
   // Le formulaire arrive après le chargement des listes : on y place le focus.
@@ -133,15 +158,24 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
     if (open && references.status === 'ready') focusFirst(formRef.current);
   }, [open, references.status]);
 
-  function loadProject(projectId) {
+  function loadProject(projectId, { keepValues = false } = {}) {
     const request = ++projectRequest.current;
     setProject({ status: 'loading', groups: [], team: [] });
     getProject(projectId)
       .then((detail) => {
         if (request !== projectRequest.current) return;
-        const groups = (detail.sub_projects ?? []).filter((group) => group.is_active !== false);
+        const active = (detail.sub_projects ?? []).filter((group) => group.is_active !== false);
+        // En modification, les groupes de la séance désactivés depuis restent affichés, pour pouvoir les décocher.
+        const kept = keepValues && session
+          ? session.sub_projects
+              .filter((group) => !active.some((item) => item.id === group.id))
+              .map((group) => ({ ...group, name: `${group.name} (désactivé)` }))
+          : [];
+        const groups = [...active, ...kept];
         const team = detail.team ?? [];
         setProject({ status: 'ready', groups, team });
+        // En modification, les groupes, l'intervenant·e et le lieu de la séance sont gardés.
+        if (keepValues) return;
         // Un seul groupe : il est forcément concerné.
         if (groups.length === 1) setForm((current) => ({ ...current, sub_project_ids: [groups[0].id] }));
         const lead = team.find((member) => member.member_role === 'lead');
@@ -221,7 +255,9 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
     setSubmitting(true);
     const opening = openCount.current;
     try {
-      const created = await createSession(form.project_id, toSessionPayload(form));
+      const created = editing
+        ? await updateSession(session.id, toSessionPayload(form))
+        : await createSession(form.project_id, toSessionPayload(form));
       if (opening === openCount.current) onCreated(created);
     } catch (error) {
       if (opening !== openCount.current) return;
@@ -233,17 +269,23 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
       if (error.status === 422) {
         const { fields, others } = mapSessionErrors(error.errors);
         setErrors(fields);
-        setFormError(['La séance n’a pas été programmée.', ...others].join(' '));
+        setFormError([editing ? 'La séance n’a pas été modifiée.' : 'La séance n’a pas été programmée.', ...others].join(' '));
         focusFirstError(fields);
       } else {
-        setFormError(error.status === 0 ? error.message : 'La séance n’a pas pu être programmée. Réessayez dans un instant.');
+        setFormError(
+          error.status === 0 || error.status === 409
+            ? error.message
+            : editing
+              ? 'La séance n’a pas pu être modifiée. Réessayez dans un instant.'
+              : 'La séance n’a pas pu être programmée. Réessayez dans un instant.',
+        );
       }
     }
   }
 
   return (
     // Pendant l'envoi, la fenêtre ne se ferme pas : la séance pourrait être créée sans qu'on le sache.
-    <BaseModal open={open} title="Programmer une séance" onClose={onClose} closable={!submitting}>
+    <BaseModal open={open} title={editing ? 'Modifier la séance' : 'Programmer une séance'} onClose={onClose} closable={!submitting}>
       <p>La fiche de la séance reprendra ces informations.</p>
 
       {references.status === 'loading' && <LoadingSpinner label="Préparation du formulaire…" />}
@@ -271,6 +313,7 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
             required
             value={form.project_id}
             onChange={chooseProject}
+            disabled={editing}
             error={errors.project_id}
             options={references.projects.map((p) => ({ value: p.id, label: p.name }))}
           />
@@ -279,7 +322,7 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
           {project.status === 'error' && (
             <div className="page-error" role="alert">
               <p className="field-error">Le projet n’a pas pu être chargé.</p>
-              <Button variant="line" onClick={() => loadProject(form.project_id)}>
+              <Button variant="line" onClick={() => loadProject(form.project_id, { keepValues: editing })}>
                 Réessayer
               </Button>
             </div>
@@ -365,7 +408,7 @@ export default function ScheduleSessionModal({ open, onClose, onCreated }) {
               Annuler
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? 'Programmation…' : 'Programmer la séance'}
+              {submitting ? (editing ? 'Enregistrement…' : 'Programmation…') : editing ? 'Enregistrer' : 'Programmer la séance'}
             </Button>
           </div>
         </form>
