@@ -36,6 +36,24 @@ describe('Page de connexion', () => {
     expect(screen.getByText('Léa Fournier')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Gestion/ })).not.toBeInTheDocument();
     expect(getToken()).toBe('jeton');
+    // Case décochée par défaut : rien ne survit à la fermeture du navigateur.
+    expect(window.localStorage.getItem('klap.token')).toBeNull();
+  });
+
+  it('ferme la session avec le navigateur, sauf si « Rester connecté·e » est coché', async () => {
+    mockApi({ 'POST /login': () => jsonResponse({ token: 'jeton', user: MOCK_USERS.contributor }) });
+    renderApp();
+
+    const remember = screen.getByRole('checkbox', { name: 'Rester connecté·e sur cet appareil' });
+    expect(remember).not.toBeChecked();
+    expect(remember).toHaveAccessibleDescription(/ordinateur partagé/);
+    const user = userEvent.setup();
+    await user.click(remember);
+    await submit('lea.fournier@klap.demo', 'Klap2026!');
+
+    expect(await screen.findByRole('heading', { name: 'Tableau de bord' })).toBeInTheDocument();
+    expect(window.localStorage.getItem('klap.token')).toBe('jeton');
+    expect(window.sessionStorage.getItem('klap.token')).toBeNull();
   });
 
   it('affiche le message de l’API pour des identifiants faux et vide le mot de passe', async () => {

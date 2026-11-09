@@ -57,8 +57,8 @@ export function AuthProvider({ children, initialUser }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(async (email, password) => {
-    const loggedUser = await AuthService.login(email, password);
+  const login = useCallback(async (email, password, options) => {
+    const loggedUser = await AuthService.login(email, password, options);
     sessionVersion.current += 1;
     setUser(loggedUser);
     setStatus('authenticated');
