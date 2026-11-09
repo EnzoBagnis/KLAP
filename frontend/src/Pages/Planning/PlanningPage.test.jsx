@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, vi } from 'vitest';
@@ -412,5 +412,142 @@ describe('Règles de la modale', () => {
       fields: { sub_project_ids: 'A' },
       others: ['B'],
     });
+  });
+});
+
+describe('Modifier, annuler, rétablir une séance (#180)', () => {
+  const free = {
+    ...session(),
+    id: 21,
+    session_date: '2026-10-20',
+    session_type_detail: null,
+    logbook_entry: null,
+    project: { id: 1, name: 'Arts Danse au Lycée Charles', status: 'active' },
+    sub_projects: [{ id: 11, name: 'Seconde 3' }],
+  };
+  const withEntry = { ...free, id: 22, session_date: '2026-10-21', logbook_entry: { id: 9, status: 'submitted' } };
+  const cancelled = { ...free, id: 23, session_date: '2026-10-22', status: 'cancelled' };
+  const sessions = (list = [free, withEntry, cancelled]) => () => jsonResponse({ data: list });
+  const references = {
+    'GET /projects': () => jsonResponse({ data: [{ id: 1, name: 'Arts Danse au Lycée Charles', status: 'active' }] }),
+    'GET /locations': () => jsonResponse({ data: [{ id: 2, name: 'Grand studio', city: 'Marseille' }] }),
+    'GET /projects/1': () =>
+      jsonResponse({
+        data: {
+          id: 1,
+          default_location: { id: 2, name: 'Grand studio' },
+          sub_projects: [{ id: 11, name: 'Seconde 3', is_active: true }, { id: 12, name: 'Seconde 7', is_active: true }],
+          team: [{ id: 3, name: 'Léa Fournier', member_role: 'lead' }, { id: 7, name: 'Marco Delaunay', member_role: 'occasional' }],
+        },
+      }),
+  };
+  afterEach(() => vi.restoreAllMocks());
+
+  it('propose les actions à l’administratrice, seulement sur les séances sans fiche', async () => {
+    mockApi({ 'GET /sessions': sessions() });
+    renderAt('/planning?mois=2026-10', MOCK_USERS.admin);
+
+    await screen.findAllByText('Arts Danse au Lycée Charles');
+    expect(screen.getByRole('button', { name: /Modifier\s*du mardi 20 octobre/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Annuler la séance\s*du mardi 20 octobre/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Modifier\s*du mercredi 21 octobre/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rétablir\s*du jeudi 22 octobre/ })).toBeInTheDocument();
+  });
+
+  it('nomme chaque bouton avec le jour, l’horaire et le projet', async () => {
+    mockApi({ 'GET /sessions': sessions([free]) });
+    renderAt('/planning?mois=2026-10', MOCK_USERS.admin);
+
+    expect(await screen.findByRole('button', { name: /Annuler la séance\s*du mardi 20 octobre, 10:00, Arts Danse au Lycée Charles/ })).toBeInTheDocument();
+  });
+
+  it('ne propose rien sur les séances d’un projet archivé', async () => {
+    const archived = { ...cancelled, project: { ...cancelled.project, status: 'archived' } };
+    mockApi({ 'GET /sessions': sessions([archived]) });
+    renderAt('/planning?mois=2026-10', MOCK_USERS.admin);
+
+    await screen.findAllByText('Arts Danse au Lycée Charles');
+    expect(screen.queryByRole('button', { name: /Rétablir/ })).not.toBeInTheDocument();
+  });
+
+  it('garde affiché un groupe de la séance désactivé depuis', async () => {
+    const user = userEvent.setup();
+    const withOldGroup = { ...free, sub_projects: [{ id: 99, name: 'Ancien groupe' }] };
+    mockApi({ 'GET /sessions': sessions([withOldGroup]), ...references });
+    renderAt('/planning?mois=2026-10', MOCK_USERS.admin);
+
+    await user.click(await screen.findByRole('button', { name: /Modifier\s*du mardi 20 octobre/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Modifier la séance' });
+    expect(await within(dialog).findByRole('checkbox', { name: 'Ancien groupe (désactivé)' })).toBeChecked();
+  });
+
+  it('ne montre aucune action à un intervenant', async () => {
+    mockApi({ 'GET /sessions': sessions() });
+    renderAt('/planning?mois=2026-10', MOCK_USERS.contributor);
+
+    await screen.findAllByText('Arts Danse au Lycée Charles');
+    expect(screen.queryByRole('button', { name: /Modifier|Annuler la séance|Rétablir/ })).not.toBeInTheDocument();
+  });
+
+  it('annule après confirmation et relit le planning', async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    let list = [free];
+    const fetchMock = mockApi({
+      'GET /sessions': () => jsonResponse({ data: list }),
+      'POST /sessions/21/cancel': () => {
+        list = [{ ...free, status: 'cancelled' }];
+        return jsonResponse({ data: list[0] });
+      },
+    });
+    renderAt('/planning?mois=2026-10', MOCK_USERS.admin);
+
+    await user.click(await screen.findByRole('button', { name: /Annuler la séance\s*du mardi 20 octobre/ }));
+
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('marquée « annulée »'));
+    expect(await screen.findByRole('button', { name: /Rétablir\s*du mardi 20 octobre/ })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url, options]) => options?.method === 'POST' && url.endsWith('/sessions/21/cancel'))).toBe(true);
+  });
+
+  it('affiche le refus de rétablir une séance dont le créneau est pris', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    mockApi({
+      'GET /sessions': sessions([cancelled]),
+      'POST /sessions/23/restore': () =>
+        jsonResponse({ message: 'Invalide', errors: { session: ['Cet·te intervenant·e a déjà une séance de 10:00 à 12:00 ce jour-là (BRAISES).'] } }, 422),
+    });
+    renderAt('/planning?mois=2026-10', MOCK_USERS.admin);
+
+    await user.click(await screen.findByRole('button', { name: /Rétablir\s*du jeudi 22 octobre/ }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('déjà une séance de 10:00 à 12:00 ce jour-là (BRAISES).');
+  });
+
+  it('modifie une séance dans la fenêtre préremplie, sans changer de projet', async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockApi({
+      'GET /sessions': sessions([free]),
+      ...references,
+      'PATCH /sessions/21': () => jsonResponse({ data: { ...free, start_time: '14:00', end_time: '16:00' } }),
+    });
+    renderAt('/planning?mois=2026-10', MOCK_USERS.admin);
+
+    await user.click(await screen.findByRole('button', { name: /Modifier\s*du mardi 20 octobre/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Modifier la séance' });
+    await within(dialog).findByRole('checkbox', { name: 'Seconde 7' });
+    expect(within(dialog).getByLabelText(/Projet/)).toBeDisabled();
+    expect(within(dialog).getByRole('checkbox', { name: 'Seconde 3' })).toBeChecked();
+    expect(within(dialog).getByLabelText(/Intervenant·e/)).toHaveValue(String(free.referent.id));
+
+    await user.clear(within(dialog).getByLabelText(/Début/));
+    await user.type(within(dialog).getByLabelText(/Début/), '14:00');
+    await user.clear(within(dialog).getByLabelText(/Fin/));
+    await user.type(within(dialog).getByLabelText(/Fin/), '16:00');
+    await user.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const patch = fetchMock.mock.calls.find(([, options]) => options?.method === 'PATCH');
+    expect(JSON.parse(patch[1].body)).toMatchObject({ session_date: '2026-10-20', start_time: '14:00', end_time: '16:00', sub_project_ids: [11] });
   });
 });
