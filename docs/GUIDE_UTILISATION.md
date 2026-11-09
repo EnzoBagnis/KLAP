@@ -151,7 +151,8 @@ peuvent aussi modifier toutes les fiches, dans le délai de 10 jours.
   - Ses séances et ses fiches ne bougent plus.
   - Ses chiffres restent dans les statistiques.
   - Son pré-bilan reste disponible.
-  - On peut le **restaurer** (« Restaurer le projet », sur sa page de modification).
+  - On peut le **restaurer** : cochez « Afficher les projets archivés » dans Gestion › Projets,
+    ouvrez le projet, puis « Restaurer ».
 
 ### Programmer les séances (Planning)
 
