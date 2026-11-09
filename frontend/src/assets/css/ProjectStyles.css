@@ -511,3 +511,8 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* Case « Afficher les projets archivés » de Gestion › Projets (#196). */
+.management-filter {
+  margin: 0 0 12px;
+}

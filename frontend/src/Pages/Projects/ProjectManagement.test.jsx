@@ -68,6 +68,45 @@ describe('Gestion des projets', () => {
     expect(await screen.findByText(/Aucun projet/)).toBeInTheDocument();
   });
 
+  it('montre les projets archivés à la demande, pour pouvoir les restaurer (#196)', async () => {
+    const user = userEvent.setup();
+    // Le gestionnaire de mockApi ne reçoit pas l'URL : on lit celle de l'appel en cours.
+    const archivedAsked = () => new URL(fetchMock.mock.calls.at(-1)[0]).searchParams.get('include_archived') === '1';
+    const fetchMock = mockApi({
+      'GET /projects': () =>
+        jsonResponse({
+          data: [
+            { id: 1, name: 'AIMER', status: 'active', sub_projects_count: 1 },
+            ...(archivedAsked()
+              ? [{ id: 2, name: 'BRAISES', status: 'archived', sub_projects_count: 1 }]
+              : []),
+          ],
+        }),
+    });
+    renderAt('/gestion');
+
+    await screen.findByRole('link', { name: 'AIMER' });
+    expect(screen.queryByRole('link', { name: 'BRAISES' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Afficher les projets archivés' }));
+    const archived = await screen.findByRole('link', { name: 'BRAISES' });
+    expect(archived).toHaveAttribute('href', '/projets/2');
+    expect(within(archived.closest('li')).getByText('Archivé')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => new URL(url).searchParams.get('include_archived') === '1')).toBe(true);
+
+    await user.click(screen.getByRole('checkbox', { name: 'Afficher les projets archivés' }));
+    await screen.findByRole('link', { name: 'AIMER' });
+    expect(screen.queryByRole('link', { name: 'BRAISES' })).not.toBeInTheDocument();
+  });
+
+  it('garde la case cochée depuis l’adresse (?archives=1)', async () => {
+    mockApi({ 'GET /projects': () => jsonResponse({ data: [] }) });
+    renderAt('/gestion?archives=1');
+
+    expect(await screen.findByText('Aucun projet, archivé ou non.')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Afficher les projets archivés' })).toBeChecked();
+  });
+
   it.each([
     ['super-utilisatrice', MOCK_USERS.super_user],
     ['intervenant', MOCK_USERS.contributor],
