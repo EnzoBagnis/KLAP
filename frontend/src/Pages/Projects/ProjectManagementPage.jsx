@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import Button from '../../Components/UI/Button.jsx';
 import ManagementTabs from '../../Components/Management/ManagementTabs.jsx';
@@ -14,9 +14,13 @@ import '../../assets/css/ProjectStyles.css';
  * Pas de bouton Modifier ni Supprimer : ces actions n'ont pas encore d'API, et la
  * suppression passera par un parcours long d'archivage (contexte client).
  * L'onglet Utilisateurs (écran 08) permet d'inviter une personne (#127).
+ * Les projets archivés sont masqués par défaut ; la case « Afficher les projets archivés »
+ * (?archives=1) les montre, pour ouvrir leur page et les restaurer (#196).
  */
 export default function ProjectManagementPage() {
   const { logout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const includeArchived = searchParams.get('archives') === '1';
   const [state, setState] = useState({ status: 'loading', projects: [], error: '' });
   const lastRequest = useRef(0);
 
@@ -24,7 +28,7 @@ export default function ProjectManagementPage() {
     const request = ++lastRequest.current;
     const outdated = () => request !== lastRequest.current;
     setState({ status: 'loading', projects: [], error: '' });
-    listProjects()
+    listProjects({ includeArchived })
       .then((projects) => !outdated() && setState({ status: 'ready', projects, error: '' }))
       .catch((error) => {
         if (outdated()) return;
@@ -34,7 +38,7 @@ export default function ProjectManagementPage() {
         }
         setState({ status: 'error', projects: [], error: errorMessage(error) });
       });
-  }, [logout]);
+  }, [logout, includeArchived]);
 
   useEffect(() => {
     document.title = 'Gestion · KLAP';
@@ -57,6 +61,15 @@ export default function ProjectManagementPage() {
       </div>
       <ManagementTabs />
 
+      <label className="checkbox management-filter">
+        <input
+          type="checkbox"
+          checked={includeArchived}
+          onChange={(event) => setSearchParams(event.target.checked ? { archives: '1' } : {}, { replace: true })}
+        />
+        Afficher les projets archivés
+      </label>
+
       {state.status === 'loading' && <LoadingSpinner label="Chargement des projets…" />}
 
       {state.status === 'error' && (
@@ -69,7 +82,9 @@ export default function ProjectManagementPage() {
       )}
 
       {state.status === 'ready' && state.projects.length === 0 && (
-        <p className="page-empty">Aucun projet. Créez le premier avec « Nouveau projet ».</p>
+        <p className="page-empty">
+          {includeArchived ? 'Aucun projet, archivé ou non.' : 'Aucun projet en cours. Créez-en un avec « Nouveau projet ».'}
+        </p>
       )}
 
       {state.status === 'ready' && state.projects.length > 0 && (
