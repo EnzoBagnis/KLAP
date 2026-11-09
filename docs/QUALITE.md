@@ -19,8 +19,8 @@ Rien n'est fusionné dans `premain` sans CI verte.
 
 | | Fichiers | Tests | Résultat |
 |---|---|---|---|
-| Backend (PHPUnit) | 38 | environ 500, dont 13 propres à MariaDB | tous passent sur SQLite et MariaDB |
-| Frontend (Vitest) | 20 | 283 | tous passent |
+| Backend (PHPUnit) | 39 | 512, dont 13 propres à MariaDB | tous passent sur SQLite et MariaDB |
+| Frontend (Vitest) | 20 | 291 | tous passent |
 
 Les tests backend passent par l'API, comme le ferait le frontend :
 - droits de chaque rôle ;
@@ -46,10 +46,12 @@ et d'ordinateur :
 - **Demande de réouverture, puis réouverture.**
 - **Projet** : modifier, archiver (nom exact demandé), restaurer.
 - **Programmer une séance** : lieu par défaut, refus des séances simultanées.
+- **Modifier, annuler, rétablir une séance** (#180).
+- **Mon profil** : changer son mot de passe.
 - **Droits vus par Emilie (super-utilisatrice) et Hugo (intervenant).**
 - **Statistiques** : filtres de période.
 
-Chaque défaut trouvé a fait l'objet d'une issue et d'une correction : #163, #166, #168, #170, #175.
+Chaque défaut trouvé a fait l'objet d'une issue et d'une correction : #163, #166, #168, #170, #175, #178, #182.
 
 ## 4. Accessibilité
 
