@@ -4,12 +4,40 @@ import { jsonResponse, mockApi } from '../testUtils.js';
 const lea = { id: 3, name: 'Léa Fournier', role: 'contributor', role_label: 'Intervenant' };
 
 describe('AuthService', () => {
-  it('garde le jeton en sessionStorage', () => {
+  it('garde le jeton en sessionStorage par défaut', () => {
     setToken('t1');
     expect(window.sessionStorage.getItem('klap.token')).toBe('t1');
+    expect(window.localStorage.getItem('klap.token')).toBeNull();
     expect(getToken()).toBe('t1');
     clearToken();
     expect(getToken()).toBeNull();
+  });
+
+  it('garde le jeton en localStorage pour « Rester connecté·e », un seul à la fois', () => {
+    setToken('ancien');
+    setToken('t2', true);
+    expect(window.localStorage.getItem('klap.token')).toBe('t2');
+    expect(window.sessionStorage.getItem('klap.token')).toBeNull();
+    expect(getToken()).toBe('t2');
+
+    // Nouvelle connexion sans la case : l'ancien jeton gardé ne doit pas survivre.
+    setToken('t3');
+    expect(window.localStorage.getItem('klap.token')).toBeNull();
+    expect(getToken()).toBe('t3');
+  });
+
+  it('la déconnexion efface le jeton gardé', async () => {
+    mockApi({ 'POST /logout': () => jsonResponse({ message: 'ok' }) });
+    setToken('t4', true);
+    await logout();
+    expect(window.localStorage.getItem('klap.token')).toBeNull();
+    expect(getToken()).toBeNull();
+  });
+
+  it('enregistre le jeton en localStorage quand la connexion le demande', async () => {
+    mockApi({ 'POST /login': () => jsonResponse({ token: 'jeton', user: lea }) });
+    await login('lea@klap.demo', 'secret', { remember: true });
+    expect(window.localStorage.getItem('klap.token')).toBe('jeton');
   });
 
   it('enregistre le jeton reçu à la connexion', async () => {
