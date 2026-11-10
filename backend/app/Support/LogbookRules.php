@@ -104,13 +104,18 @@ class LogbookRules
     {
         return [
             'string' => 'Le champ :attribute doit être un texte.',
-            'max.string' => 'Le champ :attribute ne doit pas dépasser :max caractères.',
-            'max.array' => 'Une fiche compte au plus :max exercices.',
+            // Règles de taille : Laravel attend un tableau par type (« max.string » à plat n'est pas lu).
+            'max' => [
+                'string' => 'Le champ :attribute ne doit pas dépasser :max caractères.',
+                'array' => 'Le champ :attribute compte au plus :max éléments.',
+                'numeric' => 'Le champ :attribute ne doit pas dépasser :max.',
+            ],
             'boolean' => 'Le champ :attribute doit valoir oui ou non.',
             'integer' => 'Le champ :attribute doit être un nombre entier.',
-            'between.numeric' => 'La note :attribute va de :min à :max.',
-            'min.numeric' => 'Le champ :attribute doit valoir au moins :min.',
+            'between' => ['numeric' => 'La note :attribute va de :min à :max.'],
+            'min' => ['numeric' => 'Le champ :attribute doit valoir au moins :min.'],
             'in' => 'La valeur de :attribute n’est pas valide.',
+            'exercises.max' => 'Une fiche compte au plus :max exercices.',
             'exercises.*.required' => 'Un exercice ne peut pas être vide.',
             'location_id.required' => 'Choisissez le lieu de la séance.',
             'location_id.exists' => 'Le lieu choisi n’existe pas ou n’est plus actif.',
