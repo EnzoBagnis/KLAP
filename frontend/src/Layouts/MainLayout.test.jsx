@@ -190,3 +190,19 @@ describe('initials', () => {
     expect(initials('')).toBe('');
   });
 });
+
+describe('Lien d’évitement (#233)', () => {
+  it('est le premier élément au clavier et donne le focus au contenu principal', async () => {
+    const user = userEvent.setup();
+    renderLayout(MOCK_USERS.admin);
+    await user.tab();
+    const skip = screen.getByRole('link', { name: 'Aller au contenu' });
+    expect(skip).toHaveFocus();
+
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('main')).toHaveFocus();
+    // Le Tab suivant part du contenu, sans repasser par le menu.
+    await user.tab();
+    expect(screen.getByRole('main').contains(document.activeElement)).toBe(true);
+  });
+});
