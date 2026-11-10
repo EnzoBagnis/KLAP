@@ -44,7 +44,7 @@ class LogbookEntryResource extends JsonResource
                 'session_type' => $session->session_type,
                 'session_type_detail' => $session->session_type_detail,
                 'project' => ['id' => $session->project->id, 'name' => $session->project->name],
-                'location' => ['id' => $session->location->id, 'name' => $session->location->name],
+                'location' => ['id' => $session->location->id, 'name' => $session->location->name, 'city' => $session->location->city],
                 'sub_projects' => $session->subProjects
                     ->map(fn ($group) => ['id' => $group->id, 'name' => $group->name, 'attendees' => $group->pivot->attendees])
                     ->values(),
