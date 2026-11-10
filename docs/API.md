@@ -41,6 +41,7 @@ doute, c'est le code qui fait foi (`php artisan route:list --path=api`).
 | `PUT /me/password` | tous (5/min) | Changer son mot de passe en donnant l'actuel. Déconnecte les autres appareils. |
 | `GET /dashboard` | tous | Page d'accueil : fiches à remplir, prochaines séances, dernières fiches ; suivi pour l'administration. |
 | `GET /notifications` | tous | Ses notifications (30 dernières) et le nombre de non lues. |
+| `GET /notifications/unread-count` | tous | Le nombre de non lues seulement, pour la cloche (rechargée toutes les 30 s). |
 | `PATCH /notifications/{id}/read` | tous | Marquer une notification comme lue. |
 | `POST /notifications/read-all` | tous | Tout marquer comme lu. |
 
