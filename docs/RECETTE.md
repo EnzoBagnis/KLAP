@@ -148,6 +148,7 @@ et écrire ce qui a été vu dans « Remarque ». Un KO donne lieu à une fiche 
 | D6 | Relire le document | Pour la même période, mêmes chiffres que l'écran Statistiques ; groupes, provenance, âge ; temps forts et notes complémentaires des fiches rendues (les « Rien » sont écartés) ; tableaux dans la largeur de la page | ☐ | ☐ | |
 | D7 | Chercher un nom d'élève, le bilan de l'intervenant·e, « À reprendre » | Rien de tout cela dans le document (ces champs restent internes) | ☐ | ☐ | |
 | D8 | Depuis la page d'un projet, bouton « Pré-bilan » | Le projet est déjà sélectionné | ☐ | ☐ | |
+| D9 | Statistiques, projet appliqué : « Exporter en Excel », puis ouvrir le fichier | « Fichier Excel téléchargé : statistiques-….xlsx » ; cinq onglets (Synthèse, Par projet, Provenance, Âge, Observations) avec les mêmes chiffres qu'à l'écran ; une somme calculée dans Excel fonctionne | ☐ | ☐ | |
 
 ---
 
@@ -195,7 +196,7 @@ L'audit de sécurité complet, avec les outils utilisés, est dans [AUDIT_SECURI
 
 | | Nombre |
 |---|---|
-| Scénarios déroulés | `____` / 59 |
+| Scénarios déroulés | `____` / 60 |
 | OK | `____` |
 | KO bloquants | `____` |
 | KO gênants ou mineurs | `____` |

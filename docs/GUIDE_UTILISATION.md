@@ -178,6 +178,10 @@ peuvent aussi modifier toutes les fiches, dans le délai de 10 jours.
 
 Choisissez un projet (ou tous) et, si besoin, une période, puis cliquez sur « Appliquer ».
 
+**Exporter en Excel** (bouton en haut de la page) : les chiffres affichés, avec les mêmes filtres,
+dans un classeur à cinq onglets (synthèse, projets et groupes, provenance, âge, observations). Les
+nombres restent des nombres : on peut trier, filtrer et calculer dans Excel ou LibreOffice.
+
 - **Participants** : pour chaque groupe, on retient le plus grand nombre de présents sur ses
   séances, puis on additionne les groupes. Une classe venue à dix séances n'est donc comptée qu'une
   fois. Ce n'est pas un nombre de personnes distinctes : une classe inscrite dans deux projets
