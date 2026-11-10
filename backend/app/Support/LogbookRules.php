@@ -88,9 +88,16 @@ class LogbookRules
      */
     private static function saysNothing(string $text): bool
     {
-        $plain = mb_strtolower(trim(Str::ascii($text), ' .!'));
+        return in_array(self::plain($text), ['rien', 'ras', 'r.a.s', 'neant'], true);
+    }
 
-        return in_array($plain, ['rien', 'ras', 'r.a.s', 'neant'], true);
+    /**
+     * Forme comparable d'une réponse courte : sans accent, en minuscules, sans ponctuation aux deux
+     * bouts. Partagée avec le pré-bilan, pour que la fiche et le document jugent pareil (#229).
+     */
+    public static function plain(string $text): string
+    {
+        return mb_strtolower(trim(Str::ascii($text), ' .!'));
     }
 
     public static function messages(): array
