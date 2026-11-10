@@ -71,9 +71,12 @@ class StoreProjectRequest extends FormRequest
             'integer' => 'Le champ :attribute doit être un nombre entier.',
             'array' => 'Le champ :attribute doit être une liste.',
             'date' => 'Le champ :attribute doit être une date valide.',
-            'max.string' => 'Le champ :attribute ne doit pas dépasser :max caractères.',
-            'min.numeric' => 'Le champ :attribute doit valoir au moins :min.',
-            'max.numeric' => 'Le champ :attribute ne doit pas dépasser :max.',
+            // Règles de taille : Laravel attend un tableau par type (« max.string » à plat n'est pas lu).
+            'max' => [
+                'string' => 'Le champ :attribute ne doit pas dépasser :max caractères.',
+                'numeric' => 'Le champ :attribute ne doit pas dépasser :max.',
+            ],
+            'min' => ['numeric' => 'Le champ :attribute doit valoir au moins :min.'],
             'regex' => 'Le champ :attribute doit contenir 5 chiffres.',
             'sub_projects.*.name.distinct' => 'Deux sous-projets portent le même nom.',
             'funder_ids.*.distinct' => 'Un même financeur est choisi deux fois.',
