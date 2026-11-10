@@ -15,7 +15,7 @@ export const Footer = () => {
       {/* Rangée supérieure : Newsletter / Programme & Réseaux sociaux officiels */}
       <section className="footer-top-bar">
         <section className="footer-top-inner">
-          <nav className="footer-quick-links" aria-label="Liens rapides">
+          <section className="footer-quick-links" aria-label="Liens rapides">
             <a href="#newsletter" className="footer-quick-link">
               Abonnez-vous à la newsletter
             </a>
@@ -23,7 +23,7 @@ export const Footer = () => {
             <a href="#programme" className="footer-quick-link">
               Téléchargez le programme
             </a>
-          </nav>
+          </section>
 
           <section className="footer-socials" aria-label="Réseaux sociaux KLAP">
             <span className="socials-label">Rejoignez-nous sur</span>
@@ -84,7 +84,7 @@ export const Footer = () => {
           </section>
 
           {/* Colonne 2 : Navigation */}
-          <nav className="footer-col" aria-label="Navigation secondaire">
+          <section className="footer-col" aria-label="Navigation secondaire">
             <h3 className="footer-col-title">NAVIGATION</h3>
             <ul className="footer-links-list">
               <li><a href="/" className="footer-link">Tableau de bord</a></li>
@@ -92,16 +92,16 @@ export const Footer = () => {
               <li><a href="/planning" className="footer-link">Planning</a></li>
               <li><a href="/statistiques" className="footer-link">Statistiques & bilans</a></li>
             </ul>
-          </nav>
+          </section>
 
           {/* Colonne 3 : Ressources essentielles */}
-          <nav className="footer-col" aria-label="Ressources et aide">
+          <section className="footer-col" aria-label="Ressources et aide">
             <h3 className="footer-col-title">RESSOURCES</h3>
             <ul className="footer-links-list">
               <li><a href="#guide" className="footer-link">Guide d'utilisation</a></li>
               <li><a href="#support" className="footer-link">Support & assistance</a></li>
             </ul>
-          </nav>
+          </section>
         </section>
       </section>
 
@@ -111,7 +111,7 @@ export const Footer = () => {
       {/* Rangée inférieure : Liens légaux & copyright */}
       <section className="footer-bottom">
         <section className="footer-bottom-inner">
-          <nav aria-label="Liens institutionnels et légaux">
+          <section aria-label="Liens institutionnels et légaux">
             <ul className="footer-legal-links">
               <li><a href="#contact" className="footer-legal-link">CONTACT & ACCÈS</a></li>
               <li><a href="#partenaires" className="footer-legal-link">PARTENAIRES</a></li>
@@ -119,7 +119,7 @@ export const Footer = () => {
               <li><a href="#mentions-legales" className="footer-legal-link">MENTIONS LÉGALES</a></li>
               <li><a href="#credits" className="footer-legal-link">CRÉDITS</a></li>
             </ul>
-          </nav>
+          </section>
 
           <small className="footer-copyright">
             © {currentYear} KLAP — Tous droits réservés.
