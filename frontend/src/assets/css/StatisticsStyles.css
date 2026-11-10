@@ -294,6 +294,30 @@
   background: var(--color-chart-expression);
 }
 
+.tone-feeling {
+  background: var(--color-chart-feeling);
+}
+
+.tone-interaction {
+  background: var(--color-chart-interaction);
+}
+
+.tone-progress {
+  background: var(--color-ink);
+}
+
+.statistics-observations {
+  display: grid;
+  gap: 24px;
+}
+
+.statistics-observation-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
 .bar-chart-value {
   font-family: var(--font-mono);
   font-size: var(--text-13);
