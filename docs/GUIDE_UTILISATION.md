@@ -187,6 +187,10 @@ Choisissez un projet (ou tous) et, si besoin, une période, puis cliquez sur « 
   Un tableau détaillé suit chaque graphique.
 - Les moyennes d'engagement, d'expression et d'autonomie, la provenance, l'âge et les fiches en
   retard complètent la page.
+- **Ce que notent les intervenant·e·s**, sur les fiches rendues :
+  - les sensations (en bleu) : combien de fiches pour chaque sensation ;
+  - l'interaction (en ambre) : combien de fiches citent « écoute », « entraide » ou « conflit » ;
+  - l'évolution par rapport à la séance précédente.
 
 ### Le pré-bilan
 
