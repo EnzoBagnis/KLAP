@@ -61,6 +61,8 @@ export function formFromEntry(entry) {
     attendees: Object.fromEntries(
       (entry.session?.sub_projects ?? []).map((group) => [group.id, group.attendees ?? '']),
     ),
+    // Lieu de la séance, corrigeable depuis la fiche (#215).
+    location_id: entry.session?.location ? String(entry.session.location.id) : '',
   };
 }
 
@@ -86,6 +88,8 @@ export function payloadFromForm(form, groupIds) {
     },
     exercises: form.exercises.map((label) => label.trim()).filter(Boolean),
     attendees: attendeesFromForm(form.attendees, groupIds),
+    // Absent (undefined) quand le formulaire n'a pas de lieu : l'API ne touche alors pas à la séance.
+    location_id: form.location_id ? Number(form.location_id) : undefined,
   };
 }
 
@@ -102,7 +106,7 @@ function attendeesFromForm(attendees, groupIds = Object.keys(attendees).map(Numb
 
 /** Étape où s'affiche une erreur de l'API, d'après sa clé. */
 export function stepOfError(key) {
-  if (key === 'session') return 1;
+  if (key === 'session' || key === 'location_id') return 1;
   if (key === 'objectives') return 2;
   if (/^(exercises|adjustment_|highlights|tools_resources)/.test(key)) return 3;
   if (/^(evaluation\.|attendees)/.test(key)) return 4;

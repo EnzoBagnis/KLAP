@@ -52,6 +52,12 @@ class LogbookRules
             'exercises' => ['sometimes', 'array', 'max:10'],
             'exercises.*' => ['required', 'string', 'max:200'],
 
+            // Lieu de la séance, corrigé depuis la fiche (#215) : « le lieu est modifiable par tout
+            // utilisateur » (projets en tournée). Un lieu actif, ou le lieu actuel même désactivé
+            // depuis (comme au planning) : la fiche renvoie son lieu à chaque enregistrement.
+            'location_id' => ['sometimes', 'required', 'integer', Rule::exists('locations', 'id')
+                ->where(fn ($query) => $query->where('is_active', true)->orWhere('id', $session->location_id))],
+
             // Présents par groupe : seulement les groupes de la séance (le planning les fixe).
             'attendees' => ['sometimes', 'array'],
             'attendees.*.sub_project_id' => ['required', 'integer', 'distinct', Rule::in($groupIds)],
@@ -86,6 +92,8 @@ class LogbookRules
             'min.numeric' => 'Le champ :attribute doit valoir au moins :min.',
             'in' => 'La valeur de :attribute n’est pas valide.',
             'exercises.*.required' => 'Un exercice ne peut pas être vide.',
+            'location_id.required' => 'Choisissez le lieu de la séance.',
+            'location_id.exists' => 'Le lieu choisi n’existe pas ou n’est plus actif.',
             'evaluation.feeling_detail.required_if' => 'Précisez la sensation quand vous choisissez « autre ».',
             'attendees.*.sub_project_id.in' => 'Ce groupe ne fait pas partie de la séance.',
             'attendees.*.sub_project_id.distinct' => 'Un même groupe est indiqué deux fois.',
@@ -102,7 +110,7 @@ class LogbookRules
             'evaluation.engagement' => 'd’engagement', 'evaluation.expression' => 'd’expression', 'evaluation.autonomy' => 'd’autonomie',
             'evaluation.interaction' => 'interaction', 'evaluation.feeling' => 'sensation', 'evaluation.feeling_detail' => 'précision de la sensation',
             'evaluation.progress' => 'évolution', 'exercises' => 'exercices', 'exercises.*' => 'exercice',
-            'attendees.*.count' => 'présents',
+            'attendees.*.count' => 'présents', 'location_id' => 'lieu',
         ];
     }
 
