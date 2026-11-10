@@ -151,6 +151,26 @@ class NotificationTest extends TestCase
             ->assertJsonPath('meta.unread_count', 0);
     }
 
+    /** Compteur seul, pour la cloche (#227) : les siennes, non lues, au-delà des 30 listées. */
+    public function test_le_compteur_de_la_cloche_ne_compte_que_ses_non_lues(): void
+    {
+        foreach (range(1, 32) as $index) {
+            KlapNotification::query()->create(['recipient_id' => $this->admin->id, 'type' => 'reminder', 'message' => "Rappel {$index}"]);
+        }
+        KlapNotification::query()->create(['recipient_id' => $this->admin->id, 'type' => 'reminder', 'message' => 'Lue', 'read_at' => now()]);
+        KlapNotification::query()->create(['recipient_id' => $this->superUser->id, 'type' => 'reminder', 'message' => 'À une autre']);
+
+        $this->actingAs($this->admin)->getJson('/api/notifications/unread-count')
+            ->assertOk()
+            ->assertExactJson(['data' => ['unread_count' => 32]]);
+        $this->actingAs($this->referent)->getJson('/api/notifications/unread-count')->assertJsonPath('data.unread_count', 0);
+    }
+
+    public function test_le_compteur_exige_une_connexion(): void
+    {
+        $this->getJson('/api/notifications/unread-count')->assertUnauthorized();
+    }
+
     public function test_la_liste_s_arrete_aux_30_plus_recentes(): void
     {
         foreach (range(1, 32) as $index) {

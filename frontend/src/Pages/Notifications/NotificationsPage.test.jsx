@@ -41,8 +41,9 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('Cloche', () => {
   it('annonce le nombre de non lues de l’API', async () => {
+    // La cloche ne demande que le nombre de non-lues (#227), pas la liste.
     mockApi({
-      'GET /notifications': () => list([notification(), notification({ id: 2 })]),
+      'GET /notifications/unread-count': () => jsonResponse({ data: { unread_count: 2 } }),
       'GET /projects': () => jsonResponse({ data: [] }),
     });
     renderAt('/projets');
@@ -51,7 +52,7 @@ describe('Cloche', () => {
 
   it('reste neutre si le compteur ne se charge pas', async () => {
     mockApi({
-      'GET /notifications': () => jsonResponse({ message: 'Erreur' }, 500),
+      'GET /notifications/unread-count': () => jsonResponse({ message: 'Erreur' }, 500),
       'GET /projects': () => jsonResponse({ data: [] }),
     });
     renderAt('/projets');
@@ -64,7 +65,7 @@ describe('Rechargement du compteur', () => {
   it('relit les non lues à chaque changement de page', async () => {
     let unread = 1;
     const fetchMock = mockApi({
-      'GET /notifications': () => list([], unread),
+      'GET /notifications/unread-count': () => jsonResponse({ data: { unread_count: unread } }),
       'GET /projects': () => jsonResponse({ data: [] }),
       'GET /sessions': () => jsonResponse({ data: [] }),
     });
@@ -75,7 +76,9 @@ describe('Rechargement du compteur', () => {
     unread = 3;
     await user.click(screen.getAllByRole('link', { name: /Planning/ })[0]);
     await waitFor(() => expect(bell()).toHaveAccessibleName('Notifications, 3 non lues'));
-    expect(fetchMock.mock.calls.filter(([url]) => url.includes('/notifications')).length).toBeGreaterThanOrEqual(2);
+    expect(fetchMock.mock.calls.filter(([url]) => url.includes('/notifications/unread-count')).length).toBeGreaterThanOrEqual(2);
+    // La liste complète n'est jamais chargée hors de la page Notifications.
+    expect(fetchMock.mock.calls.filter(([url]) => new URL(url).pathname.endsWith('/notifications'))).toHaveLength(0);
   });
 });
 
