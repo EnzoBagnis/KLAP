@@ -399,3 +399,28 @@
   font-size: var(--text-13);
   color: var(--color-mute);
 }
+
+/* Lien d'évitement (#233) : hors de l'écran, sauf quand il a le focus. */
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  padding: 12px 16px;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* La zone principale reçoit le focus du lien d'évitement, sans contour (ce n'est pas une commande). */
+.app-main:focus {
+  outline: none;
+}
