@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use InvalidArgumentException;
 use RuntimeException;
 use ZipArchive;
 
@@ -16,18 +17,29 @@ use ZipArchive;
  */
 final class XlsxWriter
 {
-    /** @var list<array{name: string, rows: list<list<string|int|float|null>>, bold: list<int>}> */
+    /** @var list<array{name: string, rows: list<list<string|int|float|bool|null>>, bold: list<int>, notes: list<int>}> */
     private array $sheets = [];
 
     /**
      * @param  list<list<string|int|float|null>>  $rows
      * @param  list<int>  $boldRows  indices (à partir de 0) des lignes en gras
+     * @param  list<int>  $noteRows  lignes de texte long, ignorées pour la largeur des colonnes
      */
-    public function sheet(string $name, array $rows, array $boldRows = [0]): self
+    public function sheet(string $name, array $rows, array $boldRows = [0], array $noteRows = []): self
     {
-        // Nom d'onglet : 31 caractères au plus, sans : \ / ? * [ ].
-        $name = mb_substr(trim(preg_replace('/[:\\\\\/?*\[\]]/', ' ', $name)), 0, 31) ?: 'Feuille '.(count($this->sheets) + 1);
-        $this->sheets[] = ['name' => $name, 'rows' => array_values($rows), 'bold' => $boldRows];
+        // Nom d'onglet (règles d'Excel) : 31 caractères au plus, sans : \ / ? * [ ], sans
+        // apostrophe au début ni à la fin, unique sans tenir compte de la casse, pas « History ».
+        $name = trim(preg_replace('/[:\\\\\/?*\[\]]/', ' ', self::clean($name)), " '");
+        $name = rtrim(mb_substr($name, 0, 31), " '");
+        if ($name === '' || mb_strtolower($name) === 'history') {
+            throw new InvalidArgumentException("Nom d'onglet refusé par Excel : « {$name} ».");
+        }
+        foreach ($this->sheets as $sheet) {
+            if (mb_strtolower($sheet['name']) === mb_strtolower($name)) {
+                throw new InvalidArgumentException("Deux onglets ne peuvent pas s'appeler « {$name} ».");
+            }
+        }
+        $this->sheets[] = ['name' => $name, 'rows' => array_values($rows), 'bold' => $boldRows, 'notes' => $noteRows];
 
         return $this;
     }
@@ -59,7 +71,10 @@ final class XlsxWriter
         foreach ($this->sheets as $index => $sheet) {
             $zip->addFromString('xl/worksheets/sheet'.($index + 1).'.xml', $this->worksheet($sheet));
         }
-        $zip->close();
+        // Un échec d'écriture du zip ne lève qu'un avertissement : on ne livre pas un fichier vide.
+        if ($zip->close() !== true) {
+            throw new RuntimeException("Impossible d'écrire {$path}.");
+        }
     }
 
     private const XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n";
@@ -103,7 +118,7 @@ final class XlsxWriter
             .'</Relationships>';
     }
 
-    /** @param array{rows: list<list<string|int|float|null>>, bold: list<int>} $sheet */
+    /** @param array{rows: list<list<string|int|float|null>>, bold: list<int>, notes: list<int>} $sheet */
     private function worksheet(array $sheet): string
     {
         $widths = [];
@@ -112,22 +127,33 @@ final class XlsxWriter
             $style = in_array($r, $sheet['bold'], true) ? ' s="1"' : '';
             $cells = '';
             foreach (array_values($row) as $c => $value) {
-                if ($value === null || $value === '') {
+                if ($value === null || $value === '' || (is_float($value) && ! is_finite($value))) {
                     continue;
                 }
                 $ref = self::column($c).($r + 1);
+                if (is_bool($value)) {
+                    $value = $value ? 'Oui' : 'Non';
+                }
                 if (is_int($value) || is_float($value)) {
-                    $cells .= '<c r="'.$ref.'"'.$style.'><v>'.(is_float($value) ? rtrim(rtrim(sprintf('%.6F', $value), '0'), '.') : $value).'</v></c>';
-                    $length = strlen((string) $value);
+                    $number = is_float($value) ? rtrim(rtrim(sprintf('%.6F', $value), '0'), '.') : (string) $value;
+                    $cells .= '<c r="'.$ref.'"'.$style.'><v>'.$number.'</v></c>';
+                    $length = strlen($number);
                 } else {
-                    $text = self::clean((string) $value);
+                    // Une cellule contient au plus 32 767 caractères. « _x0041_ » serait décodé
+                    // par Excel (« A ») : le tiret bas est lui-même codé pour rester tel quel.
+                    $text = mb_substr(self::clean((string) $value), 0, 32767);
+                    $text = preg_replace('/_(x[0-9A-Fa-f]{4}_)/', '_x005F_$1', $text);
                     $cells .= '<c r="'.$ref.'" t="inlineStr"'.$style.'><is><t xml:space="preserve">'.self::escape($text).'</t></is></c>';
                     $length = mb_strlen($text);
                 }
-                $widths[$c] = max($widths[$c] ?? 8, min(60, $length + 2));
+                if (! in_array($r, $sheet['notes'], true)) {
+                    $widths[$c] = max($widths[$c] ?? 8, min(60, $length + 2));
+                }
             }
             $rows .= '<row r="'.($r + 1).'">'.$cells.'</row>';
         }
+        // Excel exige des <col> dans l'ordre des colonnes.
+        ksort($widths);
         $cols = '';
         foreach ($widths as $c => $width) {
             $cols .= '<col min="'.($c + 1).'" max="'.($c + 1).'" width="'.$width.'" customWidth="1"/>';
@@ -153,9 +179,12 @@ final class XlsxWriter
         return htmlspecialchars($text, ENT_XML1 | ENT_QUOTES, 'UTF-8');
     }
 
-    /** Retire les caractères de contrôle interdits en XML (un texte collé peut en contenir). */
+    /**
+     * Ne garde que les caractères permis en XML 1.0 (un texte collé peut contenir des caractères
+     * de contrôle) ; un texte en UTF-8 invalide est d'abord réparé, au lieu d'être perdu.
+     */
     private static function clean(string $text): string
     {
-        return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $text) ?? '';
+        return preg_replace('/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', mb_scrub($text, 'UTF-8')) ?? '';
     }
 }

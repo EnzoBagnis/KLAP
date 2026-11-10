@@ -49,7 +49,11 @@ class StatisticsExportTest extends TestCase
 
         $this->assertSame('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type'));
         $this->assertMatchesRegularExpression('/statistiques-tous-les-projets-\d{4}-\d{2}-\d{2}\.xlsx/', $response->headers->get('Content-Disposition'));
-        $this->assertSame(['Synthèse', 'Par projet', 'Provenance', 'Âge', 'Observations'], array_keys($this->workbook()));
+        $this->assertSame(['Synthèse', 'Projets', 'Groupes', 'Provenance', 'Âge', 'Observations'], array_keys($this->workbook()));
+        // Réservé à l'administration : aucun cache partagé ne garde le fichier.
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
+        $response->streamedContent(); // envoie, donc supprime, le fichier temporaire
     }
 
     public function test_les_chiffres_sont_ceux_de_l_ecran_en_cellules_numeriques(): void
@@ -63,7 +67,9 @@ class StatisticsExportTest extends TestCase
         $this->assertStringContainsString('<t xml:space="preserve">Participants</t></is></c><c r="B7"><v>59</v></c>', $sheets['Synthèse']);
         $this->assertSame(59, $screen['totals']['participants']);
         $this->assertStringContainsString($project->name, $sheets['Synthèse']);
-        $this->assertStringContainsString('Tout le projet', $sheets['Par projet']);
+        // Les groupes à part : la somme de leurs participants redonne le total (22 + 19 + 18 + 0).
+        preg_match_all('/<c r="G\d+"><v>(\d+)<\/v><\/c>/', $sheets['Groupes'], $participants);
+        $this->assertSame(59, array_sum(array_map('intval', $participants[1])));
         $this->assertStringContainsString('Enthousiasme', $sheets['Observations']);
     }
 
@@ -71,16 +77,17 @@ class StatisticsExportTest extends TestCase
     {
         $project = DB::table('projects')->where('name', 'like', 'Arts Danse au Lycée Charles%')->first();
 
-        $this->actingAs($this->admin)->get("/api/statistics/export?project_id={$project->id}")
+        $response = $this->actingAs($this->admin)->get("/api/statistics/export?project_id={$project->id}")
             ->assertOk()
             ->assertHeader('Content-Disposition', 'attachment; filename=statistiques-arts-danse-au-lycee-charles-'.now('Europe/Paris')->format('Y-m-d').'.xlsx');
+        $response->streamedContent();
     }
 
     public function test_un_texte_qui_ressemble_a_une_formule_reste_un_texte(): void
     {
         DB::table('sub_projects')->where('id', 1)->update(['name' => '=HYPERLINK("http://exemple.test","clic")']);
 
-        $sheet = $this->workbook()['Par projet'];
+        $sheet = $this->workbook()['Groupes'];
 
         $this->assertStringNotContainsString('<f>', $sheet);
         $this->assertStringContainsString('t="inlineStr"><is><t xml:space="preserve">=HYPERLINK(&quot;http://exemple.test&quot;,&quot;clic&quot;)</t>', $sheet);
@@ -100,7 +107,7 @@ class StatisticsExportTest extends TestCase
 
     public function test_la_super_utilisatrice_exporte_aussi(): void
     {
-        $this->actingAs(User::factory()->role(UserRole::SuperUser)->create())->get('/api/statistics/export')->assertOk();
+        $this->actingAs(User::factory()->role(UserRole::SuperUser)->create())->get('/api/statistics/export')->assertOk()->streamedContent();
     }
 
     public function test_des_filtres_invalides_sont_refuses_comme_a_l_ecran(): void
