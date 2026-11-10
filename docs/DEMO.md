@@ -36,11 +36,22 @@ Mot de passe commun : `Klap2026!`
    échéance. La séance du jour (Arts Danse au Lycée Charles, Terminales spécialité danse) est la dernière
    de la liste, marquée « Aujourd'hui » : les plus anciennes, donc les plus urgentes, viennent d'abord.
    Elle touche « Remplir la fiche », remplit les six étapes et soumet.
-2. **Ordinateur, Mariette** : la cloche s'allume, avec le message « Léa Fournier a rempli la fiche de la séance… ».
-3. **Statistiques** : projet Arts Danse au Lycée Charles, puis « Appliquer ». Le nombre de participants suit
-   la règle de la cliente : le maximum par groupe, puis la somme. Il vaut 59 avant la fiche du jour. Si Léa
-   saisit **plus de 18 présents** chez les Terminales (19 par exemple), il passe à 60 sous les yeux du jury ;
-   avec 18 ou moins, il ne bouge pas (c'est la règle).
+   - À l'étape 1, montrer le menu « Lieu de la séance » sans le changer : « Pour un projet en
+     tournée, l'intervenante corrige ou crée le lieu ici, comme la cliente l'a demandé. » Le
+     changer modifierait la séance au planning.
+2. **Ordinateur, Mariette** : laisser l'écran ouvert sur le tableau de bord pendant que Léa soumet. La
+   cloche s'allume d'elle-même dans les 30 secondes, sans recharger la page, avec le message « Léa
+   Fournier a rempli la fiche de la séance… ».
+3. **Statistiques** : projet Arts Danse au Lycée Charles, puis « Appliquer ».
+   - **Participants** : le nombre suit la règle de la cliente, le maximum par groupe puis la somme.
+     Il vaut 59 avant la fiche du jour. Si Léa saisit **plus de 18 présents** chez les Terminales
+     (19 par exemple), il passe à 60 sous les yeux du jury ; avec 18 ou moins, il ne bouge pas
+     (c'est la règle).
+   - **« Ce que notent les intervenant·e·s »** : la sensation et les mots-clés que Léa vient de
+     saisir comptent aussitôt. « Bleu pour les sensations, ambre pour l'interaction : les couleurs
+     choisies par la cliente. »
+   - **« Exporter en Excel »** : le classeur s'ouvre avec les mêmes chiffres. Dans l'onglet Groupes,
+     une somme de la colonne Participants redonne le total de l'écran.
 4. **Pré-bilan** : projet Arts Danse au Lycée Charles, financeur « DRAC Provence-Alpes-Côte d'Azur »,
    puis télécharger. Le Word contient les chiffres et les temps forts des fiches, y compris celle que
    Léa vient de remplir. On y arrive par le menu « Pré-bilan », ou par le bouton « Pré-bilan » de la
