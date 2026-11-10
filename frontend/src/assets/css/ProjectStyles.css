@@ -528,3 +528,39 @@
 .management-filter {
   margin: 0 0 12px;
 }
+
+/* Gestion › Listes (#249) : une section par liste, ajout et correction sur place. */
+.reference-list {
+  margin-top: 40px;
+}
+
+.reference-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reference-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.reference-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  width: 100%;
+  padding: 12px 0;
+}
+
+.reference-form .field {
+  flex: 1 1 180px;
+}
+
+.reference-form-actions {
+  display: flex;
+  gap: 8px;
+}
