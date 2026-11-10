@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\LogbookEntry;
+use App\Models\ParticipantEvaluation;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -76,6 +77,8 @@ class StatisticsService
             'by_city' => $this->breakdown($allGroups, fn ($group) => [$group['city'], $group['postal_code']], ['city', 'postal_code']),
             // Tranche d'âge saisie librement : « 16 - 17 ans » et « 16-17 ans » sont regroupées.
             'by_age_range' => $this->breakdown($allGroups, fn ($group) => [self::ageRange($group['age_range'])], ['age_range']),
+            // Sensations, évolution et interaction des fiches rendues (couleurs choisies par la cliente).
+            'observations' => $this->observations(),
             'projects' => $rows,
         ];
     }
@@ -216,6 +219,37 @@ class StatisticsService
                 ->whereColumn('le.scheduled_session_id', 's.id')
                 ->whereIn('le.status', self::RENDERED))
             ->get(['s.id', 's.project_id', 's.session_date', 'draft.edit_deadline']);
+    }
+
+    /**
+     * Ce que notent les intervenant·e·s, sur les fiches rendues du périmètre : nombre de fiches
+     * par sensation et par évolution (toutes les valeurs, même à zéro, dans l'ordre de la fiche),
+     * et nombre de fiches dont l'interaction cite chaque mot-clé suggéré (texte libre : « Écoute
+     * et entraide dans les duos » compte pour « écoute » et pour « entraide »).
+     */
+    private function observations(): array
+    {
+        $rows = $this->scoped(DB::table('logbook_entries as le')
+            ->join('scheduled_sessions as s', 's.id', '=', 'le.scheduled_session_id')
+            ->join('participant_evaluations as pe', 'pe.logbook_entry_id', '=', 'le.id')
+            ->whereIn('le.status', self::RENDERED))
+            ->get(['pe.feeling', 'pe.progress', 'pe.interaction']);
+
+        $count = fn (array $values, string $column) => collect($values)
+            ->map(fn (string $value) => ['key' => $value, 'entries' => $rows->where($column, $value)->count()])
+            ->values()->all();
+        // Le mot au début d'un mot (« conflits » compte pour « conflit »), sans tenir compte de la casse.
+        $cites = fn (?string $text, string $word) => $text !== null
+            && preg_match('/(?<!\pL)'.preg_quote($word, '/').'/u', mb_strtolower($text)) === 1;
+
+        return [
+            'entries' => $rows->count(),
+            'feelings' => $count(ParticipantEvaluation::FEELINGS, 'feeling'),
+            'progress' => $count(ParticipantEvaluation::PROGRESS, 'progress'),
+            'interaction_keywords' => collect(ParticipantEvaluation::INTERACTION_KEYWORDS)
+                ->map(fn (string $word) => ['key' => $word, 'entries' => $rows->filter(fn ($row) => $cites($row->interaction, $word))->count()])
+                ->values()->all(),
+        ];
     }
 
     /** Moyennes sur 5 (null sans aucune note) et nombre d'évaluations. */

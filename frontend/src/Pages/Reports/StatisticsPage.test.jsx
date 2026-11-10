@@ -185,6 +185,49 @@ describe('Page Statistiques', () => {
     expect(await screen.findAllByText('Aucun participant compté sur la période.')).toHaveLength(2);
   });
 
+  it('montre les sensations, l’interaction et l’évolution des fiches rendues, avec leurs tableaux', async () => {
+    const observations = {
+      entries: 7,
+      feelings: [
+        { key: 'well_being', entries: 1 },
+        { key: 'enthusiasm', entries: 2 },
+        { key: 'other', entries: 1 },
+      ],
+      progress: [
+        { key: 'first_session', entries: 4 },
+        { key: 'improvement', entries: 3 },
+      ],
+      interaction_keywords: [
+        { key: 'écoute', entries: 4 },
+        { key: 'conflit', entries: 1 },
+      ],
+    };
+    mockApi({
+      'GET /statistics': () => jsonResponse({ data: statistics({ observations }) }),
+      'GET /projects': () => jsonResponse({ data: projects }),
+    });
+    renderAt('/statistiques');
+
+    expect(await screen.findByRole('heading', { name: 'Ce que notent les intervenant·e·s' })).toBeInTheDocument();
+    expect(screen.getByText('Sur 7 fiches rendues.')).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /Enthousiasme/ })).toHaveTextContent('2');
+    expect(screen.getByRole('row', { name: /^Écoute/ })).toHaveTextContent('4');
+    expect(screen.getByRole('row', { name: /Première séance/ })).toHaveTextContent('4');
+    // Couleurs de la cliente : bleu pour les sensations, ambre pour l'interaction.
+    expect(document.querySelectorAll('.tone-feeling')).toHaveLength(3);
+    expect(document.querySelectorAll('.tone-interaction')).toHaveLength(2);
+  });
+
+  it('sans fiche rendue, le dit au lieu de graphiques vides', async () => {
+    const observations = { entries: 0, feelings: [], progress: [], interaction_keywords: [] };
+    mockApi({
+      'GET /statistics': () => jsonResponse({ data: statistics({ observations }) }),
+      'GET /projects': () => jsonResponse({ data: projects }),
+    });
+    renderAt('/statistiques');
+    expect(await screen.findByText('Aucune fiche rendue sur la période.')).toBeInTheDocument();
+  });
+
   it('écrit « Non renseigné » pour une moyenne sans note, jamais 0', async () => {
     mockApi({
       'GET /statistics': () => jsonResponse({ data: statistics() }),
