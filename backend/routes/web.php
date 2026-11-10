@@ -2,9 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 
-/*
- * Le backend n'a pas de pages : l'application est le frontend React. La racine répond en JSON,
- * sans session ni cookie (#200) : la page d'accueil Laravel posait deux cookies inutiles.
- */
-Route::get('/', fn () => response()->json(['application' => 'KLAP', 'api' => url('/api')]))
-    ->withoutMiddleware('web');
+// Sert l'application React pour l'accueil et toutes les pages (React Router)
+Route::fallback(function () {
+    if (file_exists(public_path('index.html'))) {
+        return response()->file(public_path('index.html'));
+    }
+    return response()->json(['application' => 'KLAP', 'api' => url('/api')]);
+});
