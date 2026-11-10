@@ -311,6 +311,14 @@
   gap: 24px;
 }
 
+/* Sur ordinateur, les trois graphiques côte à côte : la page reste courte. */
+@media (min-width: 1100px) {
+  .statistics-observations {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
 .statistics-observation-title {
   margin: 0 0 4px;
   font-size: 15px;
