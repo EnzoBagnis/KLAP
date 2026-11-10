@@ -77,7 +77,9 @@ avant d'accepter la version est dans le **cahier de recette**.
 
 - **Près de 900 tests automatiques**, relancés à chaque modification. Tous ont aussi été passés sur
   le type de base de données de la mise en ligne.
-- **Accessibilité** : un contrôle automatique, écran par écran, n'a relevé aucun défaut.
+- **Accessibilité** : un contrôle automatique, écran par écran, n'a relevé aucun défaut (refait le
+  10 novembre sur les derniers écrans). Un essai par une personne au clavier et au lecteur d'écran
+  reste à faire.
 
 ---
 
