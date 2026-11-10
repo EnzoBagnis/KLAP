@@ -10,6 +10,9 @@ export default function ManagementTabs() {
       <NavLink to="/gestion/utilisateurs" className="management-tab">
         Utilisateurs
       </NavLink>
+      <NavLink to="/gestion/listes" className="management-tab">
+        Listes
+      </NavLink>
     </nav>
   );
 }

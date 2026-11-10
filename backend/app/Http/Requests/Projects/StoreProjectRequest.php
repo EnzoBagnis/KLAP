@@ -43,7 +43,7 @@ class StoreProjectRequest extends FormRequest
             ],
             // Financeurs destinataires : aucun, un ou plusieurs.
             'funder_ids' => ['nullable', 'array'],
-            'funder_ids.*' => ['integer', 'distinct', 'exists:funders,id'],
+            'funder_ids.*' => ['integer', 'distinct', Rule::exists('funders', 'id')->where('is_active', true)],
 
             // Saisis au niveau du projet sur l'écran 58, portés en base par chaque
             // sous-projet : ils servent de valeurs par défaut aux sous-projets.
@@ -84,7 +84,7 @@ class StoreProjectRequest extends FormRequest
             'regex' => 'Le champ :attribute doit contenir 5 chiffres.',
             'sub_projects.*.name.distinct' => 'Deux sous-projets portent le même nom.',
             'funder_ids.*.distinct' => 'Un même financeur est choisi deux fois.',
-            'funder_ids.*.exists' => 'Le financeur choisi n’existe pas.',
+            'funder_ids.*.exists' => 'Le financeur choisi n’existe pas ou n’est plus actif.',
             'principal_user_id.exists' => 'L’intervenant·e principal·e doit être un compte intervenant actif.',
             'exists' => 'Le :attribute choisi n’existe pas ou n’est plus actif.',
             'in' => 'Le :attribute choisi n’est pas valide à la création.',

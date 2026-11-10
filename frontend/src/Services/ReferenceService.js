@@ -20,3 +20,21 @@ export async function listContributors() {
 export async function listFunders() {
   return (await apiRequest('/funders', { token: getToken() })).data;
 }
+
+// Gestion › Listes (#249), administratrice : financeurs et lieux, désactivés compris.
+
+export async function createFunder(payload) {
+  return (await apiRequest('/funders', { method: 'POST', body: payload, token: getToken() })).data;
+}
+
+export async function updateFunder(id, changes) {
+  return (await apiRequest(`/funders/${encodeURIComponent(id)}`, { method: 'PATCH', body: changes, token: getToken() })).data;
+}
+
+export async function listAllLocations() {
+  return (await apiRequest('/locations?tous=1', { token: getToken() })).data;
+}
+
+export async function updateLocation(id, changes) {
+  return (await apiRequest(`/locations/${encodeURIComponent(id)}`, { method: 'PATCH', body: changes, token: getToken() })).data;
+}

@@ -120,7 +120,9 @@ export default function EditProjectPage() {
     Promise.all([getProject(id), listProjectTypes(), listLocations(), listContributors(), listFunders()])
       .then(([project, types, locations, contributors, funders]) => {
         if (outdated()) return;
-        showProject(project, { types: types.filter((type) => type.is_active), locations, contributors, funders });
+        // Financeurs actifs, plus ceux déjà rattachés au projet même désactivés (#249).
+        const attached = new Set((project.funders ?? []).map((funder) => funder.id));
+        showProject(project, { types: types.filter((type) => type.is_active), locations, contributors, funders: funders.filter((funder) => funder.is_active !== false || attached.has(funder.id)) });
       })
       .catch((error) => {
         if (outdated()) return;

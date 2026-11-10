@@ -49,3 +49,15 @@ export async function restoreProject(id) {
   const response = await apiRequest(`/projects/${encodeURIComponent(id)}/restore`, { method: 'POST', token: getToken() });
   return response.data;
 }
+
+/** POST /project-types (#249) : nouveau type de projet. */
+export async function createProjectType(payload) {
+  const response = await apiRequest('/project-types', { method: 'POST', body: payload, token: getToken() });
+  return response.data;
+}
+
+/** PATCH /project-types/{id} (#249) : renommer, désactiver ou réactiver. */
+export async function updateProjectType(id, changes) {
+  const response = await apiRequest(`/project-types/${encodeURIComponent(id)}`, { method: 'PATCH', body: changes, token: getToken() });
+  return response.data;
+}

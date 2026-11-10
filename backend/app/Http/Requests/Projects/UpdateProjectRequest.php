@@ -52,7 +52,9 @@ class UpdateProjectRequest extends FormRequest
             'principal_user_id' => ['sometimes', 'required', 'integer', Rule::exists('users', 'id')->where('role', 'contributor')
                 ->where(fn ($query) => $query->where('is_active', true)->orWhereIn('id', $this->currentLeadIds()))],
             'funder_ids' => ['sometimes', 'nullable', 'array'],
-            'funder_ids.*' => ['integer', 'distinct', 'exists:funders,id'],
+            // Un financeur désactivé (#249) reste accepté sur un projet qui l'a déjà.
+            'funder_ids.*' => ['integer', 'distinct', Rule::exists('funders', 'id')
+                ->where(fn ($query) => $query->where('is_active', true)->orWhereIn('id', $project->funders()->pluck('funders.id')))],
             // Champs de l'écran de création qui ne se modifient pas ici : refusés plutôt qu'ignorés.
             'sub_projects' => ['prohibited'],
             'organization' => ['prohibited'],

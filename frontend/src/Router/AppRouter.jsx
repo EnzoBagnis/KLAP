@@ -12,6 +12,7 @@ import ForgotPasswordPage from '../Pages/Auth/ForgotPasswordPage.jsx';
 import ResetPasswordPage from '../Pages/Auth/ResetPasswordPage.jsx';
 import LoginPage from '../Pages/Auth/LoginPage.jsx';
 import UserManagementPage from '../Pages/Users/UserManagementPage.jsx';
+import ReferenceListsPage from '../Pages/Management/ReferenceListsPage.jsx';
 import ProfilePage from '../Pages/Profile/ProfilePage.jsx';
 import LogbookEntryPage from '../Pages/Logbook/LogbookEntryPage.jsx';
 import OpenLogbookPage from '../Pages/Logbook/OpenLogbookPage.jsx';
@@ -56,6 +57,15 @@ export default function AppRouter() {
             element={
               <ProtectedRoute roles={[ROLES.ADMIN]}>
                 <UserManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* Gestion, onglet Listes (#249) : financeurs, types de projet et lieux. */}
+          <Route
+            path="/gestion/listes"
+            element={
+              <ProtectedRoute roles={[ROLES.ADMIN]}>
+                <ReferenceListsPage />
               </ProtectedRoute>
             }
           />

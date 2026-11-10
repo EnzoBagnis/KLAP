@@ -154,7 +154,7 @@ export default function NewProjectPage() {
     Promise.all([listProjectTypes(), listLocations(), listContributors(), listFunders()])
       .then(([types, locations, contributors, funders]) => {
         if (outdated()) return;
-        setReferences({ status: 'ready', types: types.filter((type) => type.is_active), locations, contributors, funders });
+        setReferences({ status: 'ready', types: types.filter((type) => type.is_active), locations, contributors, funders: funders.filter((funder) => funder.is_active !== false) });
       })
       .catch((error) => {
         if (outdated()) return;
