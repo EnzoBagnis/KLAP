@@ -75,7 +75,7 @@ export default function NotificationsPage() {
       try {
         await markNotificationRead(notification.id);
         markLocally([notification.id]);
-        setUnreadCount(Math.max(0, unreadCount - 1));
+        setUnreadCount((count) => Math.max(0, count - 1));
       } catch (error) {
         // La lecture n'empêche pas d'ouvrir la fiche.
         setActionError(fail(error, 'La notification n’a pas pu être marquée comme lue.'));
