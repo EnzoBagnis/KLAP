@@ -1,7 +1,7 @@
 # Qualité : ce qui est vérifié, et comment le refaire
 
 Ce document rassemble les vérifications faites sur l'application, avec leurs résultats et la façon
-de les reproduire. Les chiffres datent du 9 novembre 2026, branche `premain`.
+de les reproduire. Les chiffres datent du 10 novembre 2026, branche `premain`.
 
 ## 1. Intégration continue (à chaque push)
 
@@ -19,8 +19,11 @@ Rien n'est fusionné dans `premain` sans CI verte.
 
 | | Fichiers | Tests | Résultat |
 |---|---|---|---|
-| Backend (PHPUnit) | 39 | 512, dont 13 propres à MariaDB | tous passent sur SQLite et MariaDB |
-| Frontend (Vitest) | 22 | 316 | tous passent |
+| Backend (PHPUnit) | 43 | 549, dont 13 propres à MariaDB | tous passent sur SQLite et MariaDB |
+| Frontend (Vitest) | 25 | 356 | tous passent |
+
+À chaque push, la CI passe toute la suite sur SQLite, et sur MariaDB les 13 tests qui lui sont propres.
+La suite complète a aussi été passée à la main sur MariaDB avant chaque fusion.
 
 Les tests backend passent par l'API, comme le ferait le frontend :
 - droits de chaque rôle ;
@@ -61,6 +64,14 @@ Audit **axe-core 4.10** (règles WCAG 2 A et AA, bonnes pratiques) sur tous les 
 - côté intervenante, sur téléphone (dont les six étapes de la fiche et le menu mobile).
 
 **Aucune violation.** La seule trouvée, des repères en double sur les statistiques, a été corrigée (#170).
+
+Le 10 novembre, l'audit a été refait sur le build de production pour les écrans ajoutés ce jour-là :
+la fiche à l'étape 1 avec le menu des lieux et « Nouveau lieu… » (#215), sur téléphone ; les
+statistiques avec les observations et l'export (#216, #219), sur ordinateur et sur téléphone ; les
+notifications (#211). **Aucune violation**, et aucun débordement horizontal sur téléphone.
+
+Ce contrôle est automatique : il ne remplace pas un essai au clavier et au lecteur d'écran par une
+personne, qui reste à faire.
 
 Pour le refaire : ouvrir un écran, puis dans la console du navigateur charger
 `https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.2/axe.min.js` et lancer `axe.run()`.
