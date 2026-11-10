@@ -72,7 +72,7 @@ doute, c'est le code qui fait foi (`php artisan route:list --path=api`).
 | `GET /sessions/{id}/logbook-entry` | tous | La fiche d'une séance, si on peut la lire. |
 | `POST /sessions/{id}/logbook-entry` | référent·e, admin, super_user | Ouvrir la fiche : du jour de la séance à J+10, ni séance annulée, ni projet archivé. |
 | `GET /logbook-entries` · `GET /logbook-entries/{id}` | tous | Fiches lisibles : les siennes et celles de ses projets ; tout pour l'administration. |
-| `PATCH /logbook-entries/{id}` | auteur·rice, admin, super_user | Enregistrer le brouillon, ou modifier une fiche rendue avant l'échéance. |
+| `PATCH /logbook-entries/{id}` | auteur·rice, admin, super_user | Enregistrer le brouillon, ou modifier une fiche rendue avant l'échéance. Accepte aussi `location_id` (lieu actif, ou lieu actuel) : il change le lieu de la séance (#215). |
 | `POST /logbook-entries/{id}/submit` | auteur·rice, admin, super_user | Soumettre. La première soumission notifie l'administration. |
 | `POST /logbook-entries/{id}/unlock-request` | auteur·rice | Demander la réouverture d'une fiche verrouillée. |
 | `POST /logbook-entries/{id}/unlock` | admin | Rouvrir : dix jours de plus, opération tracée. |
