@@ -109,19 +109,28 @@ class PreReportService
         if ($entries->isEmpty()) {
             $section->addText('Aucune fiche rendue sur la période.', null, self::BODY);
         }
+        $written = 0;
         foreach ($entries as $entry) {
+            // Une fiche qui ne dit que « Rien » n'a pas de titre sans contenu dessous (#240).
+            $lines = collect(self::FIELDS)
+                ->map(fn ($label, $field) => [$label, $this->meaningful($entry->{$field})])
+                ->filter(fn ($line) => $line[1] !== null);
+            if ($lines->isEmpty()) {
+                continue;
+            }
             $session = $entry->scheduledSession;
             $groupNames = $session->subProjects->pluck('name')->join(', ');
             $section->addTitle($session->session_date->locale('fr')->translatedFormat('l j F Y')
                 .($groupNames !== '' ? ' : '.$groupNames : ''), 2);
-            foreach (self::FIELDS as $field => $label) {
-                $text = $this->meaningful($entry->{$field});
-                if ($text !== null) {
-                    $run = $section->addTextRun(self::BODY);
-                    $run->addText($label.' : ', ['bold' => true]);
-                    $run->addText($text);
-                }
+            foreach ($lines as [$label, $text]) {
+                $run = $section->addTextRun(self::BODY);
+                $run->addText($label.' : ', ['bold' => true]);
+                $run->addText($text);
             }
+            $written++;
+        }
+        if ($entries->isNotEmpty() && $written === 0) {
+            $section->addText('Aucune observation à reprendre dans les fiches rendues sur la période.', null, self::BODY);
         }
 
         $path = tempnam(sys_get_temp_dir(), 'prebilan');
