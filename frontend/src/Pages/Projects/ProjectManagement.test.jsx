@@ -160,6 +160,8 @@ describe('Nouveau projet', () => {
     await user.click(screen.getByRole('checkbox', { name: 'DRAC' }));
     await user.click(screen.getByRole('button', { name: '+ Ajouter un sous-projet' }));
     await user.type(field('Sous-projet 1'), 'Collège Aragon');
+    await user.type(screen.getByLabelText('Tranche d’âge du sous-projet 1'), '11-12 ans');
+    await user.type(screen.getByLabelText('Effectif prévu du sous-projet 1'), '26');
     await user.click(screen.getByRole('button', { name: 'Créer le projet' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Projet créé' });
@@ -169,7 +171,7 @@ describe('Nouveau projet', () => {
       default_location_id: 2,
       principal_user_id: 3,
       funder_ids: [1],
-      sub_projects: [{ name: 'Collège Aragon' }],
+      sub_projects: [{ name: 'Collège Aragon', age_range: '11-12 ans', expected_headcount: 26 }],
     });
 
     await user.click(within(dialog).getByRole('button', { name: 'Voir le projet' }));
@@ -310,6 +312,10 @@ describe('Règles du formulaire', () => {
     ['nom trop long', { name: 'a'.repeat(151) }, 'name'],
     ['sous-projet vide', { sub_projects: [{ name: ' ' }] }, 'sub_projects.0.name'],
     ['sous-projets en double', { sub_projects: [{ name: 'Seconde 3' }, { name: 'seconde 3' }] }, 'sub_projects.1.name'],
+    ['effectif nul (#244)', { sub_projects: [{ name: 'Seconde 3', expected_headcount: '0' }] }, 'sub_projects.0.expected_headcount'],
+    ['effectif décimal', { sub_projects: [{ name: 'Seconde 3', expected_headcount: '24.5' }] }, 'sub_projects.0.expected_headcount'],
+    ['tranche d’âge trop longue', { sub_projects: [{ name: 'Seconde 3', age_range: 'a'.repeat(31) }] }, 'sub_projects.0.age_range'],
+    ['effectif du groupe unique', { expected_headcount: '-2' }, 'expected_headcount'],
   ])('refuse : %s', (_, override, key) => {
     expect(validateProject({ ...base, ...override })).toHaveProperty([key]);
   });
@@ -329,6 +335,24 @@ describe('Règles du formulaire', () => {
     expect(
       mapServerErrors({ 'funder_ids.1': ['A'], 'funder_ids.0': ['B'], 'sub_projects.2.name': ['C'], description: ['D'] }),
     ).toEqual({ fields: { funder_ids: 'A', 'sub_projects.2.name': 'C' }, others: ['D'] });
+  });
+
+  it('envoie l’âge et l’effectif de chaque sous-projet, ou du groupe unique (#244)', () => {
+    expect(
+      toPayload({
+        ...base,
+        age_range: '12-13 ans', // ignoré : les sous-projets ont les leurs
+        sub_projects: [
+          { name: 'Seconde 3', age_range: ' 15-16 ans ', expected_headcount: '24' },
+          { name: 'Seconde 4', age_range: '', expected_headcount: '' },
+        ],
+      }).sub_projects,
+    ).toEqual([{ name: 'Seconde 3', age_range: '15-16 ans', expected_headcount: 24 }, { name: 'Seconde 4' }]);
+    expect(toPayload({ ...base, age_range: '15-16 ans', expected_headcount: '30' })).toMatchObject({
+      age_range: '15-16 ans',
+      expected_headcount: 30,
+    });
+    expect(toPayload({ ...base, age_range: '15-16 ans' })).not.toHaveProperty('sub_projects');
   });
 
   it('accepte une saisie minimale et n’envoie pas les champs vides', () => {
