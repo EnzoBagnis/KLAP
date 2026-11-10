@@ -147,6 +147,20 @@ class PreReportTest extends TestCase
         $this->assertStringNotContainsString('Notes complémentaires', $text);
     }
 
+    public static function emptyAnswers(): array
+    {
+        return ['NÉANT' => ['NÉANT'], 'R.A.S.' => ['R.A.S.'], 'ras!' => ['ras!'], 'Rien à signaler !' => ['Rien à signaler !'], '.rien.' => ['.rien.']];
+    }
+
+    /** Même jugement que la fiche (#229) : ce qu'elle accepte comme « rien » n'entre pas dans le document. */
+    #[DataProvider('emptyAnswers')]
+    public function test_les_reponses_vides_sont_ecartees_quelle_que_soit_leur_ecriture(string $highlights): void
+    {
+        $this->submitted(['highlights' => $highlights]);
+
+        $this->assertStringNotContainsString('Temps forts', $this->text($this->download()->assertOk()));
+    }
+
     public function test_les_caracteres_speciaux_ne_cassent_pas_le_document(): void
     {
         $this->project->update(['name' => 'Arts & Danse <2026>']);
