@@ -148,7 +148,7 @@ class UpdateCancelSessionTest extends TestCase
             ->assertJsonPath('errors.session.0', 'L’intervenant·e de cette séance n’est plus actif·ve ou plus affecté·e au projet à cette date : programmez plutôt une nouvelle séance.');
     }
 
-    public function test_projet_archive_ni_modification_ni_retablissement(): void
+    public function test_projet_archive_ni_modification_ni_annulation_ni_retablissement(): void
     {
         $this->actingAs($this->admin)->postJson("/api/sessions/{$this->upcoming->id}/cancel")->assertOk();
         $this->project->forceFill(['status' => 'archived'])->save();
@@ -157,6 +157,10 @@ class UpdateCancelSessionTest extends TestCase
         $live = ScheduledSession::factory()->create(['project_id' => $this->project->id, 'referent_id' => $this->referent->id, 'session_date' => '2026-10-14']);
         $live->subProjects()->attach($this->groupIds()[0], ['project_id' => $this->project->id]);
         $this->edit($this->payload(), $live)->assertUnprocessable()->assertJsonValidationErrors('project');
+        // Ni annulation (#241) : la séance reste programmée.
+        $this->actingAs($this->admin)->postJson("/api/sessions/{$live->id}/cancel")
+            ->assertStatus(409)->assertJsonPath('message', 'Ce projet est archivé : sa séance ne s’annule plus.');
+        $this->assertSame('planned', $live->fresh()->status);
     }
 
     public function test_reserve_a_l_administratrice(): void
