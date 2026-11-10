@@ -31,13 +31,18 @@ export default function NotificationsPage() {
     [logout],
   );
 
-  const load = useCallback(() => {
+  // Nombre de non lues que la liste affichée connaît déjà (voir plus bas).
+  const known = useRef(null);
+
+  // `quiet` : rechargement en arrière-plan, sans écran d'attente (nouvelle notification).
+  const load = useCallback((quiet = false) => {
     const request = ++lastRequest.current;
-    setState({ status: 'loading', notifications: [], error: '' });
+    if (!quiet) setState({ status: 'loading', notifications: [], error: '' });
     listNotifications()
       .then(({ notifications, unreadCount }) => {
         if (request !== lastRequest.current) return;
         setState({ status: 'ready', notifications, error: '' });
+        known.current = unreadCount;
         setUnreadCount(unreadCount);
       })
       .catch((error) => {
@@ -53,6 +58,13 @@ export default function NotificationsPage() {
       lastRequest.current += 1;
     };
   }, [load]);
+
+  // La cloche se recharge seule (#211) : quand elle voit une nouvelle notification, la liste
+  // affichée se met à jour aussi (#231). Une lecture fait baisser le compteur : rien à recharger.
+  useEffect(() => {
+    if (state.status === 'ready' && known.current !== null && unreadCount > known.current) load(true);
+    if (state.status === 'ready') known.current = unreadCount;
+  }, [unreadCount, state.status, load]);
 
   // Le nombre vient de l'API : il compte aussi les non lues au-delà des 30 affichées.
   const unread = unreadCount;
