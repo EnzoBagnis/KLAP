@@ -190,8 +190,13 @@ Les avertissements qui restent sont informatifs, ou ne s'appliquent pas en produ
 8. **Sauvegardes** de la base, et procédure de restauration testée une fois.
 9. **Tâches planifiées.** `php artisan schedule:run` doit tourner chaque minute (tâche cron d'Alwaysdata),
    sinon deux mécanismes s'arrêtent :
-   - le verrouillage des fiches à J+10 ;
+   - le passage au statut « verrouillée » des fiches de plus de 10 jours (le refus des modifications
+     après le délai, lui, ne dépend pas de la tâche) ;
    - la purge des jetons expirés.
+10. **Envoi des mails.** Par défaut, `MAIL_MAILER=log` : les mails sont écrits dans le journal, pas
+    envoyés. Sans serveur d'envoi configuré (`MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT`,
+    `MAIL_USERNAME`, `MAIL_PASSWORD`) et sans `MAIL_FROM_ADDRESS` propre à KLAP, ni les invitations
+    ni les mails de mot de passe oublié ne partent.
 
 ---
 
