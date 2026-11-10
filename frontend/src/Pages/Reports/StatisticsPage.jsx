@@ -7,7 +7,8 @@ import Button from '../../Components/UI/Button.jsx';
 import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import useAuth from '../../Hooks/useAuth.js';
 import { listProjects } from '../../Services/ProjectService.js';
-import { getStatistics } from '../../Services/StatisticsService.js';
+import { saveFile } from '../../Services/ReportService.js';
+import { exportStatistics, getStatistics } from '../../Services/StatisticsService.js';
 import { FEELINGS, PROGRESS } from '../Logbook/logbookModel.js';
 import '../../assets/css/FormStyles.css';
 import '../../assets/css/ProjectStyles.css';
@@ -54,6 +55,8 @@ export default function StatisticsPage() {
   const [projects, setProjects] = useState([]);
   const [state, setState] = useState({ status: 'loading', data: null, error: '', fieldErrors: {} });
   const lastRequest = useRef(0);
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState(null);
   const { projectId, from, to } = filters;
   const urlKey = searchParams.toString();
 
@@ -66,6 +69,8 @@ export default function StatisticsPage() {
     const request = ++lastRequest.current;
     const outdated = () => request !== lastRequest.current;
     setState({ status: 'loading', data: null, error: '', fieldErrors: {} });
+    // Un message d'export porte sur les chiffres d'avant : il disparaît avec eux.
+    setExportMessage(null);
     getStatistics({ projectId, from, to })
       .then((data) => !outdated() && setState({ status: 'ready', data, error: '', fieldErrors: {} }))
       .catch((error) => {
@@ -119,6 +124,30 @@ export default function StatisticsPage() {
     go(draft);
   }
 
+  // Export Excel (#219) : les filtres appliqués, donc les chiffres affichés.
+  async function exportExcel() {
+    if (exporting) return;
+    setExporting(true);
+    setExportMessage(null);
+    try {
+      const { blob, filename } = await exportStatistics({ projectId, from, to });
+      const name = filename ?? 'statistiques.xlsx';
+      saveFile(blob, name);
+      setExportMessage({ tone: 'success', text: `Fichier Excel téléchargé : ${name}` });
+    } catch (error) {
+      if (error.status === 401) {
+        logout();
+        return;
+      }
+      setExportMessage({
+        tone: 'error',
+        text: error.status === 0 ? error.message : 'Le fichier Excel n’a pas pu être créé. Réessayez dans un instant.',
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function reset() {
     setDraft({ projectId: '', from: '', to: '' });
     go({});
@@ -139,7 +168,19 @@ export default function StatisticsPage() {
           <h1 className="page-title">Statistiques</h1>
           <p className="page-subtitle">Calculées à partir des fiches rendues, séances annulées exclues.</p>
         </div>
+        <Button variant="line" onClick={exportExcel} disabled={exporting || state.status !== 'ready'}>
+          {exporting ? 'Préparation du fichier…' : 'Exporter en Excel'}
+        </Button>
       </div>
+      {/* Zone d'annonce toujours présente : un lecteur d'écran annonce mieux un texte qui y change. */}
+      <div role="status" aria-live="polite" className={exportMessage?.tone === 'success' ? 'form-success' : undefined}>
+        {exportMessage?.tone === 'success' ? exportMessage.text : ''}
+      </div>
+      {exportMessage?.tone === 'error' && (
+        <p className="form-alert" role="alert">
+          {exportMessage.text}
+        </p>
+      )}
 
       <form className="statistics-filters" onSubmit={apply} aria-label="Filtres">
         <SelectInput
