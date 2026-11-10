@@ -31,6 +31,14 @@ class SecurityHeaders
             $response->headers->set($name, $value);
         }
 
+        // Pour les pages web (React), la CSP doit autoriser les scripts, styles, polices et images
+        if (! $request->is('api/*')) {
+            $response->headers->set(
+                'Content-Security-Policy',
+                "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+            );
+        }
+
         // HTTPS imposé au navigateur pour un an, seulement quand la requête arrive déjà en HTTPS.
         if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000');
