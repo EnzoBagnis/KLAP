@@ -331,6 +331,16 @@ describe('Règles du formulaire', () => {
     expect(validateProject({ ...base, postal_code: ' 13003 ' })).toEqual({});
   });
 
+  it('place les erreurs d’âge et d’effectif sur leur champ (#244)', () => {
+    expect(
+      mapServerErrors({ 'sub_projects.0.age_range': ['A'], 'sub_projects.1.expected_headcount': ['B'], expected_headcount: ['C'] }),
+    ).toEqual({ fields: { 'sub_projects.0.age_range': 'A', 'sub_projects.1.expected_headcount': 'B', expected_headcount: 'C' }, others: [] });
+  });
+
+  it('ignore l’effectif du groupe unique dès qu’il y a des sous-projets', () => {
+    expect(validateProject({ ...base, expected_headcount: '0', sub_projects: [{ name: 'Seconde 3' }] })).toEqual({});
+  });
+
   it('regroupe les erreurs de financeurs et isole les clés inconnues', () => {
     expect(
       mapServerErrors({ 'funder_ids.1': ['A'], 'funder_ids.0': ['B'], 'sub_projects.2.name': ['C'], description: ['D'] }),
