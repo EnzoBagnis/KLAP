@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\LogbookEntryController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\ProjectMemberController;
 use App\Http\Controllers\Api\ProjectTypeController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScheduledSessionController;
@@ -92,6 +93,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Groupes d'un projet après sa création (#250) : ajouter, corriger, retirer, remettre.
         Route::post('projects/{project}/sub-projects', [SubProjectController::class, 'store']);
         Route::patch('sub-projects/{subProject}', [SubProjectController::class, 'update']);
+        // Équipe d'un projet (#251) : ajouter ou retirer un·e intervenant·e ponctuel·le.
+        Route::post('projects/{project}/members', [ProjectMemberController::class, 'store']);
+        Route::delete('projects/{project}/members/{user}', [ProjectMemberController::class, 'destroy']);
         // Modifier, annuler et rétablir une séance sans fiche (#180) : rien n'est effacé.
         Route::patch('sessions/{session}', [ScheduledSessionController::class, 'update']);
         Route::post('sessions/{session}/cancel', [ScheduledSessionController::class, 'cancel']);

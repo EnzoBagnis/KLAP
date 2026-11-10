@@ -29,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Identifiants des routes : des chiffres seulement (#200). Sans cela, MySQL lit « 1abc »
         // comme 1 et /api/projects/1abc renvoie le projet 1 (sans fuite : les droits s'appliquent).
-        Route::patterns(array_fill_keys(['account', 'entry', 'funder', 'location', 'notification', 'project', 'projectType', 'session', 'subProject'], '[0-9]+'));
+        Route::patterns(array_fill_keys(['account', 'entry', 'funder', 'location', 'notification', 'project', 'projectType', 'session', 'subProject', 'user'], '[0-9]+'));
 
         // Connexion (#150) : 5 essais par minute pour un compte depuis une IP (frein à l'essai de
         // mots de passe), 30 par IP en plafond, pour ne pas bloquer des collègues sur le même Wi-Fi.
