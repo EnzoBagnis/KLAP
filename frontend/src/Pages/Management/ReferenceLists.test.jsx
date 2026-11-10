@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../../Context/AuthContext.jsx';
@@ -76,7 +76,7 @@ describe('Gestion › Listes (#249)', () => {
     expect(JSON.parse(calls(fetchMock, 'POST')[0][1].body)).toEqual({ name: 'Région Sud', type: 'local_authority' });
     // La liste est relue : l'élément ajouté arrive complet, avec son usage.
     expect(await within(funders).findByText('Collectivité · Aucun projet')).toBeInTheDocument();
-    expect(within(funders).getByRole('heading', { name: 'Financeurs' })).toHaveFocus();
+    await waitFor(() => expect(within(funders).getByRole('heading', { name: 'Financeurs' })).toHaveFocus());
   });
 
   it('corrige un lieu sur place et affiche l’erreur de l’API sur le bon champ', async () => {
