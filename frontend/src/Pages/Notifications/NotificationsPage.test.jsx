@@ -83,6 +83,45 @@ describe('Rechargement du compteur', () => {
 });
 
 describe('Page Notifications', () => {
+  it('la liste se met à jour quand la cloche voit une nouvelle notification (#231)', async () => {
+    let unread = 1;
+    const first = notification();
+    const second = notification({ id: 2, message: 'Hugo Martin a rempli la fiche du 6 octobre (BRAISES).' });
+    const fetchMock = mockApi({
+      'GET /notifications/unread-count': () => jsonResponse({ data: { unread_count: unread } }),
+      'GET /notifications': () => list(unread === 1 ? [first] : [second, first], unread),
+    });
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    renderAt('/notifications');
+    expect(await screen.findByText(first.message)).toBeInTheDocument();
+    const listCalls = () => fetchMock.mock.calls.filter(([url]) => new URL(url).pathname.endsWith('/notifications')).length;
+    const before = listCalls();
+
+    // Une fiche est rendue ailleurs ; la cloche se recharge (ici : retour sur l'onglet).
+    unread = 2;
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    expect(await screen.findByText(second.message)).toBeInTheDocument();
+    expect(screen.getByText(first.message)).toBeInTheDocument(); // pas d'écran d'attente entre-temps
+    expect(listCalls()).toBe(before + 1);
+  });
+
+  it('marquer comme lu ne recharge pas la liste', async () => {
+    const fetchMock = mockApi({
+      'GET /notifications/unread-count': () => jsonResponse({ data: { unread_count: 1 } }),
+      'GET /notifications': () => list([notification({ logbook_entry_id: null })], 1),
+      'POST /notifications/read-all': () => jsonResponse({ meta: { marked: 1, unread_count: 0 } }),
+    });
+    const user = userEvent.setup();
+    renderAt('/notifications');
+    await screen.findByText('1 non lue');
+    const listCalls = () => fetchMock.mock.calls.filter(([url]) => new URL(url).pathname.endsWith('/notifications')).length;
+    const before = listCalls();
+    await user.click(screen.getByRole('button', { name: /Tout marquer comme lu/ }));
+    await screen.findByText('Tout est lu');
+    expect(listCalls()).toBe(before);
+  });
+
   it('compte aussi les non lues au-delà des 30 affichées', async () => {
     mockApi({
       'GET /notifications': () => list([notification({ read_at: '2026-10-06T08:00:00+00:00' })], 2),
