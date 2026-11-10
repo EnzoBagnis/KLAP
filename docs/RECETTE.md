@@ -84,7 +84,7 @@ et écrire ce qui a été vu dans « Remarque ». Un KO donne lieu à une fiche 
 | B2 | Regarder le tableau de bord | « Fiches à remplir », les plus anciennes en premier, chacune avec sa date limite ; la séance du jour est marquée « Aujourd'hui » | ☐ | ☐ | |
 | B3 | Regarder « Prochaines séances », puis « Tout le planning » | Ses séances à venir, puis le planning | ☐ | ☐ | |
 | B4 | Ouvrir le menu | Tableau de bord, Projets, Planning ; **pas** de Statistiques, Pré-bilan ni Gestion | ☐ | ☐ | |
-| B5 | « Remplir la fiche » de la séance du jour | La fiche s'ouvre à l'étape 1, Généralités : rappel de la séance, rien à saisir. En haut, le rappel « Ne citez pas d'élève par son nom » | ☐ | ☐ | |
+| B5 | « Remplir la fiche » de la séance du jour | La fiche s'ouvre à l'étape 1, Généralités : rappel de la séance, avec le lieu dans un menu. En haut, le rappel « Ne citez pas d'élève par son nom » | ☐ | ☐ | |
 | B6 | Remplir l'étape 2, passer à l'étape 3, la remplir, passer à l'étape 4 ; quitter, puis revenir par « Reprendre la fiche » | Les étapes 2 et 3 sont conservées (le brouillon s'enregistre à chaque changement d'étape, ou avec « Enregistrer le brouillon ») | ☐ | ☐ | |
 | B7 | À l'étape 3, choisir « Fait » pour l'ajustement | Le champ « Quel ajustement, et pourquoi ? » apparaît | ☐ | ☐ | |
 | B8 | Laisser des champs obligatoires vides et toucher « Soumettre la fiche » | « La fiche n'est pas complète », avec les champs et les étapes à compléter | ☐ | ☐ | |
@@ -93,7 +93,8 @@ et écrire ce qui a été vu dans « Remarque ». Un KO donne lieu à une fiche 
 | B11 | Dans « Dernières fiches rendues », ouvrir la fiche marquée « verrouillée » (séance d'il y a 13 jours) | Elle ne se modifie plus ; le bouton « Demander la réouverture » est proposé | ☐ | ☐ | |
 | B12 | Toucher « Demander la réouverture » | La demande est envoyée ; l'administratrice est prévenue (voir C3) | ☐ | ☐ | |
 | B13 | Faire tout le parcours B5 à B9 sur téléphone | Tout est lisible et utilisable sans zoomer ; rien ne dépasse de l'écran | ☐ | ☐ | |
-| B14 | **Compte de Nina** : ouvrir une fiche de Léa (projet Arts Danse au Lycée Charles) | « Fiche de Léa Fournier, en lecture seule. » ; les champs ne se modifient pas | ☐ | ☐ | |
+| B14 | **Compte de Nina** : ouvrir une fiche de Léa (projet Arts Danse au Lycée Charles) | « Fiche de Léa Fournier, en lecture seule. » ; les champs ne se modifient pas, le lieu n'est pas un menu | ☐ | ☐ | |
+| B15 | **Compte de Léa** : fiche du jour, étape 1, choisir « Nouveau lieu… », le créer (nom, code postal, ville), passer à l'étape 2 ; puis ouvrir le planning | Le nouveau lieu est enregistré avec la fiche ; le planning l'affiche pour la séance | ☐ | ☐ | |
 
 ---
 
@@ -194,7 +195,7 @@ L'audit de sécurité complet, avec les outils utilisés, est dans [AUDIT_SECURI
 
 | | Nombre |
 |---|---|
-| Scénarios déroulés | `____` / 58 |
+| Scénarios déroulés | `____` / 59 |
 | OK | `____` |
 | KO bloquants | `____` |
 | KO gênants ou mineurs | `____` |

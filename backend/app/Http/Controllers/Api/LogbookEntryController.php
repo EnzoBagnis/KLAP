@@ -249,6 +249,13 @@ class LogbookEntryController extends Controller
                 $entry->exercises()->create(['position' => $index + 1, 'label' => $label]);
             }
         }
+        // Le lieu appartient à la séance : la fiche le corrige pour tout le monde (#215). La fiche
+        // renvoie son lieu à chaque enregistrement : on n'écrit la séance que s'il a changé.
+        if (array_key_exists('location_id', $data)) {
+            ScheduledSession::query()->whereKey($entry->scheduled_session_id)
+                ->where('location_id', '<>', $data['location_id'])
+                ->update(['location_id' => $data['location_id']]);
+        }
         foreach ($data['attendees'] ?? [] as $row) {
             DB::table('scheduled_session_sub_project')
                 ->where('scheduled_session_id', $entry->scheduled_session_id)
