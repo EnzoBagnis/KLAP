@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Funder;
 use App\Models\LogbookEntry;
 use App\Models\Project;
+use App\Support\LogbookRules;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use PhpOffice\PhpWord\PhpWord;
@@ -19,8 +20,11 @@ use PhpOffice\PhpWord\Shared\Converter;
  */
 class PreReportService
 {
-    /** Réponses qui ne disent rien : on ne les reprend pas dans le pré-bilan. */
-    private const EMPTY_ANSWERS = ['rien', 'aucun', 'aucune', 'rien à signaler', 'ras', 'r.a.s', 'r.a.s.', 'néant', 'neant', 'non', '-', '/'];
+    /**
+     * Réponses qui ne disent rien : on ne les reprend pas dans le pré-bilan. Comparées sous leur
+     * forme simple (LogbookRules::plain : sans accent, minuscules, sans ponctuation aux bouts).
+     */
+    private const EMPTY_ANSWERS = ['rien', 'aucun', 'aucune', 'rien a signaler', 'ras', 'r.a.s', 'neant', 'non', '-', '/', ''];
 
     private const BODY = 'Corps';
 
@@ -150,9 +154,8 @@ class PreReportService
     private function meaningful(?string $text): ?string
     {
         $text = trim((string) $text);
-        $plain = mb_strtolower(rtrim($text, ' .!'));
 
-        return $text === '' || in_array($plain, self::EMPTY_ANSWERS, true) ? null : $text;
+        return in_array(LogbookRules::plain($text), self::EMPTY_ANSWERS, true) ? null : $text;
     }
 
     private function facts($section, array $facts): void
