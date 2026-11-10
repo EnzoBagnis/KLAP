@@ -445,3 +445,74 @@ describe('Page Statistiques', () => {
     expect(screenCalls(fetchMock).filter(([url]) => new URL(url).pathname.startsWith('/api/statistics'))).toHaveLength(0);
   });
 });
+
+describe('Export Excel (#219)', () => {
+  const xlsx = (name) =>
+    new Response(new Blob(['PK']), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename=${name}`,
+      },
+    });
+  let clicked;
+
+  beforeEach(() => {
+    clicked = [];
+    URL.createObjectURL = vi.fn(() => 'blob:statistiques');
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function click() {
+      clicked.push(this.download);
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('exporte les chiffres affichés, avec les filtres appliqués', async () => {
+    const fetchMock = mockApi({
+      'GET /statistics': () => jsonResponse({ data: statistics() }),
+      'GET /projects': () => jsonResponse({ data: projects }),
+      'GET /statistics/export': () => xlsx('statistiques-arts-danse-au-lycee-charles-2026-11-10.xlsx'),
+    });
+    const user = userEvent.setup();
+    renderAt('/statistiques?projet=1&du=2026-09-01');
+    await user.click(await screen.findByRole('button', { name: 'Exporter en Excel' }));
+
+    expect(await screen.findByText('Fichier Excel téléchargé : statistiques-arts-danse-au-lycee-charles-2026-11-10.xlsx')).toHaveAttribute('aria-live', 'polite');
+    const call = fetchMock.mock.calls.find(([url]) => new URL(url).pathname.endsWith('/statistics/export'));
+    expect(Object.fromEntries(new URL(call[0]).searchParams)).toEqual({ project_id: '1', from: '2026-09-01' });
+    expect(clicked).toEqual(['statistiques-arts-danse-au-lycee-charles-2026-11-10.xlsx']);
+  });
+
+  it('exporte les filtres appliqués, pas ceux en cours de saisie', async () => {
+    const fetchMock = mockApi({
+      'GET /statistics': () => jsonResponse({ data: statistics() }),
+      'GET /projects': () => jsonResponse({ data: projects }),
+      'GET /statistics/export': () => xlsx('statistiques-tous-les-projets-2026-11-10.xlsx'),
+    });
+    const user = userEvent.setup();
+    renderAt('/statistiques');
+    await screen.findByRole('button', { name: 'Exporter en Excel' });
+    await user.selectOptions(screen.getByLabelText('Projet'), 'Atelier Belle de Mai'); // pas appliqué
+    await user.click(screen.getByRole('button', { name: 'Exporter en Excel' }));
+
+    await screen.findByText(/Fichier Excel téléchargé/);
+    const call = fetchMock.mock.calls.find(([url]) => new URL(url).pathname.endsWith('/statistics/export'));
+    expect([...new URL(call[0]).searchParams]).toEqual([]);
+  });
+
+  it('signale un échec sans quitter la page', async () => {
+    mockApi({
+      'GET /statistics': () => jsonResponse({ data: statistics() }),
+      'GET /projects': () => jsonResponse({ data: projects }),
+      'GET /statistics/export': () => jsonResponse({ message: 'Erreur' }, 500),
+    });
+    const user = userEvent.setup();
+    renderAt('/statistiques');
+    await user.click(await screen.findByRole('button', { name: 'Exporter en Excel' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Le fichier Excel n’a pas pu être créé.');
+    expect(clicked).toEqual([]);
+  });
+});
