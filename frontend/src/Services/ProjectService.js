@@ -61,3 +61,15 @@ export async function updateProjectType(id, changes) {
   const response = await apiRequest(`/project-types/${encodeURIComponent(id)}`, { method: 'PATCH', body: changes, token: getToken() });
   return response.data;
 }
+
+/** POST /projects/{id}/sub-projects (#250) : ajouter un groupe à un projet. */
+export async function createSubProject(projectId, payload) {
+  const response = await apiRequest(`/projects/${encodeURIComponent(projectId)}/sub-projects`, { method: 'POST', body: payload, token: getToken() });
+  return response.data;
+}
+
+/** PATCH /sub-projects/{id} (#250) : corriger, retirer (is_active: false) ou remettre un groupe. */
+export async function updateSubProject(id, changes) {
+  const response = await apiRequest(`/sub-projects/${encodeURIComponent(id)}`, { method: 'PATCH', body: changes, token: getToken() });
+  return response.data;
+}
