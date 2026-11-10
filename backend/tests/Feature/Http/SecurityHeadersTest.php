@@ -36,12 +36,28 @@ class SecurityHeadersTest extends TestCase
             ->assertHeader('Strict-Transport-Security', 'max-age=31536000');
     }
 
-    public function test_la_racine_repond_en_json_sans_cookie(): void
+    public function test_la_racine_et_les_pages_servent_l_application_sans_cookie(): void
     {
-        $response = $this->get('/')->assertOk()->assertJson(['application' => 'KLAP']);
+        foreach (['/', '/planning', '/fiches/12'] as $uri) {
+            $response = $this->get($uri)->assertOk();
+            $this->assertSame([], $response->headers->getCookies(), $uri);
+            $response->assertHeader('X-Content-Type-Options', 'nosniff');
+            if (file_exists(public_path('index.html'))) {
+                $this->assertStringContainsString('<div id="root">', $response->getFile()->getContent(), $uri);
+                // Les scripts et le CSS du site doivent pouvoir se charger.
+                $response->assertHeader('Content-Security-Policy', SecurityHeaders::APP_CSP);
+            } else {
+                $response->assertJson(['application' => 'KLAP']);
+            }
+        }
+    }
 
-        $this->assertSame([], $response->headers->getCookies());
-        $response->assertHeader('X-Content-Type-Options', 'nosniff');
+    public function test_une_adresse_d_api_inconnue_reste_un_404_json(): void
+    {
+        foreach (['/api', '/api/inconnue', '/api/projects/1abc'] as $uri) {
+            $this->getJson($uri)->assertNotFound()->assertExactJson(['message' => ''])
+                ->assertHeader('Content-Security-Policy', SecurityHeaders::HEADERS['Content-Security-Policy']);
+        }
     }
 
     public function test_un_identifiant_non_numerique_est_refuse(): void

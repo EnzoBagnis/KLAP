@@ -23,11 +23,19 @@ class SecurityHeaders
         'Permissions-Policy' => 'camera=(), microphone=(), geolocation=()',
     ];
 
+    /** Politique de la page de l'application (index.html servi par le backend, #237). */
+    public const APP_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; "
+        ."font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
 
         foreach (self::HEADERS as $name => $value) {
+            // La page de l'application garde sa propre politique de contenu.
+            if ($name === 'Content-Security-Policy' && $response->headers->has($name)) {
+                continue;
+            }
             $response->headers->set($name, $value);
         }
 
