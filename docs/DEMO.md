@@ -4,7 +4,8 @@
 
 Les données de démonstration décrivent la situation au 21/09/2026. La commande suivante les recrée
 et les **date du jour de la démo**. Les états restent les mêmes : des fiches rendues, d'autres
-verrouillées, un brouillon, une demande de réouverture en attente. Elle ajoute aussi une séance de
+verrouillées, un brouillon, une fiche rouverte à la demande de son autrice (aucune demande en
+attente). Elle ajoute aussi une séance de
 Léa Fournier le jour même, sans fiche, pour la remplir en direct.
 
 ```bash
