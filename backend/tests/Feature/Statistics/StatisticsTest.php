@@ -117,6 +117,43 @@ class StatisticsTest extends TestCase
         $this->assertSame(2, $data['totals']['evaluations']);
     }
 
+    /** Observations (#216) : sensation, évolution, mots-clés d'interaction, sur le même périmètre. */
+    public function test_observations_des_fiches_rendues(): void
+    {
+        $observe = function (string $date, string $status, ?array $evaluation, string $sessionStatus = 'planned') {
+            $session = ScheduledSession::factory()->create([
+                'project_id' => $this->projectB->id, 'session_date' => $date, 'status' => $sessionStatus,
+            ]);
+            $entryId = DB::table('logbook_entries')->insertGetId([
+                'scheduled_session_id' => $session->id, 'author_id' => $session->referent_id, 'status' => $status,
+                'adjustment_done' => false, 'keep_in_class' => false, 'edit_deadline' => $date,
+                'submitted_at' => $status === 'draft' ? null : $date.' 18:00:00', 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            if ($evaluation !== null) {
+                DB::table('participant_evaluations')->insert(['logbook_entry_id' => $entryId] + $evaluation + ['created_at' => now(), 'updated_at' => now()]);
+            }
+        };
+        $observe('2026-10-01', 'submitted', ['interaction' => 'Écoute, ENTRAIDE', 'feeling' => 'enthusiasm', 'progress' => 'improvement']);
+        $observe('2026-10-02', 'locked', ['interaction' => 'ecoute (saisi sans accent), CONFLITS', 'feeling' => 'tension', 'progress' => 'stagnation']);
+        $observe('2026-10-03', 'submitted', ['interaction' => 'un groupe conflictuel', 'feeling' => 'enthusiasm', 'progress' => 'improvement']);
+        $observe('2026-10-04', 'submitted', null); // rendue sans évaluation : comptée, sans sensation
+        $observe('2026-10-05', 'draft', ['interaction' => 'écoute', 'feeling' => 'shyness', 'progress' => 'regression']);
+        $observe('2026-10-06', 'submitted', ['interaction' => 'écoute', 'feeling' => 'shyness', 'progress' => 'regression'], 'cancelled');
+
+        $data = $this->statistics(['project_id' => $this->projectB->id, 'from' => '2026-10-01']);
+        $observations = $data['observations'];
+
+        $this->assertSame(4, $observations['entries']);
+        $this->assertSame(['tension' => 1, 'enthusiasm' => 2, 'shyness' => 0], array_intersect_key(
+            array_column($observations['feelings'], 'entries', 'key'), array_flip(['enthusiasm', 'tension', 'shyness']),
+        ));
+        $this->assertSame(['first_session' => 0, 'improvement' => 2, 'stagnation' => 1, 'regression' => 0], array_column($observations['progress'], 'entries', 'key'));
+        $this->assertSame(['écoute' => 2, 'entraide' => 1, 'conflit' => 2], array_column($observations['interaction_keywords'], 'entries', 'key'));
+
+        // Avant le 2 octobre, une seule de ces fiches est dans la période.
+        $this->assertSame(1, $this->statistics(['project_id' => $this->projectB->id, 'from' => '2026-10-01', 'to' => '2026-10-01'])['observations']['entries']);
+    }
+
     public function test_un_projet_sans_evaluation_a_des_moyennes_nulles(): void
     {
         $b = $this->project($this->statistics(), $this->projectB);

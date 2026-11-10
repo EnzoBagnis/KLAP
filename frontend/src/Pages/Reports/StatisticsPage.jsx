@@ -8,6 +8,7 @@ import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import useAuth from '../../Hooks/useAuth.js';
 import { listProjects } from '../../Services/ProjectService.js';
 import { getStatistics } from '../../Services/StatisticsService.js';
+import { FEELINGS, PROGRESS } from '../Logbook/logbookModel.js';
 import '../../assets/css/FormStyles.css';
 import '../../assets/css/ProjectStyles.css';
 import '../../assets/css/StatisticsStyles.css';
@@ -210,6 +211,8 @@ export default function StatisticsPage() {
             <p className="form-hint">Notes de 1 à 5 données sur chaque fiche rendue : une note par fiche, parfois pour plusieurs groupes.</p>
             <Ratings values={data.totals} />
           </section>
+
+          {data.observations && <Observations data={data.observations} />}
 
           <div className="statistics-breakdowns">
             <Breakdown
@@ -430,5 +433,79 @@ function Ratings({ values }) {
         );
       })}
     </ul>
+  );
+}
+
+const FEELING_LABELS = Object.fromEntries(FEELINGS);
+const PROGRESS_LABELS = Object.fromEntries(PROGRESS);
+
+/*
+ * Ce que notent les intervenant·e·s sur les fiches rendues : sensations (bleu), interaction
+ * (ambre), couleurs choisies par la cliente, et évolution. Chaque graphique a son tableau.
+ */
+function Observations({ data }) {
+  const blocks = [
+    {
+      id: 'sensations-titre',
+      title: 'Sensations',
+      hint: 'Sensation dominante notée sur chaque fiche.',
+      tone: 'feeling',
+      rows: data.feelings.map((row) => ({ key: row.key, label: FEELING_LABELS[row.key] ?? row.key, value: row.entries })),
+    },
+    {
+      id: 'interaction-titre',
+      title: 'Interaction',
+      hint: 'Fiches dont l’interaction cite chaque mot-clé proposé, avec ou sans accent (« conflits » compte pour « conflit ») ; une fiche peut en citer plusieurs.',
+      tone: 'interaction',
+      rows: data.interaction_keywords.map((row) => ({ key: row.key, label: row.key.charAt(0).toUpperCase() + row.key.slice(1), value: row.entries })),
+    },
+    {
+      id: 'evolution-titre',
+      title: 'Évolution par rapport à la séance précédente',
+      column: 'Évolution',
+      tone: 'progress',
+      rows: data.progress.map((row) => ({ key: row.key, label: PROGRESS_LABELS[row.key] ?? row.key, value: row.entries })),
+    },
+  ];
+  return (
+    <section aria-labelledby="observations-titre">
+      <h2 id="observations-titre" className="section-title">
+        Ce que notent les intervenant·e·s
+      </h2>
+      {data.entries === 0 ? (
+        <p className="page-empty">Aucune fiche rendue sur la période.</p>
+      ) : (
+        <div className="statistics-observations">
+          <p className="form-hint">Sur {formatCount(data.entries)} fiche{data.entries > 1 ? 's' : ''} rendue{data.entries > 1 ? 's' : ''}.</p>
+          {blocks.map((block) => (
+            <div key={block.id}>
+              <h3 id={block.id} className="statistics-observation-title">
+                {block.title}
+              </h3>
+              {block.hint && <p className="form-hint">{block.hint}</p>}
+              <BarChart rows={block.rows} tone={block.tone} max={data.entries} />
+              <div className="statistics-table-wrapper" role="region" aria-label={`Tableau : ${block.title}`} tabIndex={0}>
+                <table className="statistics-table" aria-labelledby={block.id}>
+                  <thead>
+                    <tr>
+                      <th scope="col">{block.column ?? block.title}</th>
+                      <th scope="col">Fiches</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {block.rows.map((row) => (
+                      <tr key={row.key}>
+                        <th scope="row">{row.label}</th>
+                        <td>{formatCount(row.value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
