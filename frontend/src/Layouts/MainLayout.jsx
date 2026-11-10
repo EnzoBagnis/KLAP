@@ -5,6 +5,7 @@ import Sidebar from '../Components/Layout/Sidebar.jsx';
 import { NotificationsProvider } from '../Context/NotificationsContext.jsx';
 import useNotifications from '../Hooks/useNotifications.js';
 import '../assets/css/LayoutStyles.css';
+import Footer from '../Components/Layout/Footer.jsx';
 
 const MENU_ID = 'menu-principal';
 
@@ -78,6 +79,7 @@ function Layout() {
       />
       <main className="app-main" id="contenu" tabIndex={-1}>
         <Outlet />
+        <Footer />
       </main>
     </div>
   );
