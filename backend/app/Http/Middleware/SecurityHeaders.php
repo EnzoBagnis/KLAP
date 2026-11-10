@@ -40,7 +40,7 @@ class SecurityHeaders
         }
 
         // Pour les pages web (React), la CSP doit autoriser les scripts, styles, polices et images
-        if (! $request->is('api/*')) {
+        if (! $request->is('api', 'api/*')) {
             $response->headers->set(
                 'Content-Security-Policy',
                 "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
