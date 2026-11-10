@@ -308,6 +308,33 @@ describe('Lien depuis le planning', () => {
     expect(screen.queryByRole('link', { name: /Remplir la fiche/ })).not.toBeInTheDocument();
   });
 
+  // Aujourd'hui : 6 octobre. Délai : 10 jours après la séance inclus, comme l'API (#212).
+  it('ne propose plus d’ouvrir la fiche après le délai de 10 jours ; un brouillon reste accessible', async () => {
+    mockApi({
+      'GET /sessions': () =>
+        jsonResponse({
+          data: [
+            session({ id: 1, session_date: '2026-09-26' }),
+            session({ id: 2, session_date: '2026-09-25' }),
+            session({ id: 3, session_date: '2026-09-24', logbook_entry: { id: 9, status: 'draft' } }),
+          ],
+        }),
+    });
+    renderAt('/planning?mois=2026-09');
+
+    expect(await screen.findByRole('link', { name: /Remplir la fiche/ })).toHaveAttribute('href', '/planning/seances/1/fiche');
+    expect(screen.getAllByRole('link', { name: /Remplir la fiche/ })).toHaveLength(1);
+    expect(screen.getByRole('link', { name: /Reprendre la fiche/ })).toHaveAttribute('href', '/planning/seances/3/fiche');
+  });
+
+  it('l’administration ne peut plus créer la fiche après le délai de 10 jours', async () => {
+    mockApi({
+      'GET /sessions': () => jsonResponse({ data: [session({ id: 1, session_date: '2026-09-26' }), session({ id: 2, session_date: '2026-09-25' })] }),
+    });
+    renderAt('/planning?mois=2026-09', MOCK_USERS.super_user);
+    expect(await screen.findAllByRole('button', { name: /Créer la fiche/ })).toHaveLength(1);
+  });
+
   it('l’administration crée la fiche d’une séance après confirmation', async () => {
     mockApi({
       'GET /sessions': () => jsonResponse({ data: [session(), session({ id: 2, status: 'cancelled' })] }),

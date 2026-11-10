@@ -16,6 +16,7 @@ import {
   sessionTypeLabel,
   shiftMonth,
   todayKey,
+  entryDeadline,
 } from './sessionLabels.js';
 import '../../assets/css/ProjectStyles.css';
 import '../../assets/css/PlanningStyles.css';
@@ -256,11 +257,14 @@ function SessionActions({ session, label, onEdit, onStatus }) {
 function EntryLink({ session, label, userId, manages, today }) {
   const navigate = useNavigate();
   const fillable = session.status !== 'cancelled' && session.session_date <= today;
+  // Après le délai de 10 jours, l'API refuse d'ouvrir une fiche (#212) : on ne la propose plus.
+  // Un brouillon déjà ouvert reste accessible ; il s'affiche alors verrouillé.
+  const openable = fillable && today <= entryDeadline(session.session_date);
   const hidden = <span className="visually-hidden"> du {label}</span>;
 
   // Référent·e : remplir, reprendre un brouillon ; une fiche rendue se consulte (#163).
   const rendered = session.logbook_entry && session.logbook_entry.status !== 'draft';
-  if (session.referent.id === userId && fillable && !rendered) {
+  if (session.referent.id === userId && !rendered && (session.logbook_entry ? fillable : openable)) {
     return (
       <Link to={`/planning/seances/${session.id}/fiche`} className="planning-entry-link">
         {session.logbook_entry ? 'Reprendre la fiche' : 'Remplir la fiche'}
@@ -275,7 +279,7 @@ function EntryLink({ session, label, userId, manages, today }) {
       </Link>
     );
   }
-  if (manages && fillable) {
+  if (manages && openable) {
     const create = () => {
       if (window.confirm(`Créer la fiche de cette séance pour ${session.referent.name} ?`)) {
         navigate(`/planning/seances/${session.id}/fiche`);
