@@ -27,7 +27,11 @@
   font-size: var(--text-15);
 }
 
-.field-input:focus-visible {
+.field-input:focus-visible,
+/* Champ de date : le focus va dans un sous-champ (jour, mois, année) et :focus-visible ne
+   s'applique pas au champ lui-même dans Chromium (#233). */
+.field-input[type='date']:focus,
+.field-input[type='date']:focus-within {
   outline: 2px solid var(--color-ink);
   outline-offset: 0;
 }

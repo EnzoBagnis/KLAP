@@ -70,8 +70,16 @@ la fiche à l'étape 1 avec le menu des lieux et « Nouveau lieu… » (#215), s
 statistiques avec les observations et l'export (#216, #219), sur ordinateur et sur téléphone ; les
 notifications (#211). **Aucune violation**, et aucun débordement horizontal sur téléphone.
 
-Ce contrôle est automatique : il ne remplace pas un essai au clavier et au lecteur d'écran par une
-personne, qui reste à faire.
+Ce contrôle est automatique. Le 10 novembre, un **essai au clavier seul** a été fait sur le build de
+production (connexion, tableau de bord, statistiques et export, fiche sur téléphone avec ses six
+étapes et le menu des lieux).
+- **Ce qui marche** : tout s'atteint et s'active au clavier, et à chaque changement d'étape le focus
+  va sur le titre de l'étape.
+- **Ce qui a été corrigé** (#233) :
+  - il n'y avait pas de lien d'évitement : il fallait 10 Tab pour atteindre le contenu ;
+  - les champs de date n'avaient pas de contour de focus.
+
+L'essai au lecteur d'écran (NVDA ou VoiceOver) par une personne reste à faire.
 
 Pour le refaire : ouvrir un écran, puis dans la console du navigateur charger
 `https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.2/axe.min.js` et lancer `axe.run()`.
