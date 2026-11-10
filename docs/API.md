@@ -81,7 +81,7 @@ doute, c'est le code qui fait foi (`php artisan route:list --path=api`).
 
 | Méthode et route | Rôle | Effet |
 |---|---|---|
-| `GET /statistics?project_id=&from=&to=` | admin, super_user | Participants (maximum par groupe, puis somme), fiches manquantes, moyennes, provenance, âge, assiduité. |
+| `GET /statistics?project_id=&from=&to=` | admin, super_user | Participants (maximum par groupe, puis somme), fiches manquantes, moyennes, provenance, âge, assiduité, et `observations` : fiches par sensation, par évolution, et citant chaque mot-clé d’interaction. |
 | `GET /projects/{id}/pre-report?funder_id=&from=&to=` | admin, super_user | Pré-bilan Word (`.docx`) pour un financeur du projet. Chaque export est tracé. |
 | `POST /invitations` | admin | Inviter une personne : mail avec un lien valable 7 jours. |
 | `GET /accounts` | admin | Tous les comptes, les actifs d'abord. |

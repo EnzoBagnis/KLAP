@@ -139,7 +139,7 @@ et écrire ce qui a été vu dans « Remarque ». Un KO donne lieu à une fiche 
 
 | N° | Action | Résultat attendu | OK | KO | Remarque |
 |---|---|---|---|---|---|
-| D1 | Statistiques : projet « Arts Danse au Lycée Charles », « Appliquer » | Participants, séances documentées, fiches en retard, moyennes, provenance, âge, assiduité | ☐ | ☐ | |
+| D1 | Statistiques : projet « Arts Danse au Lycée Charles », « Appliquer » | Participants, séances documentées, fiches en retard, moyennes, provenance, âge, assiduité ; « Ce que notent les intervenant·e·s » : sensations (bleu), interaction (ambre), évolution | ☐ | ☐ | |
 | D2 | Vérifier le nombre de participants à la main | Le plus grand nombre de présents de chaque groupe, additionnés : une classe venue à plusieurs séances n'est comptée qu'une fois | ☐ | ☐ | |
 | D3 | Sur les données de démonstration, avec B9 (19 Terminales) et C6 (au plus 19 Premières) | **60** participants (18 + 19 + 22 avant la fiche de Léa, soit 59 ; 19 Terminales le portent à 60) | ☐ | ☐ | |
 | D4 | Choisir une période | Seules les séances de la période sont comptées | ☐ | ☐ | |

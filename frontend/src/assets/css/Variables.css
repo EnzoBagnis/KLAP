@@ -16,6 +16,9 @@
   --color-chart-engagement: #e12a10;
   --color-chart-expression: #2e8b57;
   --color-chart-autonomy: #8e5bb5;
+  /* … et ambre pour l'interaction, bleu pour les sensations (même demande de la cliente) */
+  --color-chart-interaction: #c98a00;
+  --color-chart-feeling: #2f6db5;
 
   /* Polices */
   --font-body: 'Archivo', system-ui, sans-serif;
