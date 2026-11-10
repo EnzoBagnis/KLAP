@@ -1,7 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import useAuth from '../Hooks/useAuth.js';
-import { listNotifications } from '../Services/NotificationService.js';
+import { countUnreadNotifications } from '../Services/NotificationService.js';
 
 export const NotificationsContext = createContext(null);
 
@@ -24,8 +24,8 @@ export function NotificationsProvider({ children }) {
 
   const refresh = useCallback(() => {
     const request = ++lastRequest.current;
-    listNotifications()
-      .then(({ unreadCount: count }) => request === lastRequest.current && setUnreadCount(count))
+    countUnreadNotifications()
+      .then((count) => request === lastRequest.current && setUnreadCount(count))
       .catch((error) => {
         // Session expirée ou compte désactivé : on déconnecte, sinon la cloche réessaierait sans fin.
         if (error?.status === 401) logout();
