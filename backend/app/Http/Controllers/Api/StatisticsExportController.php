@@ -8,7 +8,9 @@ use App\Services\StatisticsExport;
 use App\Services\StatisticsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 /** Export Excel des statistiques (#219), mêmes filtres et mêmes droits que l'écran. */
 class StatisticsExportController extends Controller
@@ -21,13 +23,26 @@ class StatisticsExportController extends Controller
         $projectName = $projectId === null ? null : DB::table('projects')->where('id', $projectId)->value('name');
 
         $path = tempnam(sys_get_temp_dir(), 'klap-statistiques-');
-        (new StatisticsExport($data, $projectName))->write($path);
+        if ($path === false) {
+            throw new RuntimeException('Impossible de créer un fichier temporaire.');
+        }
+        try {
+            (new StatisticsExport($data, $projectName))->write($path);
+        } catch (Throwable $error) {
+            @unlink($path);
+            throw $error;
+        }
 
         $name = 'statistiques-'.($projectName === null ? 'tous-les-projets' : (Str::slug($projectName) ?: 'projet'))
             .'-'.now('Europe/Paris')->format('Y-m-d').'.xlsx';
 
-        return response()->download($path, $name, [
+        $response = response()->download($path, $name, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ])->deleteFileAfterSend();
+        // Des chiffres réservés à l'administration : jamais gardés par un cache partagé.
+        $response->setPrivate();
+        $response->headers->addCacheControlDirective('no-store');
+
+        return $response;
     }
 }

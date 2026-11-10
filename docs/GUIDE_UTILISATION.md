@@ -66,6 +66,10 @@ depuis la séance dans le planning. Elle compte six étapes :
    - l'interaction, avec des mots-clés proposés ;
    - la sensation, choisie dans une liste ;
    - l'évolution par rapport à la séance précédente.
+- **Exporter en Excel** (bouton en haut de la page) : les chiffres affichés, avec les filtres
+  appliqués, dans un classeur à six onglets (synthèse, projets, groupes, provenance, âge,
+  observations). Les nombres restent des nombres : on peut trier, filtrer et calculer dans Excel ou
+  LibreOffice.
 5. **Les artistes** : les acquis, puis le bilan de l'intervenant·e.
 6. **La suite** : ce qui est à reprendre, les pistes à abandonner, le maintien en classe avec
    l'équipe enseignante, et des notes complémentaires.
@@ -178,10 +182,6 @@ peuvent aussi modifier toutes les fiches, dans le délai de 10 jours.
 
 Choisissez un projet (ou tous) et, si besoin, une période, puis cliquez sur « Appliquer ».
 
-**Exporter en Excel** (bouton en haut de la page) : les chiffres affichés, avec les mêmes filtres,
-dans un classeur à cinq onglets (synthèse, projets et groupes, provenance, âge, observations). Les
-nombres restent des nombres : on peut trier, filtrer et calculer dans Excel ou LibreOffice.
-
 - **Participants** : pour chaque groupe, on retient le plus grand nombre de présents sur ses
   séances, puis on additionne les groupes. Une classe venue à dix séances n'est donc comptée qu'une
   fois. Ce n'est pas un nombre de personnes distinctes : une classe inscrite dans deux projets
@@ -200,6 +200,10 @@ nombres restent des nombres : on peut trier, filtrer et calculer dans Excel ou L
     formes proches (« conflits », « conflictuel »). Une fiche peut citer plusieurs mots. « Pas de
     conflit » compte aussi : relisez les fiches pour le sens ;
   - l'évolution par rapport à la séance précédente.
+- **Exporter en Excel** (bouton en haut de la page) : les chiffres affichés, avec les filtres
+  appliqués, dans un classeur à six onglets (synthèse, projets, groupes, provenance, âge,
+  observations). Les nombres restent des nombres : on peut trier, filtrer et calculer dans Excel ou
+  LibreOffice.
 
 ### Le pré-bilan
 
