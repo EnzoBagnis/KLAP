@@ -204,8 +204,9 @@ class UpdateArchiveProjectTest extends TestCase
     public function test_les_champs_de_sous_projet_sont_refuses(): void
     {
         $this->edit(['sub_projects' => [['name' => 'Seconde 3']]])->assertUnprocessable()
-            ->assertJsonPath('errors.sub_projects.0', 'Les sous-projets, leur structure, leur ville et leur code postal ne se modifient pas ici.');
+            ->assertJsonPath('errors.sub_projects.0', 'Les sous-projets, leur structure, leur ville, leur code postal, leur âge et leur effectif ne se modifient pas ici.');
         $this->edit(['city' => 'Marseille'])->assertJsonValidationErrors('city');
+        $this->edit(['age_range' => '15-16 ans', 'expected_headcount' => 24])->assertJsonValidationErrors(['age_range', 'expected_headcount']);
     }
 
     public function test_saisies_invalides_sans_erreur_serveur(): void

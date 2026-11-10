@@ -50,6 +50,10 @@ class StoreProjectRequest extends FormRequest
             'organization' => ['nullable', 'string', 'max:150'],
             'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', self::POSTAL_CODE],
+            // Projet non découpé (#244) : tranche d'âge et effectif du groupe unique créé avec lui
+            // (ignorés quand des sous-projets sont donnés : chacun a les siens).
+            'age_range' => ['nullable', 'string', 'max:30'],
+            'expected_headcount' => ['nullable', 'integer', 'min:1', 'max:65535'],
 
             'sub_projects' => ['sometimes', 'array'],
             'sub_projects.*' => ['array'],
@@ -105,6 +109,8 @@ class StoreProjectRequest extends FormRequest
             'organization' => 'structure partenaire',
             'city' => 'ville',
             'postal_code' => 'code postal',
+            'age_range' => 'tranche d’âge',
+            'expected_headcount' => 'effectif prévu',
             'sub_projects' => 'sous-projets',
             'sub_projects.*.name' => 'nom du sous-projet',
             'sub_projects.*.organization' => 'structure du sous-projet',
@@ -112,7 +118,7 @@ class StoreProjectRequest extends FormRequest
             'sub_projects.*.age_range' => 'tranche d’âge',
             'sub_projects.*.city' => 'ville du sous-projet',
             'sub_projects.*.postal_code' => 'code postal du sous-projet',
-            'sub_projects.*.expected_headcount' => 'effectif attendu',
+            'sub_projects.*.expected_headcount' => 'effectif prévu',
         ];
     }
 }

@@ -58,6 +58,9 @@ class UpdateProjectRequest extends FormRequest
             'organization' => ['prohibited'],
             'city' => ['prohibited'],
             'postal_code' => ['prohibited'],
+            // Âge et effectif des groupes (#244) : saisis à la création, pas modifiés ici.
+            'age_range' => ['prohibited'],
+            'expected_headcount' => ['prohibited'],
         ];
     }
 
@@ -88,7 +91,7 @@ class UpdateProjectRequest extends FormRequest
     {
         return (new StoreProjectRequest)->messages() + [
             'status.in' => 'Ce statut n’est pas possible ici : un projet s’archive avec la confirmation de son nom.',
-            'prohibited' => 'Les sous-projets, leur structure, leur ville et leur code postal ne se modifient pas ici.',
+            'prohibited' => 'Les sous-projets, leur structure, leur ville, leur code postal, leur âge et leur effectif ne se modifient pas ici.',
         ];
     }
 
