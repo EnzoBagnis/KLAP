@@ -455,13 +455,14 @@ function Observations({ data }) {
     {
       id: 'interaction-titre',
       title: 'Interaction',
-      hint: 'Fiches dont l’interaction cite chaque mot-clé proposé (une fiche peut en citer plusieurs).',
+      hint: 'Fiches dont l’interaction cite chaque mot-clé proposé, avec ou sans accent (« conflits » compte pour « conflit ») ; une fiche peut en citer plusieurs.',
       tone: 'interaction',
       rows: data.interaction_keywords.map((row) => ({ key: row.key, label: row.key.charAt(0).toUpperCase() + row.key.slice(1), value: row.entries })),
     },
     {
       id: 'evolution-titre',
       title: 'Évolution par rapport à la séance précédente',
+      column: 'Évolution',
       tone: 'progress',
       rows: data.progress.map((row) => ({ key: row.key, label: PROGRESS_LABELS[row.key] ?? row.key, value: row.entries })),
     },
@@ -478,7 +479,7 @@ function Observations({ data }) {
           <p className="form-hint">Sur {formatCount(data.entries)} fiche{data.entries > 1 ? 's' : ''} rendue{data.entries > 1 ? 's' : ''}.</p>
           {blocks.map((block) => (
             <div key={block.id}>
-              <h3 id={block.id} className="bar-chart-title">
+              <h3 id={block.id} className="statistics-observation-title">
                 {block.title}
               </h3>
               {block.hint && <p className="form-hint">{block.hint}</p>}
@@ -487,7 +488,7 @@ function Observations({ data }) {
                 <table className="statistics-table" aria-labelledby={block.id}>
                   <thead>
                     <tr>
-                      <th scope="col">{block.title}</th>
+                      <th scope="col">{block.column ?? block.title}</th>
                       <th scope="col">Fiches</th>
                     </tr>
                   </thead>

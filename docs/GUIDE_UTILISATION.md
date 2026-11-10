@@ -189,7 +189,10 @@ Choisissez un projet (ou tous) et, si besoin, une période, puis cliquez sur « 
   retard complètent la page.
 - **Ce que notent les intervenant·e·s**, sur les fiches rendues :
   - les sensations (en bleu) : combien de fiches pour chaque sensation ;
-  - l'interaction (en ambre) : combien de fiches citent « écoute », « entraide » ou « conflit » ;
+  - l'interaction (en ambre) : combien de fiches citent « écoute », « entraide » ou « conflit ».
+    L'interaction étant un texte libre, KLAP repère le mot, avec ou sans accent ni majuscule, et ses
+    formes proches (« conflits », « conflictuel »). Une fiche peut citer plusieurs mots. « Pas de
+    conflit » compte aussi : relisez les fiches pour le sens ;
   - l'évolution par rapport à la séance précédente.
 
 ### Le pré-bilan
