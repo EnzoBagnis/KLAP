@@ -3,9 +3,9 @@ import { useContext } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import { NotificationsContext, NotificationsProvider, REFRESH_EVERY_MS } from './NotificationsContext.jsx';
-import { listNotifications } from '../Services/NotificationService.js';
+import { countUnreadNotifications } from '../Services/NotificationService.js';
 
-vi.mock('../Services/NotificationService.js', () => ({ listNotifications: vi.fn() }));
+vi.mock('../Services/NotificationService.js', () => ({ countUnreadNotifications: vi.fn() }));
 const logout = vi.fn();
 vi.mock('../Hooks/useAuth.js', () => ({ default: () => ({ logout }) }));
 
@@ -32,8 +32,8 @@ beforeEach(() => {
   vi.useFakeTimers();
   visibility = 'visible';
   vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility);
-  listNotifications.mockReset();
-  listNotifications.mockResolvedValue({ unreadCount: 0 });
+  countUnreadNotifications.mockReset();
+  countUnreadNotifications.mockResolvedValue(0);
   logout.mockReset();
 });
 
@@ -44,35 +44,35 @@ afterEach(() => {
 
 describe('NotificationsProvider : la cloche se met à jour seule (#211)', () => {
   it('recharge le compteur toutes les 30 secondes, sans changer de page', async () => {
-    listNotifications.mockResolvedValueOnce({ unreadCount: 0 }).mockResolvedValueOnce({ unreadCount: 1 });
+    countUnreadNotifications.mockResolvedValueOnce(0).mockResolvedValueOnce(1);
     renderBell();
     await flush();
     expect(screen.getByText('non lues : 0')).toBeInTheDocument();
 
     await act(async () => vi.advanceTimersByTime(REFRESH_EVERY_MS));
 
-    expect(listNotifications).toHaveBeenCalledTimes(2);
+    expect(countUnreadNotifications).toHaveBeenCalledTimes(2);
     expect(screen.getByText('non lues : 1')).toBeInTheDocument();
   });
 
   it('onglet caché : aucune requête ; au retour sur l’onglet, rechargement immédiat', async () => {
-    listNotifications.mockResolvedValue({ unreadCount: 2 });
+    countUnreadNotifications.mockResolvedValue(2);
     renderBell();
     await flush();
-    expect(listNotifications).toHaveBeenCalledTimes(1);
+    expect(countUnreadNotifications).toHaveBeenCalledTimes(1);
 
     visibility = 'hidden';
     await act(async () => vi.advanceTimersByTime(REFRESH_EVERY_MS * 3));
-    expect(listNotifications).toHaveBeenCalledTimes(1);
+    expect(countUnreadNotifications).toHaveBeenCalledTimes(1);
 
     visibility = 'visible';
     await act(async () => document.dispatchEvent(new Event('visibilitychange')));
-    expect(listNotifications).toHaveBeenCalledTimes(2);
+    expect(countUnreadNotifications).toHaveBeenCalledTimes(2);
     expect(screen.getByText('non lues : 2')).toBeInTheDocument();
   });
 
   it('arrête de recharger une fois la cloche retirée (déconnexion)', async () => {
-    listNotifications.mockResolvedValue({ unreadCount: 0 });
+    countUnreadNotifications.mockResolvedValue(0);
     const { unmount } = renderBell();
     await flush();
     unmount();
@@ -80,11 +80,11 @@ describe('NotificationsProvider : la cloche se met à jour seule (#211)', () => 
     await act(async () => vi.advanceTimersByTime(REFRESH_EVERY_MS * 2));
     document.dispatchEvent(new Event('visibilitychange'));
 
-    expect(listNotifications).toHaveBeenCalledTimes(1);
+    expect(countUnreadNotifications).toHaveBeenCalledTimes(1);
   });
 
   it('une requête en échec laisse le compteur tel quel, sans déconnecter', async () => {
-    listNotifications.mockResolvedValueOnce({ unreadCount: 3 }).mockRejectedValueOnce({ status: 0, message: 'réseau' });
+    countUnreadNotifications.mockResolvedValueOnce(3).mockRejectedValueOnce({ status: 0, message: 'réseau' });
     renderBell();
     await flush();
     await act(async () => vi.advanceTimersByTime(REFRESH_EVERY_MS));
@@ -94,7 +94,7 @@ describe('NotificationsProvider : la cloche se met à jour seule (#211)', () => 
   });
 
   it('session expirée (401) : déconnexion, au lieu de réessayer sans fin', async () => {
-    listNotifications.mockResolvedValueOnce({ unreadCount: 1 }).mockRejectedValueOnce({ status: 401 });
+    countUnreadNotifications.mockResolvedValueOnce(1).mockRejectedValueOnce({ status: 401 });
     renderBell();
     await flush();
     await act(async () => vi.advanceTimersByTime(REFRESH_EVERY_MS));
@@ -104,7 +104,7 @@ describe('NotificationsProvider : la cloche se met à jour seule (#211)', () => 
 
   it('une mise à jour faite par un écran l’emporte sur un rechargement encore en route', async () => {
     let answer;
-    listNotifications.mockResolvedValueOnce({ unreadCount: 2 }).mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    countUnreadNotifications.mockResolvedValueOnce(2).mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
     function Reader() {
       const { setUnreadCount } = useContext(NotificationsContext);
       return (
@@ -124,7 +124,7 @@ describe('NotificationsProvider : la cloche se met à jour seule (#211)', () => 
     await flush();
     await act(async () => vi.advanceTimersByTime(REFRESH_EVERY_MS)); // rechargement parti, pas encore revenu
     await act(async () => screen.getByRole('button', { name: 'lire' }).click());
-    await act(async () => answer({ unreadCount: 5 }));
+    await act(async () => answer(5));
 
     expect(screen.getByText('non lues : 1')).toBeInTheDocument();
   });
