@@ -125,7 +125,8 @@ function ProjectDetails({ project, canEdit, canReport }) {
   const locality = commonLocality(subProjects);
   const period = formatPeriod(project.start_date, project.end_date);
   // Un projet non découpé a un seul sous-projet qui porte son nom : pas de découpage à montrer.
-  const isSplit = subProjects.length > 1;
+  // Seuls les groupes actifs comptent (#250) : un groupe retiré ne fait pas un découpage.
+  const isSplit = subProjects.filter((sub) => sub.is_active !== false).length > 1;
 
   return (
     <>
@@ -205,7 +206,10 @@ function ProjectDetails({ project, canEdit, canReport }) {
           <ul className="subproject-grid">
             {subProjects.map((sub) => (
               <li key={sub.id} className="subproject-card">
-                <p className="subproject-name">{sub.name}</p>
+                <p className="subproject-name">
+                  {sub.name}
+                  {sub.is_active === false && <span className="tag">Retiré</span>}
+                </p>
                 <p className="subproject-meta">
                   {[sub.organization, sub.class_group, sub.age_range].filter(Boolean).join(' · ') || 'Groupe'}
                 </p>
@@ -225,6 +229,7 @@ function ProjectDetails({ project, canEdit, canReport }) {
 
 const GROUP_FIELDS = [
   { key: 'name', label: 'Nom du groupe', required: true, maxLength: 150, requiredMessage: 'Indiquez le nom du groupe.' },
+  { key: 'class_group', label: 'Classe ou groupe', maxLength: 100 },
   { key: 'age_range', label: 'Tranche d’âge', maxLength: 30 },
   { key: 'expected_headcount', label: 'Effectif prévu', inputMode: 'numeric', pattern: /^[1-9]\d{0,4}$/, patternMessage: 'Indiquez un nombre entier d’élèves.' },
   { key: 'organization', label: 'Structure', maxLength: 150 },
@@ -244,6 +249,7 @@ const GROUP_WORDING = {
 
 const groupMeta = (g) =>
   [
+    g.class_group,
     g.age_range,
     g.expected_headcount ? `${g.expected_headcount} élèves prévus` : null,
     g.organization,

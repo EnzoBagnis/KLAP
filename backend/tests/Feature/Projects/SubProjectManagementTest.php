@@ -68,8 +68,10 @@ class SubProjectManagementTest extends TestCase
 
     public function test_retire_puis_remet_un_groupe_mais_garde_toujours_un_groupe_actif(): void
     {
-        $this->patchJson("/api/sub-projects/{$this->group->id}", ['is_active' => false])->assertUnprocessable()
-            ->assertJsonPath('errors.is_active.0', 'Un projet garde au moins un groupe actif : ajoutez-en un autre avant de retirer celui-ci.');
+        foreach ([false, 0, '0'] as $off) {
+            $this->patchJson("/api/sub-projects/{$this->group->id}", ['is_active' => $off])->assertUnprocessable()
+                ->assertJsonPath('errors.is_active.0', 'Un projet garde au moins un groupe actif : ajoutez-en un autre avant de retirer celui-ci.');
+        }
 
         SubProject::factory()->for($this->project)->create(['name' => 'Seconde 7']);
         $this->patchJson("/api/sub-projects/{$this->group->id}", ['is_active' => false])->assertOk()->assertJsonPath('data.is_active', false);

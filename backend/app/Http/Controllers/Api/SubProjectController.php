@@ -33,6 +33,10 @@ class SubProjectController extends Controller
     public function update(UpdateSubProjectRequest $request): SubProjectResource
     {
         $data = $request->validated();
+        // « 0 », « false », false… : la règle boolean accepte plusieurs écritures, on en garde une seule.
+        if (array_key_exists('is_active', $data)) {
+            $data['is_active'] = $request->boolean('is_active');
+        }
         $group = DB::transaction(function () use ($request, $data) {
             $this->editable($request->project()->id);
             $group = SubProject::query()->lockForUpdate()->findOrFail($request->group()->id);

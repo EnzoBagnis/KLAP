@@ -124,7 +124,7 @@ class ProjectController extends Controller
             ])->all())->save();
 
             // Projet non découpé : son sous-projet unique, créé au nom du projet, suit le renommage.
-            if ($project->wasChanged('name') && $project->subProjects()->count() === 1) {
+            if ($project->wasChanged('name') && $project->subProjects()->where('is_active', true)->count() === 1) {
                 $project->subProjects()->where('name', $formerName)->update(['name' => $project->name]);
             }
             if (array_key_exists('principal_user_id', $data)) {
