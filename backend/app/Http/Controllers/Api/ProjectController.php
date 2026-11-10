@@ -78,7 +78,7 @@ class ProjectController extends Controller
             // sans liste, un sous-projet unique porte le nom du projet.
             $subProjects = $data['sub_projects'] ?? [];
             if ($subProjects === []) {
-                $subProjects = [['name' => $project->name]];
+                $subProjects = [['name' => $project->name] + collect($data)->only(['age_range', 'expected_headcount'])->all()];
             }
 
             // Structure, ville et code postal saisis sur le projet servent de valeurs
