@@ -13,6 +13,12 @@ class ParticipantEvaluation extends Model
 
     public const PROGRESS = ['first_session', 'improvement', 'stagnation', 'regression'];
 
+    /**
+     * Mots-clés suggérés pour l'interaction (cahier des charges), comptés dans les statistiques,
+     * avec les débuts de mot qui les désignent (sans accent) : « conflictuel » compte pour « conflit ».
+     */
+    public const INTERACTION_KEYWORDS = ['écoute' => ['ecout'], 'entraide' => ['entraid'], 'conflit' => ['conflit', 'conflict']];
+
     protected $fillable = self::FIELDS;
 
     protected function casts(): array
