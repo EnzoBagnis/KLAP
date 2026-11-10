@@ -147,6 +147,16 @@ class PreReportTest extends TestCase
         $this->assertStringNotContainsString('Notes complémentaires', $text);
     }
 
+    public function test_une_fiche_sans_observation_n_a_pas_de_titre_vide(): void
+    {
+        $this->submitted(['highlights' => 'RAS', 'additional_notes' => 'Néant']);
+
+        $text = $this->text($this->download()->assertOk());
+        $this->assertStringNotContainsString('lundi 5 octobre 2026', $text);
+        $this->assertStringContainsString('Aucune observation à reprendre dans les fiches rendues sur la période.', $text);
+        $this->assertStringContainsString('Séances documentées : 1', $text);
+    }
+
     public static function emptyAnswers(): array
     {
         return ['NÉANT' => ['NÉANT'], 'R.A.S.' => ['R.A.S.'], 'ras!' => ['ras!'], 'Rien à signaler !' => ['Rien à signaler !'], '.rien.' => ['.rien.']];
