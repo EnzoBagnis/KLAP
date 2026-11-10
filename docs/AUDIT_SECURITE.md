@@ -131,6 +131,30 @@ Des tests automatiques couvrent chaque correction (`tests/Feature/Http/SecurityH
 
 ---
 
+### Ajouts du 10 novembre
+
+Deux nouveaux chemins ont été testés de l'extérieur le 10 novembre, sur l'appli en marche
+(build de production, `klap_test`) : la correction du lieu depuis la fiche (#215) et l'export Excel
+des statistiques (#219).
+
+| Requête | Compte | Attendu | Obtenu |
+|---|---|---|---|
+| `GET /statistics/export` | aucun | 401 | 401 |
+| `GET /statistics/export` | intervenant (Hugo) | 403 | 403 |
+| `GET /statistics/export?project_id=1 OR 1=1` | super-utilisatrice | 422 | 422 |
+| `GET /statistics/export` | super-utilisatrice | 200, sans cache partagé | 200, `Cache-Control: no-store, private`, `nosniff` |
+| `PATCH /logbook-entries/2` (lieu) | intervenant d'un autre projet (Hugo) | 404 | 404 |
+| `PATCH /logbook-entries/2` (lieu) | collègue du projet (Nina) | 403 | 403 |
+| `PATCH /logbook-entries/1` (lieu), fiche verrouillée | son autrice (Léa) | 403 | 403 |
+| `PATCH …` avec `location_id` = `"1 OR 1=1"`, ou un tableau | Léa | 422 | 422 |
+| `PATCH …` avec `session_date`, `scheduled_session_id` | Léa | champs ignorés | ignorés : la séance garde sa date et la fiche sa séance |
+
+- **Injection de formule dans Excel** : impossible. Les textes sont écrits comme des chaînes, jamais
+  comme des formules ; un nom de groupe `=HYPERLINK(...)` reste un texte (test automatique).
+- **Bug trouvé pendant ces tests** (#225) : une fiche rendue dont les temps forts valent « Rien » ne
+  pouvait plus être modifiée, car « rien » (4 caractères) était refusé alors que le message
+  l'accepte. Ce n'est pas une faille, mais un blocage : il est corrigé.
+
 ## 4. Scan OWASP ZAP
 
 Résultat du scan de base, avant puis après les corrections :
