@@ -109,4 +109,5 @@ Nombre de requêtes SQL par écran, sur les données de démo, puis avec deux fo
 
 - **Mise en ligne** : la liste de contrôle est sur #79 (HTTPS, adresse d'expédition des mails, tâche planifiée, CORS).
 - **Recette par la cliente** : les 60 scénarios à dérouler avec elle, et le procès-verbal à signer, sont dans `docs/RECETTE.md`.
+- **Audit fonctionnel du 10 novembre** : tous les cas d'utilisation joués par l'interface et la recette déroulée ; anomalies et questions pour la cliente dans `docs/AUDIT_FONCTIONNEL.md`.
 - **Questions à la cliente** : durées de conservation, champs du pré-bilan, brouillons visibles par les collègues.
