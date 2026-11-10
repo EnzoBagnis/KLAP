@@ -8,6 +8,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Statistiques à partir des fiches rendues (submitted, locked), sans rien stocker.
@@ -224,30 +225,33 @@ class StatisticsService
     /**
      * Ce que notent les intervenant·e·s, sur les fiches rendues du périmètre : nombre de fiches
      * par sensation et par évolution (toutes les valeurs, même à zéro, dans l'ordre de la fiche),
-     * et nombre de fiches dont l'interaction cite chaque mot-clé suggéré (texte libre : « Écoute
-     * et entraide dans les duos » compte pour « écoute » et pour « entraide »).
+     * et nombre de fiches dont l'interaction cite chaque mot-clé suggéré. L'interaction est un
+     * texte libre : « Écoute et entraide dans les duos » compte pour « écoute » et pour
+     * « entraide », sans tenir compte des majuscules ni des accents (« ecoute » sur téléphone).
      */
     private function observations(): array
     {
+        // Jointure gauche : une fiche rendue sans évaluation compte quand même dans le total.
         $rows = $this->scoped(DB::table('logbook_entries as le')
             ->join('scheduled_sessions as s', 's.id', '=', 'le.scheduled_session_id')
-            ->join('participant_evaluations as pe', 'pe.logbook_entry_id', '=', 'le.id')
+            ->leftJoin('participant_evaluations as pe', 'pe.logbook_entry_id', '=', 'le.id')
             ->whereIn('le.status', self::RENDERED))
             ->get(['pe.feeling', 'pe.progress', 'pe.interaction']);
 
         $count = fn (array $values, string $column) => collect($values)
             ->map(fn (string $value) => ['key' => $value, 'entries' => $rows->where($column, $value)->count()])
             ->values()->all();
-        // Le mot au début d'un mot (« conflits » compte pour « conflit »), sans tenir compte de la casse.
-        $cites = fn (?string $text, string $word) => $text !== null
-            && preg_match('/(?<!\pL)'.preg_quote($word, '/').'/u', mb_strtolower($text)) === 1;
+        // Un mot-clé est cité quand un mot du texte commence par l'une de ses formes.
+        $plain = fn (?string $text) => mb_strtolower(Str::ascii((string) $text));
+        $cites = fn (?string $text, array $stems) => collect($stems)
+            ->contains(fn (string $stem) => preg_match('/(?<![a-z])'.preg_quote($stem, '/').'/', $plain($text)) === 1);
 
         return [
             'entries' => $rows->count(),
             'feelings' => $count(ParticipantEvaluation::FEELINGS, 'feeling'),
             'progress' => $count(ParticipantEvaluation::PROGRESS, 'progress'),
             'interaction_keywords' => collect(ParticipantEvaluation::INTERACTION_KEYWORDS)
-                ->map(fn (string $word) => ['key' => $word, 'entries' => $rows->filter(fn ($row) => $cites($row->interaction, $word))->count()])
+                ->map(fn (array $stems, string $word) => ['key' => $word, 'entries' => $rows->filter(fn ($row) => $cites($row->interaction, $stems))->count()])
                 ->values()->all(),
         ];
     }
