@@ -103,6 +103,13 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
     reload();
   }, [reload]);
 
+  // Après « Enregistrer » ou « Annuler », le formulaire disparaît : le focus revient au titre.
+  const headingRef = useRef(null);
+  function close() {
+    setEditing(null);
+    requestAnimationFrame(() => headingRef.current?.focus());
+  }
+
   function open(target, item) {
     setEditing(target);
     setErrors({});
@@ -121,14 +128,15 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
       const payload = cleaned(fields, draft);
       if (editing === 'nouveau') {
         const created = await create(payload);
-        setState((current) => ({ ...current, items: [created, ...current.items] }));
+        // Liste relue : l'élément arrive complet (état, usage) et à sa place dans l'ordre.
+        setState({ status: 'ready', items: await load() });
         setNotice({ kind: 'success', text: `${noun} « ${name(created)} » ajouté.` });
       } else {
         const updated = await update(editing, payload);
         setState((current) => ({ ...current, items: current.items.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)) }));
         setNotice({ kind: 'success', text: `${noun} « ${name(updated)} » enregistré.` });
       }
-      setEditing(null);
+      close();
     } catch (error) {
       fail(error, 'L’enregistrement n’a pas abouti. Réessayez dans un instant.');
     } finally {
@@ -158,7 +166,7 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
   return (
     <section className="reference-list" aria-labelledby={headingId}>
       <div className="reference-heading">
-        <h2 id={headingId} className="section-title">
+        <h2 id={headingId} className="section-title" ref={headingRef} tabIndex={-1}>
           {title}
         </h2>
         {editing !== 'nouveau' && (
@@ -174,7 +182,7 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
         </p>
       )}
       {editing === 'nouveau' && (
-        <DraftForm fields={fields} draft={draft} setDraft={setDraft} errors={errors} onSubmit={submit} onCancel={() => setEditing(null)} submitLabel="Ajouter" busy={busy} idPrefix={`${headingId}-nouveau`} />
+        <DraftForm fields={fields} draft={draft} setDraft={setDraft} errors={errors} onSubmit={submit} onCancel={close} submitLabel="Ajouter" busy={busy} idPrefix={`${headingId}-nouveau`} />
       )}
       {state.status === 'loading' && <LoadingSpinner label="Chargement…" />}
       {state.status === 'error' && (
@@ -191,7 +199,7 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
           {state.items.map((item) => (
             <li key={item.id} className={`account-row${item.is_active === false ? ' is-inactive' : ''}`}>
               {editing === item.id ? (
-                <DraftForm fields={fields} draft={draft} setDraft={setDraft} errors={errors} onSubmit={submit} onCancel={() => setEditing(null)} submitLabel="Enregistrer" busy={busy} idPrefix={`${headingId}-${item.id}`} />
+                <DraftForm fields={fields} draft={draft} setDraft={setDraft} errors={errors} onSubmit={submit} onCancel={close} submitLabel="Enregistrer" busy={busy} idPrefix={`${headingId}-${item.id}`} />
               ) : (
                 <>
                   <div>

@@ -49,7 +49,15 @@ describe('Gestion › Listes (#249)', () => {
   });
 
   it('ajoute un financeur, après les contrôles du formulaire', async () => {
-    const fetchMock = mockApi({ ...lists, 'POST /funders': () => jsonResponse({ data: { id: 3, name: 'Région Sud', type: 'local_authority', is_active: true } }, 201) });
+    let created = false;
+    const fetchMock = mockApi({
+      ...lists,
+      'GET /funders': () => jsonResponse({ data: created ? [...FUNDERS, { id: 3, name: 'Région Sud', type: 'local_authority', is_active: true, projects_count: 0 }] : FUNDERS }),
+      'POST /funders': () => {
+        created = true;
+        return jsonResponse({ data: { id: 3, name: 'Région Sud', type: 'local_authority', is_active: true } }, 201);
+      },
+    });
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole('button', { name: named('Modifier', 'DRAC') });
@@ -66,7 +74,9 @@ describe('Gestion › Listes (#249)', () => {
     await user.click(within(funders).getByRole('button', { name: 'Ajouter' }));
     expect(await within(funders).findByRole('status')).toHaveTextContent('Financeur « Région Sud » ajouté.');
     expect(JSON.parse(calls(fetchMock, 'POST')[0][1].body)).toEqual({ name: 'Région Sud', type: 'local_authority' });
-    expect(within(funders).getByText('Collectivité · Aucun projet')).toBeInTheDocument();
+    // La liste est relue : l'élément ajouté arrive complet, avec son usage.
+    expect(await within(funders).findByText('Collectivité · Aucun projet')).toBeInTheDocument();
+    expect(within(funders).getByRole('heading', { name: 'Financeurs' })).toHaveFocus();
   });
 
   it('corrige un lieu sur place et affiche l’erreur de l’API sur le bon champ', async () => {
