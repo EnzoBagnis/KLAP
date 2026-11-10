@@ -311,6 +311,13 @@
   gap: 24px;
 }
 
+.statistics-observation-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
 .bar-chart-value {
   font-family: var(--font-mono);
   font-size: var(--text-13);
