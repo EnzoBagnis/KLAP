@@ -50,6 +50,18 @@ function Layout() {
 
   return (
     <div className={`app-layout${menuOpen ? ' menu-open' : ''}`}>
+      {/* Lien d'évitement (RGAA 12.7, #233) : premier élément au clavier, visible quand il a le focus. */}
+      <a
+        href="#contenu"
+        className="skip-link"
+        onClick={(event) => {
+          // Pas de changement d'adresse : le focus va directement à la zone principale.
+          event.preventDefault();
+          document.getElementById('contenu')?.focus();
+        }}
+      >
+        Aller au contenu
+      </a>
       <Header
         menuOpen={menuOpen}
         onToggleMenu={toggleMenu}
@@ -64,7 +76,7 @@ function Layout() {
         onNavigate={closeMenu}
         notificationCount={notificationCount}
       />
-      <main className="app-main">
+      <main className="app-main" id="contenu" tabIndex={-1}>
         <Outlet />
       </main>
     </div>
