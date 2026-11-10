@@ -159,7 +159,8 @@ class FormListsTest extends TestCase
             ->assertOk()
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.name', 'DRAC')
-            ->assertJsonPath('data.1', ['id' => $ville->id, 'name' => 'Ville de Marseille', 'type' => 'local_authority']);
+            // Avec l'état et l'usage (#249), pour l'écran Gestion › Listes.
+            ->assertJsonPath('data.1', ['id' => $ville->id, 'name' => 'Ville de Marseille', 'type' => 'local_authority', 'is_active' => true, 'projects_count' => 0]);
     }
 
     public function test_les_listes_vides_renvoient_un_tableau_vide(): void

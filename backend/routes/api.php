@@ -103,7 +103,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Gestion des comptes (#159) : liste, désactivation et réactivation, jamais de suppression.
         Route::get('accounts', [AccountController::class, 'index']);
         Route::patch('accounts/{account}', [AccountController::class, 'update']);
+        // Financeurs (#249) : liste gérée par l'administratrice, sans suppression.
         Route::get('funders', [FunderController::class, 'index']);
+        Route::post('funders', [FunderController::class, 'store']);
+        Route::patch('funders/{funder}', [FunderController::class, 'update']);
+        // Corriger, désactiver ou réactiver un lieu (#249) ; la création reste ouverte à tous.
+        Route::patch('locations/{location}', [LocationController::class, 'update']);
 
         // Inviter une personne à créer son compte (#126).
         Route::post('invitations', [InvitationController::class, 'store']);
