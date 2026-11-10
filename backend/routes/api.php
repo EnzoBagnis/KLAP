@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ProjectTypeController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScheduledSessionController;
 use App\Http\Controllers\Api\StatisticsController;
+use App\Http\Controllers\Api\StatisticsExportController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -73,6 +74,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Statistiques (#113) : administration seulement, en lecture.
     Route::get('statistics', StatisticsController::class)->middleware('role:admin,super_user');
+    // Export Excel de l'écran Statistiques (#219) : mêmes filtres, mêmes droits.
+    Route::get('statistics/export', StatisticsExportController::class)->middleware('role:admin,super_user');
     // Pré-bilan Word d'un projet pour un financeur (#143).
     Route::get('projects/{project}/pre-report', [ReportController::class, 'preReport'])->middleware('role:admin,super_user');
 
