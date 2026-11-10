@@ -23,7 +23,7 @@ const entry = (overrides = {}) => ({
     session_type: 'practice_workshop',
     session_type_detail: null,
     project: { id: 1, name: 'Arts Danse au Lycée Charles' },
-    location: { id: 2, name: 'Grand studio' },
+    location: { id: 2, name: 'Grand studio', city: 'Marseille' },
     sub_projects: [{ id: 11, name: 'Seconde 3', attendees: null }],
   },
   objectives: null,
@@ -147,7 +147,9 @@ describe('Ouverture depuis le planning', () => {
     });
     renderAt('/planning/seances/1/fiche');
     await screen.findByRole('heading', { name: 'Arts Danse au Lycée Charles' });
-    expect(screenCalls(fetchMock).map(([, o]) => o?.method ?? 'GET')).toEqual(['GET', 'POST', 'GET']);
+    // La liste des lieux (menu de l'étape 1, #215) se charge à part.
+    const calls = screenCalls(fetchMock).filter(([url]) => !String(url).endsWith('/locations'));
+    expect(calls.map(([, o]) => o?.method ?? 'GET')).toEqual(['GET', 'POST', 'GET']);
   });
 
   it('relit la fiche si une autre ouverture l’a créée entre-temps', async () => {
@@ -177,10 +179,88 @@ describe('Fiche de séance', () => {
   it('rappelle la séance et l’échéance à la première étape', async () => {
     mockApi({ 'GET /logbook-entries/7': () => jsonResponse({ data: entry() }) });
     renderAt('/fiches/7');
-    expect(await screen.findByText('Grand studio')).toBeInTheDocument();
+    expect(await screen.findByLabelText(/Lieu de la séance/)).toHaveDisplayValue('Grand studio (Marseille)');
     expect(screen.getByText(/Modifiable jusqu’au 15\/10\/2026 inclus/)).toBeInTheDocument();
     expect(screen.getByText(/Ne citez pas d’élève par son nom/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Généralités/ })).toHaveAttribute('aria-current', 'step');
+  });
+
+  // « Le lieu est modifiable par tout utilisateur » (projets en tournée) : #215.
+  it('corrige le lieu de la séance à la première étape ; il part avec le brouillon', async () => {
+    const fetchMock = mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: entry() }),
+      'GET /locations': () =>
+        jsonResponse({
+          data: [
+            { id: 2, name: 'Grand studio', city: 'Marseille', postal_code: '13003' },
+            { id: 5, name: 'Théâtre de Gap', city: 'Gap', postal_code: '05000' },
+          ],
+        }),
+      'PATCH /logbook-entries/7': () =>
+        jsonResponse({ data: entry({ session: { ...entry().session, location: { id: 5, name: 'Théâtre de Gap', city: 'Gap' } } }) }),
+    });
+    const user = userEvent.setup();
+    renderAt('/fiches/7');
+    const select = await screen.findByLabelText(/Lieu de la séance/);
+    await screen.findByRole('option', { name: 'Théâtre de Gap (Gap)' });
+    await user.selectOptions(select, 'Théâtre de Gap (Gap)');
+    await user.click(screen.getByRole('button', { name: 'Étape suivante' }));
+
+    await screen.findByRole('heading', { name: '2. Objectifs' });
+    expect(bodyOf(fetchMock, 'PATCH').location_id).toBe(5);
+  });
+
+  it('sans changement de lieu, rien n’est enregistré en changeant d’étape', async () => {
+    const fetchMock = mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: entry() }),
+      'GET /locations': () => jsonResponse({ data: [{ id: 2, name: 'Grand studio', city: 'Marseille', postal_code: '13003' }] }),
+    });
+    const user = userEvent.setup();
+    renderAt('/fiches/7');
+    await screen.findByLabelText(/Lieu de la séance/);
+    await user.click(screen.getByRole('button', { name: 'Étape suivante' }));
+    await screen.findByRole('heading', { name: '2. Objectifs' });
+    expect(fetchMock.mock.calls.filter(([, o]) => o?.method === 'PATCH')).toHaveLength(0);
+  });
+
+  it('une fiche en lecture seule montre le lieu sans menu', async () => {
+    mockApi({ 'GET /logbook-entries/7': () => jsonResponse({ data: entry({ editable: false, author: { id: 9, name: 'Paul Martin' } }) }) });
+    renderAt('/fiches/7');
+    expect(await screen.findByText('Grand studio (Marseille)')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Lieu de la séance/)).not.toBeInTheDocument();
+  });
+
+  it('un lieu refusé par l’API est signalé à la première étape', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: entry() }),
+      'GET /locations': () =>
+        jsonResponse({
+          data: [
+            { id: 2, name: 'Grand studio', city: 'Marseille', postal_code: '13003' },
+            { id: 5, name: 'Théâtre de Gap', city: 'Gap', postal_code: '05000' },
+          ],
+        }),
+      'PATCH /logbook-entries/7': () =>
+        jsonResponse({ message: 'Invalid', errors: { location_id: ['Le lieu choisi n’existe pas ou n’est plus actif.'] } }, 422),
+    });
+    const user = userEvent.setup();
+    renderAt('/fiches/7');
+    await screen.findByRole('option', { name: 'Théâtre de Gap (Gap)' });
+    await user.selectOptions(screen.getByLabelText(/Lieu de la séance/), 'Théâtre de Gap (Gap)');
+    await user.click(screen.getByRole('button', { name: 'Étape suivante' }));
+
+    expect(await screen.findByText('Le lieu choisi n’existe pas ou n’est plus actif.')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Étapes concernées : Généralités.');
+  });
+
+  it('le lieu actuel reste proposé et choisi, même absent de la liste des lieux actifs', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: entry() }),
+      'GET /locations': () => jsonResponse({ data: [{ id: 5, name: 'Théâtre de Gap', city: 'Gap', postal_code: '05000' }] }),
+    });
+    renderAt('/fiches/7');
+    await screen.findByRole('option', { name: 'Théâtre de Gap (Gap)' });
+    expect(screen.getByLabelText(/Lieu de la séance/)).toHaveDisplayValue('Grand studio (Marseille)');
   });
 
   it('enregistre le brouillon en changeant d’étape, seulement s’il a changé', async () => {
@@ -403,7 +483,8 @@ it('n’envoie rien quand rien n’a changé', async () => {
   renderAt('/fiches/7');
   await user.click(await screen.findByRole('button', { name: 'Étape suivante' }));
   await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('etape=2'));
-  expect(screenCalls(fetchMock)).toHaveLength(1);
+  // Seule la fiche est chargée (et la liste des lieux de l'étape 1, #215) : aucun enregistrement.
+  expect(screenCalls(fetchMock).filter(([url]) => !String(url).endsWith('/locations'))).toHaveLength(1);
 });
 
 describe('Cas d’erreur et garde-fous', () => {

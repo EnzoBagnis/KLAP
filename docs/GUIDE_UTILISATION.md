@@ -51,7 +51,9 @@ La fiche s'ouvre dès le jour de la séance, depuis le tableau de bord (« Rempl
 depuis la séance dans le planning. Elle compte six étapes :
 
 1. **Généralités** : un rappel de la séance telle qu'elle est au planning (projet, date, horaire,
-   lieu, groupes). Rien à saisir ici. Si une information est fausse, signalez-le à l'administratrice.
+   groupes). Seul le **lieu** se corrige ici : choisissez-le dans la liste, ou créez-le avec
+   « Nouveau lieu… » (nom, code postal, ville), pour un projet en tournée par exemple. Il change
+   aussi au planning. Les autres informations ne se modifient plus une fois la fiche ouverte.
 2. **Objectifs** : les objectifs pédagogiques et artistiques.
 3. **La séance** :
    - les exercices proposés (de 2 à 10) ;
