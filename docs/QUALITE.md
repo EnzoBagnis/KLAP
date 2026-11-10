@@ -89,5 +89,5 @@ Nombre de requêtes SQL par écran, sur les données de démo, puis avec deux fo
 ## 7. Ce qui reste à faire (connu)
 
 - **Mise en ligne** : la liste de contrôle est sur #79 (HTTPS, adresse d'expédition des mails, tâche planifiée, CORS).
-- **Recette par la cliente** : les 58 scénarios à dérouler avec elle, et le procès-verbal à signer, sont dans `docs/RECETTE.md`.
+- **Recette par la cliente** : les 59 scénarios à dérouler avec elle, et le procès-verbal à signer, sont dans `docs/RECETTE.md`.
 - **Questions à la cliente** : durées de conservation, champs du pré-bilan, brouillons visibles par les collègues.
