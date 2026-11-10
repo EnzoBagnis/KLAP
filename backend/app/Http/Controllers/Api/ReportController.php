@@ -36,8 +36,13 @@ class ReportController extends Controller
         $name = 'pre-bilan-'.$slug($project->name, 'projet').'-'.$slug($funder->name, 'financeur')
             .'-'.now('Europe/Paris')->format('Y-m-d').'.docx';
 
-        return response()->download($path, $name, [
+        $response = response()->download($path, $name, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ])->deleteFileAfterSend();
+        // Document réservé à l'administration : jamais gardé par un cache partagé (#219).
+        $response->setPrivate();
+        $response->headers->addCacheControlDirective('no-store');
+
+        return $response;
     }
 }

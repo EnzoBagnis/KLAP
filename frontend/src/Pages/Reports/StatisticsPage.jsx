@@ -69,6 +69,8 @@ export default function StatisticsPage() {
     const request = ++lastRequest.current;
     const outdated = () => request !== lastRequest.current;
     setState({ status: 'loading', data: null, error: '', fieldErrors: {} });
+    // Un message d'export porte sur les chiffres d'avant : il disparaît avec eux.
+    setExportMessage(null);
     getStatistics({ projectId, from, to })
       .then((data) => !outdated() && setState({ status: 'ready', data, error: '', fieldErrors: {} }))
       .catch((error) => {
@@ -170,8 +172,12 @@ export default function StatisticsPage() {
           {exporting ? 'Préparation du fichier…' : 'Exporter en Excel'}
         </Button>
       </div>
-      {exportMessage && (
-        <p className={exportMessage.tone === 'error' ? 'form-alert' : 'form-success'} role={exportMessage.tone === 'error' ? 'alert' : 'status'}>
+      {/* Zone d'annonce toujours présente : un lecteur d'écran annonce mieux un texte qui y change. */}
+      <div role="status" aria-live="polite" className={exportMessage?.tone === 'success' ? 'form-success' : undefined}>
+        {exportMessage?.tone === 'success' ? exportMessage.text : ''}
+      </div>
+      {exportMessage?.tone === 'error' && (
+        <p className="form-alert" role="alert">
           {exportMessage.text}
         </p>
       )}

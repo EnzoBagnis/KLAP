@@ -26,22 +26,33 @@ class StatisticsExport
 
     public function write(string $path): void
     {
+        [$summary, $notes] = $this->summary();
         (new XlsxWriter)
-            ->sheet('Synthèse', $this->summary(), [0])
-            ->sheet('Par projet', $this->projects())
-            ->sheet('Provenance', $this->breakdown('by_city', ['Ville', 'Code postal'], fn ($row) => [$row['city'] ?? 'Non renseignée', $row['postal_code'] ?? 'Non renseigné']))
-            ->sheet('Âge', $this->breakdown('by_age_range', ['Tranche d’âge'], fn ($row) => [$row['age_range'] ?? 'Non renseignée']))
+            ->sheet('Synthèse', $summary, [0], $notes)
+            // Projets et groupes séparés : une somme d'une colonne ne compte rien deux fois
+            // (les participants d'un projet sont déjà la somme de ses groupes).
+            ->sheet('Projets', $this->projects())
+            ->sheet('Groupes', $this->groups())
+            ->sheet('Provenance', $this->breakdown('by_city', ['Ville', 'Code postal'], fn ($row) => [($row['city'] ?? '') ?: 'Non renseignée', ($row['postal_code'] ?? '') ?: 'Non renseigné']))
+            ->sheet('Âge', $this->breakdown('by_age_range', ['Tranche d’âge'], fn ($row) => [($row['age_range'] ?? '') ?: 'Non renseignée']))
             ->sheet('Observations', ...$this->observations())
             ->save($path);
     }
 
+    /** Moyenne sur 5, ou « Non renseigné » sans aucune note (jamais 0, comme à l'écran). */
+    private static function average(?float $value): float|string
+    {
+        return $value ?? 'Non renseigné';
+    }
+
+    /** @return array{0: list<list<string|int|float|null>>, 1: list<int>} lignes, et lignes de note */
     private function summary(): array
     {
         $filters = $this->data['filters'];
         $totals = $this->data['totals'];
         $date = fn (?string $value) => $value === null ? null : Carbon::parse($value)->format('d/m/Y');
 
-        return [
+        $rows = [
             ['Statistiques KLAP'],
             ['Projet', $this->projectName ?? 'Tous les projets'],
             ['Du', $date($filters['from']) ?? 'Début des projets'],
@@ -52,27 +63,36 @@ class StatisticsExport
             ['Séances documentées', $totals['sessions_documented']],
             ['Fiches en retard', $totals['entries_missing']],
             ['dont hors délai', $totals['entries_overdue']],
-            ['Engagement (moyenne sur 5)', $totals['avg_engagement']],
-            ['Expression (moyenne sur 5)', $totals['avg_expression']],
-            ['Autonomie (moyenne sur 5)', $totals['avg_autonomy']],
+            ['Engagement (moyenne sur 5)', self::average($totals['avg_engagement'])],
+            ['Expression (moyenne sur 5)', self::average($totals['avg_expression'])],
+            ['Autonomie (moyenne sur 5)', self::average($totals['avg_autonomy'])],
             [],
-            ['Participants d’un groupe : le maximum des présents sur ses séances. Participants d’un projet : la somme de ses groupes (une classe venue à plusieurs séances n’est comptée qu’une fois).'],
+            ['Participants d’un groupe : le maximum des présents sur ses séances. Participants d’un projet : la somme de ses groupes (une classe venue à plusieurs séances n’est comptée qu’une fois). Ce n’est pas un nombre de personnes distinctes.'],
+            ['Assiduité : présents en moyenne sur les séances documentées, rapportés à l’effectif prévu du groupe (plus de 100 % si plus de présents que prévu).'],
+            ['Fiches en retard : séances passées sans fiche rendue ; hors délai : échéance de modification passée.'],
             ['Calculé à partir des fiches rendues ; séances annulées exclues.'],
         ];
+
+        return [$rows, [count($rows) - 4, count($rows) - 3, count($rows) - 2, count($rows) - 1]];
     }
 
     private function projects(): array
     {
-        $rows = [[
-            'Projet', 'Groupe', 'Tranche d’âge', 'Ville', 'Code postal', 'Effectif prévu', 'Participants', 'Séances documentées',
-            'Présents en moyenne', 'Assiduité (%)', 'Fiches en retard', 'dont hors délai', 'Engagement', 'Expression', 'Autonomie',
-        ]];
+        $rows = [['Projet', 'Participants', 'Séances documentées', 'Fiches en retard', 'dont hors délai', 'Engagement', 'Expression', 'Autonomie']];
         foreach ($this->data['projects'] as $project) {
             $rows[] = [
-                $project['name'], 'Tout le projet', null, null, null, null, $project['participants'], $project['sessions_documented'],
-                null, null, $project['entries_missing'], $project['entries_overdue'],
-                $project['avg_engagement'], $project['avg_expression'], $project['avg_autonomy'],
+                $project['name'], $project['participants'], $project['sessions_documented'], $project['entries_missing'], $project['entries_overdue'],
+                self::average($project['avg_engagement']), self::average($project['avg_expression']), self::average($project['avg_autonomy']),
             ];
+        }
+
+        return $rows;
+    }
+
+    private function groups(): array
+    {
+        $rows = [['Projet', 'Groupe', 'Tranche d’âge', 'Ville', 'Code postal', 'Effectif prévu', 'Participants', 'Séances documentées', 'Présents en moyenne', 'Assiduité (%)']];
+        foreach ($this->data['projects'] as $project) {
             // Le nom du projet est répété sur chaque groupe : le filtre d'Excel garde le lien.
             foreach ($project['sub_projects'] as $group) {
                 $rows[] = [
