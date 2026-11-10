@@ -7,6 +7,7 @@ use App\Models\ParticipantEvaluation;
 use App\Models\ScheduledSession;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -78,6 +79,18 @@ class LogbookRules
         return ($evaluation['feeling'] ?? null) === 'other' && $detail === ''
             ? ['evaluation.feeling_detail' => 'Précisez la sensation quand vous choisissez « autre ».']
             : [];
+    }
+
+    /**
+     * « Rien » est une réponse acceptée aux temps forts quand il n'y en a pas eu (#225), quelle
+     * que soit la façon de l'écrire : « rien », « Rien. », « RAS », « néant ». Le pré-bilan écarte
+     * ensuite ces réponses (PreReportService::EMPTY_ANSWERS).
+     */
+    private static function saysNothing(string $text): bool
+    {
+        $plain = mb_strtolower(trim(Str::ascii($text), ' .!'));
+
+        return in_array($plain, ['rien', 'ras', 'r.a.s', 'neant'], true);
     }
 
     public static function messages(): array
@@ -159,7 +172,7 @@ class LogbookRules
             $errors['objectives'] = 'Indiquez les objectifs pédagogiques et artistiques.';
         }
         $highlights = trim((string) ($state['highlights'] ?? ''));
-        if (mb_strlen($highlights) < 5) {
+        if (mb_strlen($highlights) < 5 && ! self::saysNothing($highlights)) {
             $errors['highlights'] = 'Décrivez les temps forts (5 caractères au moins, « rien » est accepté s’il n’y en a pas eu).';
         }
         $count = count($state['exercises'] ?? []);

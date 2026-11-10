@@ -52,8 +52,32 @@ class SubmitLogbookTest extends TestCase
             'sans interaction' => [['evaluation' => ['interaction' => null]], 'evaluation.interaction'],
             'sans objectifs' => [['objectives' => null], 'objectives'],
             'temps forts trop courts' => [['highlights' => 'ok'], 'highlights'],
+            'temps forts : ponctuation seule' => [['highlights' => '...'], 'highlights'],
             'sans « à reprendre »' => [['next_steps' => null], 'next_steps'],
         ];
+    }
+
+    public static function nothingToReport(): array
+    {
+        // Moins de 5 caractères : refusés avant le correctif.
+        return ['rien' => ['rien'], 'Rien' => ['Rien'], 'RAS' => ['RAS'], 'RAS.' => ['RAS.'], 'ras!' => ['ras!']];
+    }
+
+    /** « rien » est accepté quand il n'y a pas eu de temps fort, comme le dit le message (#225). */
+    #[DataProvider('nothingToReport')]
+    public function test_rien_est_accepte_dans_les_temps_forts(string $highlights): void
+    {
+        $id = $this->createEntry($this->completePayload(['highlights' => $highlights]));
+
+        $this->postJson("/api/logbook-entries/{$id}/submit")->assertOk();
+    }
+
+    public function test_une_fiche_rendue_avec_rien_reste_modifiable(): void
+    {
+        $id = $this->createEntry($this->completePayload(['highlights' => 'Rien']));
+        $this->postJson("/api/logbook-entries/{$id}/submit")->assertOk();
+
+        $this->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'Écoute du groupe'])->assertOk();
     }
 
     #[DataProvider('incomplete')]
