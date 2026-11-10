@@ -117,6 +117,8 @@ class ScheduledSessionController extends Controller
         $found = DB::transaction(function () use ($session) {
             $found = $this->lockedSession($session);
             abort_if($found->status === 'cancelled', 409, 'Cette séance est déjà annulée.');
+            // Un projet archivé est figé (#241) : comme pour la modification et le rétablissement.
+            abort_if($found->project->status === 'archived', 409, 'Ce projet est archivé : sa séance ne s’annule plus.');
             abort_if($found->logbookEntry()->exists(), 409, 'Cette séance a déjà une fiche : elle ne s’annule plus.');
             $found->forceFill(['status' => 'cancelled'])->save();
 
