@@ -9,6 +9,11 @@ export async function listNotifications() {
   return { notifications: response.data, unreadCount: response.meta.unread_count };
 }
 
+/** GET /notifications/unread-count : le nombre de non-lues seulement, pour la cloche (#227). */
+export async function countUnreadNotifications() {
+  return (await apiRequest('/notifications/unread-count', { token: getToken() })).data.unread_count;
+}
+
 export async function markNotificationRead(id) {
   return (await apiRequest(`/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH', body: {}, token: getToken() }))
     .data;

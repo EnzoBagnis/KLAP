@@ -24,6 +24,14 @@ class NotificationController extends Controller
         )->additional(['meta' => ['unread_count' => (clone $own)->unread()->count()]]);
     }
 
+    /** Nombre de non-lues seulement : la cloche le recharge toutes les 30 secondes (#227). */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $count = KlapNotification::query()->where('recipient_id', $request->user()->id)->unread()->count();
+
+        return response()->json(['data' => ['unread_count' => $count]]);
+    }
+
     /** Idempotent : une notification déjà lue garde sa date de lecture. */
     public function read(Request $request, string $notification): NotificationResource
     {
