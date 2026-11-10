@@ -65,6 +65,15 @@ export function dayTitle(isoDate) {
   );
 }
 
+/** Délai d'une fiche : jusqu'au 10ᵉ jour après la séance inclus, comme l'API (LogbookEntry::EDIT_DAYS). */
+export const ENTRY_EDIT_DAYS = 10;
+
+/** Dernier jour où la fiche d'une séance peut s'ouvrir : « 2026-10-05 » donne « 2026-10-15 ». */
+export function entryDeadline(isoDate) {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + ENTRY_EDIT_DAYS)).toISOString().slice(0, 10);
+}
+
 /** Date du jour à l'heure de KLAP (Paris), comme l'API, au format « 2026-11-05 ». */
 export function todayKey(date = new Date()) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(date);
