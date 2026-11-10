@@ -26,8 +26,21 @@ const EMPTY_FORM = {
   default_location_id: '',
   principal_user_id: '',
   funder_ids: [],
+  // Projet non découpé (#244) : âge et effectif du groupe unique.
+  age_range: '',
+  expected_headcount: '',
   sub_projects: [],
 };
+
+const EMPTY_SUB_PROJECT = { name: '', age_range: '', expected_headcount: '' };
+
+/** Effectif prévu : vide, ou un entier de 1 à 65535. Message, ou null s'il est valable. */
+function headcountError(value = '') {
+  if (value === '') return null;
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 1 && number <= 65535 ? null : 'Indiquez un nombre entier d’élèves, entre 1 et 65535.';
+}
+const AGE_RANGE_ERROR = 'La tranche d’âge ne doit pas dépasser 30 caractères.';
 
 /*
  * Contrôles faits avant l'envoi. Ils reprennent ceux de l'API (qui reste juge) pour
@@ -59,7 +72,15 @@ export function validateProject(form) {
     if (!name) errors[key] = 'Nommez ce sous-projet ou retirez la ligne.';
     else if (seen.has(name.toLowerCase())) errors[key] = 'Deux sous-projets portent le même nom.';
     seen.add(name.toLowerCase());
+    if ((sub.age_range ?? '').trim().length > 30) errors[`sub_projects.${index}.age_range`] = AGE_RANGE_ERROR;
+    const headcount = headcountError(sub.expected_headcount);
+    if (headcount) errors[`sub_projects.${index}.expected_headcount`] = headcount;
   });
+  if (!form.sub_projects.length) {
+    if ((form.age_range ?? '').trim().length > 30) errors.age_range = AGE_RANGE_ERROR;
+    const headcount = headcountError(form.expected_headcount);
+    if (headcount) errors.expected_headcount = headcount;
+  }
   return errors;
 }
 
@@ -73,8 +94,17 @@ export function toPayload(form) {
     if (form[key] !== '') payload[key] = Number(form[key]);
   }
   payload.funder_ids = form.funder_ids.map(Number);
-  // Sans sous-projet, l'API en crée un qui porte le nom du projet.
-  if (form.sub_projects.length) payload.sub_projects = form.sub_projects.map((sub) => ({ name: sub.name.trim() }));
+  // Âge et effectif : sans eux, les statistiques n'ont ni tranche d'âge ni assiduité (#244).
+  const details = ({ age_range: age = '', expected_headcount: headcount = '' }) => ({
+    ...(age.trim() ? { age_range: age.trim() } : {}),
+    ...(headcount !== '' ? { expected_headcount: Number(headcount) } : {}),
+  });
+  if (form.sub_projects.length) {
+    payload.sub_projects = form.sub_projects.map((sub) => ({ name: sub.name.trim(), ...details(sub) }));
+  } else {
+    // Sans sous-projet, l'API en crée un qui porte le nom du projet, avec cet âge et cet effectif.
+    Object.assign(payload, details(form));
+  }
   return payload;
 }
 
@@ -82,6 +112,7 @@ export function toPayload(form) {
 const DISPLAYED_FIELDS = new Set([
   'name', 'project_type_id', 'organization', 'city', 'postal_code', 'planned_sessions',
   'start_date', 'end_date', 'default_location_id', 'principal_user_id', 'funder_ids',
+  'age_range', 'expected_headcount',
 ]);
 
 /**
@@ -94,7 +125,7 @@ export function mapServerErrors(errors) {
   const others = [];
   for (const [key, messages] of Object.entries(errors ?? {})) {
     const target = key.startsWith('funder_ids.') ? 'funder_ids' : key;
-    if (DISPLAYED_FIELDS.has(target) || /^sub_projects\.\d+\.name$/.test(target)) {
+    if (DISPLAYED_FIELDS.has(target) || /^sub_projects\.\d+\.(name|age_range|expected_headcount)$/.test(target)) {
       fields[target] ??= messages[0];
     } else {
       others.push(messages[0]);
@@ -163,10 +194,10 @@ export default function NewProjectPage() {
     }));
   }
 
-  function updateSubProject(index, value) {
+  function updateSubProject(index, key, value) {
     setForm((current) => ({
       ...current,
-      sub_projects: current.sub_projects.map((sub, i) => (i === index ? { name: value } : sub)),
+      sub_projects: current.sub_projects.map((sub, i) => (i === index ? { ...sub, [key]: value } : sub)),
     }));
   }
 
@@ -313,18 +344,47 @@ export default function NewProjectPage() {
               <legend className="field-label">Sous-projets</legend>
               <p className="form-hint">
                 Une classe, un établissement ou un groupe. Sans sous-projet, le projet forme un seul groupe.
+                La tranche d’âge et l’effectif prévu servent aux statistiques (âge, assiduité) et au pré-bilan.
               </p>
+              {form.sub_projects.length === 0 && (
+                <div className="subproject-row">
+                  <TextInput label="Tranche d’âge du groupe" name="age_range" maxLength={30} placeholder="ex. 15-16 ans" value={form.age_range} onChange={update('age_range')} error={errors.age_range} />
+                  <TextInput label="Effectif prévu" name="expected_headcount" type="number" min={1} max={65535} inputMode="numeric" value={form.expected_headcount} onChange={update('expected_headcount')} error={errors.expected_headcount} />
+                </div>
+              )}
               {form.sub_projects.map((sub, index) => {
                 const key = `sub_projects.${index}.name`;
                 return (
-                  <div key={index} className="subproject-row">
+                  <div key={index} className="subproject-row subproject-row-named">
                     <TextInput
                       label={`Sous-projet ${index + 1}`}
                       name={key}
                       maxLength={150}
                       value={sub.name}
-                      onChange={(event) => updateSubProject(index, event.target.value)}
+                      onChange={(event) => updateSubProject(index, 'name', event.target.value)}
                       error={errors[key]}
+                    />
+                    <TextInput
+                      label="Tranche d’âge"
+                      aria-label={`Tranche d’âge du sous-projet ${index + 1}`}
+                      name={`sub_projects.${index}.age_range`}
+                      maxLength={30}
+                      placeholder="ex. 15-16 ans"
+                      value={sub.age_range}
+                      onChange={(event) => updateSubProject(index, 'age_range', event.target.value)}
+                      error={errors[`sub_projects.${index}.age_range`]}
+                    />
+                    <TextInput
+                      label="Effectif prévu"
+                      aria-label={`Effectif prévu du sous-projet ${index + 1}`}
+                      name={`sub_projects.${index}.expected_headcount`}
+                      type="number"
+                      min={1}
+                      max={65535}
+                      inputMode="numeric"
+                      value={sub.expected_headcount}
+                      onChange={(event) => updateSubProject(index, 'expected_headcount', event.target.value)}
+                      error={errors[`sub_projects.${index}.expected_headcount`]}
                     />
                     <Button
                       variant="ghost"
@@ -340,7 +400,7 @@ export default function NewProjectPage() {
               })}
               <Button
                 variant="line"
-                onClick={() => setForm((current) => ({ ...current, sub_projects: [...current.sub_projects, { name: '' }] }))}
+                onClick={() => setForm((current) => ({ ...current, sub_projects: [...current.sub_projects, { ...EMPTY_SUB_PROJECT }] }))}
               >
                 + Ajouter un sous-projet
               </Button>

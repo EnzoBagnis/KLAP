@@ -107,6 +107,29 @@ class StoreProjectTest extends TestCase
             ->assertJsonPath('data.sub_projects.0.organization', 'Lycée Saint-Charles');
     }
 
+    public function test_le_groupe_unique_recoit_l_age_et_l_effectif_du_projet(): void
+    {
+        // Sans eux, les statistiques n'ont ni tranche d'âge ni assiduité (#244).
+        $payload = $this->payload(['name' => 'Étincelles', 'age_range' => '15-16 ans', 'expected_headcount' => 28]);
+        unset($payload['sub_projects']);
+
+        $this->postJson('/api/projects', $payload)
+            ->assertCreated()
+            ->assertJsonCount(1, 'data.sub_projects');
+        $this->assertDatabaseHas('sub_projects', ['name' => 'Étincelles', 'age_range' => '15-16 ans', 'expected_headcount' => 28]);
+    }
+
+    public function test_les_sous_projets_gardent_leur_age_et_leur_effectif(): void
+    {
+        $this->postJson('/api/projects', $this->payload([
+            'age_range' => '12-13 ans', // celui du projet ne s'applique qu'au groupe unique
+            'sub_projects' => [['name' => 'Seconde 3', 'age_range' => '15-16 ans', 'expected_headcount' => 24], ['name' => 'Seconde 7']],
+        ]))->assertCreated();
+
+        $this->assertDatabaseHas('sub_projects', ['name' => 'Seconde 3', 'age_range' => '15-16 ans', 'expected_headcount' => 24]);
+        $this->assertDatabaseHas('sub_projects', ['name' => 'Seconde 7', 'age_range' => null, 'expected_headcount' => null]);
+    }
+
     public function test_une_liste_vide_donne_aussi_un_sous_projet_par_defaut(): void
     {
         $this->postJson('/api/projects', $this->payload(['sub_projects' => []]))
@@ -192,6 +215,8 @@ class StoreProjectTest extends TestCase
                 ['sub_projects' => [['name' => 'Seconde 3', 'expected_headcount' => 0]]],
                 'sub_projects.0.expected_headcount',
             ],
+            'effectif du groupe unique négatif' => [['sub_projects' => [], 'expected_headcount' => -1], 'expected_headcount'],
+            'âge du groupe unique trop long' => [['sub_projects' => [], 'age_range' => str_repeat('a', 31)], 'age_range'],
         ];
     }
 
