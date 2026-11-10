@@ -516,8 +516,9 @@ function Observations({ data }) {
       {data.entries === 0 ? (
         <p className="page-empty">Aucune fiche rendue sur la période.</p>
       ) : (
-        <div className="statistics-observations">
+        <>
           <p className="form-hint">Sur {formatCount(data.entries)} fiche{data.entries > 1 ? 's' : ''} rendue{data.entries > 1 ? 's' : ''}.</p>
+          <div className="statistics-observations">
           {blocks.map((block) => (
             <div key={block.id}>
               <h3 id={block.id} className="statistics-observation-title">
@@ -545,7 +546,8 @@ function Observations({ data }) {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        </>
       )}
     </section>
   );
