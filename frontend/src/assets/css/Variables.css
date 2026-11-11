@@ -1,0 +1,41 @@
+/*
+ * Jetons de la maquette Figma (variables du fichier KLAP).
+ * Ne pas écrire de couleur ou de police en dur ailleurs : passer par ces variables.
+ */
+:root {
+  /* Couleurs */
+  --color-ink: #0a0a0a;          /* texte et fonds sombres */
+  --color-paper: #ffffff;        /* fond */
+  --color-field: #f6f6f6;        /* fond des champs */
+  --color-line: #e3e3e3;         /* filets et bordures */
+  --color-mute: #6b6b6b;         /* texte secondaire */
+  --color-accent: #e12a10;       /* rouge KLAP */
+  --color-accent-strong: #c41f08;
+
+  /* Charte des graphiques (contexte client) : engagement, expression, autonomie */
+  --color-chart-engagement: #e12a10;
+  --color-chart-expression: #2e8b57;
+  --color-chart-autonomy: #8e5bb5;
+  /* … et ambre pour l'interaction, bleu pour les sensations (même demande de la cliente) */
+  --color-chart-interaction: #9a6b00; /* ambre foncé : contraste ≥ 3:1 sur le blanc (WCAG 1.4.11) */
+  --color-chart-feeling: #2f6db5;
+
+  /* Polices */
+  --font-body: 'Archivo', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Tailles de texte (nom Figma en commentaire) */
+  --text-12: 12px;               /* Mono/12 */
+  --text-13: 13px;               /* Mono/13 */
+  --text-14: 14px;               /* Corps/14 */
+  --text-15: 15px;               /* Corps/15 */
+  --text-24: 24px;               /* Titre/24 */
+  --text-30: 30px;               /* Titre/30 */
+  --tracking-caps: 0.09em;       /* Mono/12 Maj et Mono/13 Maj */
+
+  /* Mise en page */
+  --sidebar-width: 260px;
+  --mobile-bar-height: 64px;
+  --tap-target: 44px;            /* taille minimale d'une zone cliquable */
+  --breakpoint-desktop: 1024px;  /* repère, les media queries ne lisent pas les variables */
+}

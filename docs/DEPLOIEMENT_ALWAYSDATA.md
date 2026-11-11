@@ -97,6 +97,19 @@ Une fois que notre code est déployé sur Alwaysdata (via `git pull origin main`
 4. **Résultat immédiat :**
    Laravel se connecte au MySQL d'Alwaysdata, crée l'ensemble des tables métier (`utilisateurs`, `projets`, `sous_projets`, `seances`, `fiches`, `exercices`, etc.) avec leurs types exacts, leurs clés étrangères et leurs contraintes en **moins de 3 secondes**.
 
+5. **Le premier compte : celui de Mariette (une seule fois).**
+   Sur une base neuve, personne ne peut inviter personne. L'interface n'invite que des
+   intervenant·e·s et des super-utilisatrices, et une invitation a toujours un auteur. On crée donc
+   le compte d'administratrice sur le serveur, avec sa **vraie** adresse :
+   ```bash
+   php artisan klap:admin mariette@exemple.fr "Mariette Travard"
+   ```
+   Le compte est créé avec un mot de passe aléatoire que personne ne connaît. Mariette reçoit un mail
+   pour choisir le sien, avec un lien valable 60 minutes. Relancer la commande renvoie un nouveau lien ;
+   « Mot de passe oublié ? » sur la page de connexion marche aussi. Ensuite, elle invite elle-même
+   l'équipe depuis Gestion › Utilisateurs. **Ne jamais lancer `klap:demo` en production** : la commande
+   recrée la base avec les données de démonstration.
+
 ---
 
 ## 4. Pourquoi cette approche est la meilleure pour l'équipe ?

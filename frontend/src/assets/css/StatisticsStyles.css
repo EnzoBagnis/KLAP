@@ -1,0 +1,345 @@
+/* Statistiques (#74) : filtres, cartes de totaux, barres de moyennes, tableau par projet. */
+
+.statistics-filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+/* Un champ de grille ne rétrécit pas sous la largeur de son contenu : sans cela, le nom de
+   projet le plus long élargit le menu et fait déborder la page sur téléphone. */
+.statistics-filters > * {
+  min-width: 0;
+}
+
+.statistics-filters .field-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.statistics-filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin: 0 0 32px;
+  padding: 0;
+  list-style: none;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-line);
+}
+
+.stat-card.is-alert {
+  border-left: 3px solid var(--color-accent);
+}
+
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-12);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--color-mute);
+}
+
+.stat-value {
+  font-size: var(--text-30);
+  font-weight: 600;
+}
+
+.stat-hint {
+  font-size: var(--text-13);
+  color: var(--color-mute);
+}
+
+.statistics-breakdowns {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+/* Même règle : le tableau défile dans sa case au lieu d'élargir la page. */
+.statistics-breakdowns > * {
+  min-width: 0;
+}
+
+.statistics-group-meta {
+  display: block;
+  font-size: var(--text-12);
+}
+
+.ratings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 32px;
+  padding: 0;
+  list-style: none;
+}
+
+.rating-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 120px;
+  align-items: center;
+  gap: 12px;
+}
+
+.rating-track {
+  height: 12px;
+  background: var(--color-field);
+}
+
+.rating-bar {
+  display: block;
+  height: 100%;
+}
+
+.tone-engagement {
+  background: var(--color-chart-engagement);
+}
+
+.tone-expression {
+  background: var(--color-chart-expression);
+}
+
+.tone-autonomy {
+  background: var(--color-chart-autonomy);
+}
+
+.rating-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-13);
+}
+
+.statistics-table-wrapper {
+  overflow-x: auto;
+  outline-offset: 2px;
+  margin-bottom: 12px;
+}
+
+.statistics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-14);
+}
+
+.statistics-table th,
+.statistics-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-line);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.statistics-table th[scope='row'],
+.statistics-table thead th:first-child {
+  text-align: left;
+  white-space: normal;
+}
+
+.statistics-table thead th {
+  font-family: var(--font-mono);
+  font-size: var(--text-12);
+  font-weight: 400;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--color-mute);
+}
+
+.statistics-project th,
+.statistics-project td {
+  font-weight: 600;
+}
+
+.statistics-group th[scope='row'] {
+  padding-left: 28px;
+  font-weight: 400;
+  color: var(--color-mute);
+}
+
+@media (max-width: 900px) {
+  .statistics-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .statistics-filters .field:first-child,
+  .statistics-filter-actions {
+    grid-column: 1 / -1;
+  }
+
+  .stat-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .statistics-breakdowns {
+    grid-template-columns: 1fr;
+  }
+
+  .rating-row {
+    grid-template-columns: 90px 1fr 112px;
+  }
+}
+
+@media (max-width: 479px) {
+  .statistics-filters,
+  .stat-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .rating-row {
+    grid-template-columns: 1fr 112px;
+  }
+
+  .rating-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+/* Pré-bilan (#144) : un formulaire en une colonne, même sur ordinateur. */
+@media (min-width: 1024px) {
+  .project-form.pre-report-form {
+    grid-template-columns: minmax(0, 640px);
+    gap: 24px;
+  }
+}
+
+.pre-report-form {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+
+/* Comme pour les filtres (#166) : le nom de projet le plus long ne doit pas élargir le menu. */
+.pre-report-form .field-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.pre-report-form .form-success,
+.pre-report-form .form-alert {
+  overflow-wrap: anywhere;
+}
+
+.pre-report-period {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Graphiques (#185) : barres horizontales, valeur écrite, échelle depuis zéro. */
+.bar-chart {
+  margin: 0 0 16px;
+}
+
+.bar-chart-title {
+  margin-bottom: 8px;
+  font-size: var(--text-13);
+  color: var(--color-mute);
+}
+
+.bar-chart-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bar-chart-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 64px;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--text-14);
+}
+
+.bar-chart-label {
+  overflow-wrap: anywhere;
+}
+
+.bar-chart-track {
+  height: 12px;
+  background: var(--color-field);
+}
+
+/* Barre fine, bout arrondi du côté de la valeur, ancrée à zéro. */
+.bar-chart-bar {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+}
+
+.tone-participants {
+  background: var(--color-ink);
+}
+
+.tone-attendance {
+  background: var(--color-chart-expression);
+}
+
+.tone-feeling {
+  background: var(--color-chart-feeling);
+}
+
+.tone-interaction {
+  background: var(--color-chart-interaction);
+}
+
+.tone-progress {
+  background: var(--color-ink);
+}
+
+.statistics-observations {
+  display: grid;
+  gap: 24px;
+}
+
+/* Sur ordinateur, les trois graphiques côte à côte : la page reste courte. */
+@media (min-width: 1100px) {
+  .statistics-observations {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.statistics-observation-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.bar-chart-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-13);
+  text-align: right;
+}
+
+@media (max-width: 479px) {
+  .bar-chart-row {
+    grid-template-columns: minmax(0, 1fr) 64px;
+    row-gap: 4px;
+  }
+
+  .bar-chart-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

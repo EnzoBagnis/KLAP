@@ -1,0 +1,173 @@
+/* Champs et boutons, d'après la maquette (composant « Btn », champs de l'écran 01). */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-12);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--color-mute);
+}
+
+.field-required {
+  color: var(--color-accent);
+}
+
+.field-input {
+  min-height: var(--tap-target);
+  padding: 0 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 0;
+  background: var(--color-paper);
+  font-size: var(--text-15);
+}
+
+.field-input:focus-visible,
+/* Champ de date : le focus va dans un sous-champ (jour, mois, année) et :focus-visible ne
+   s'applique pas au champ lui-même dans Chromium (#233). */
+.field-input[type='date']:focus,
+.field-input[type='date']:focus-within {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 0;
+}
+
+.field-input.has-error {
+  border-color: var(--color-accent);
+}
+
+.field-error {
+  margin: 0;
+  font-size: var(--text-13);
+  color: var(--color-accent-strong);
+}
+
+.form-alert {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-field);
+  font-size: var(--text-14);
+}
+
+.form-success {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--color-ink);
+  background: var(--color-field);
+  font-size: var(--text-14);
+}
+
+.password-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: -8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-13);
+  color: var(--color-mute);
+}
+
+.password-rules li::before {
+  content: '○ ';
+}
+
+.password-rules li.is-met {
+  color: var(--color-ink);
+}
+
+.password-rules li.is-met::before {
+  content: '● ';
+  color: var(--color-accent);
+}
+
+.activation-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: var(--text-14);
+}
+
+.activation-facts dt {
+  font-family: var(--font-mono);
+  font-size: var(--text-12);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--color-mute);
+}
+
+.activation-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-target);
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  font-size: var(--text-14);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: var(--color-paper);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+}
+
+.btn-line {
+  border-color: var(--color-ink);
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.btn-ghost {
+  background: none;
+  color: var(--color-ink);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* Nouveau lieu, déplié sous le menu des lieux (#135). */
+.location-select {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.location-new {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-left: 3px solid var(--color-line);
+  background: var(--color-field);
+}
+
+.location-new-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

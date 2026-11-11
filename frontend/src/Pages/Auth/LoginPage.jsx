@@ -1,0 +1,145 @@
+import { useEffect, useState } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import TextInput from '../../Components/Form/TextInput.jsx';
+import Button from '../../Components/UI/Button.jsx';
+import useAuth from '../../Hooks/useAuth.js';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/*
+ * Traduit une erreur de l'API en message pour l'utilisateur.
+ * Identifiants faux et compte désactivé arrivent tous deux en 422 avec un message
+ * déjà en français dans `errors.email` : on l'affiche tel quel, sans l'interpréter.
+ */
+export function loginErrorMessage(error) {
+  if (error.status === 0) return error.message;
+  if (error.status === 422) {
+    return error.errors?.email?.[0] ?? error.errors?.password?.[0] ?? 'Connexion refusée.';
+  }
+  if (error.status === 429) {
+    return error.retryAfter
+      ? `Trop de tentatives. Réessayez dans ${error.retryAfter} secondes.`
+      : 'Trop de tentatives. Réessayez dans une minute.';
+  }
+  return 'Une erreur est survenue. Réessayez plus tard.';
+}
+
+// Contrôles faits avant l'envoi : réponse immédiate, sans aller-retour avec le serveur.
+function validate(email, password) {
+  const errors = {};
+  if (!email.trim()) errors.email = 'Saisissez votre adresse e-mail.';
+  else if (!EMAIL_PATTERN.test(email.trim())) errors.email = 'Cette adresse e-mail n’est pas valide.';
+  if (!password) errors.password = 'Saisissez votre mot de passe.';
+  return errors;
+}
+
+export default function LoginPage() {
+  const { status, login } = useAuth();
+  const navigate = useNavigate();
+  // Après l'activation d'un compte (#127) : adresse pré-remplie et message d'accueil.
+  const { state: arrival } = useLocation();
+
+  // Sans titre propre, l'onglet gardait celui de la page d'avant (« Activer mon compte »).
+  useEffect(() => {
+    document.title = 'Connexion · KLAP';
+  }, []);
+  const [email, setEmail] = useState(arrival?.email ?? '');
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  // Déjà connecté : rien à faire ici.
+  if (status === 'authenticated') {
+    return <Navigate to="/" replace />;
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (submitting) return;
+    setFormError('');
+
+    const errors = validate(email, password);
+    setFieldErrors(errors);
+    const firstInvalid = Object.keys(errors)[0];
+    if (firstInvalid) {
+      // Le focus sur le champ en erreur fait lire son message par les lecteurs d'écran.
+      event.currentTarget.elements[firstInvalid]?.focus();
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await login(email.trim(), password, { remember });
+      navigate('/', { replace: true });
+    } catch (error) {
+      setFormError(loginErrorMessage(error));
+      setPassword('');
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <h1 className="auth-title">Connexion</h1>
+      <p className="auth-subtitle">Accédez à votre espace de suivi.</p>
+      {arrival?.activated && (
+        <p className="form-success" role="status">
+          Votre compte est activé. Connectez-vous avec votre mot de passe.
+        </p>
+      )}
+      {arrival?.passwordReset && (
+        <p className="form-success" role="status">
+          Votre mot de passe est changé. Connectez-vous avec le nouveau.
+        </p>
+      )}
+
+      <form className="auth-form" onSubmit={handleSubmit} noValidate>
+        {formError && (
+          <p className="form-alert" role="alert">
+            {formError}
+          </p>
+        )}
+
+        <TextInput
+          label="Adresse e-mail"
+          type="email"
+          name="email"
+          autoComplete="username"
+          required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          error={fieldErrors.email}
+        />
+        <TextInput
+          label="Mot de passe"
+          type="password"
+          name="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          error={fieldErrors.password}
+        />
+
+        <div className="auth-remember">
+          <label className="auth-remember-label">
+            <input type="checkbox" name="remember" checked={remember} onChange={(event) => setRemember(event.target.checked)} aria-describedby="rester-connecte-aide" />
+            Rester connecté·e sur cet appareil
+          </label>
+          <p id="rester-connecte-aide" className="auth-remember-hint">
+            Pratique sur votre téléphone. À laisser décoché sur un ordinateur partagé : la session se ferme avec le navigateur.
+          </p>
+        </div>
+
+        <Button type="submit" className="btn-block" disabled={submitting}>
+          {submitting ? 'Connexion…' : 'Se connecter'}
+        </Button>
+      </form>
+      <p className="auth-link">
+        <Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link>
+      </p>
+    </>
+  );
+}

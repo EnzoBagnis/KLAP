@@ -32,7 +32,7 @@ class LogbookSeeder extends Seeder
                 'artist_review' => 'séance dense mais ça a bien travaillé',
                 'next_steps' => 'reprendre la séquence au sol avec musique',
                 'dropped_leads' => 'le travail sur chaise, pas adapté à cette salle', 'keep_in_class' => false,
-                'additional_notes' => 'il manque des tapis', 'edit_deadline' => '2026-09-20', 'submitted_at' => '2026-09-10 19:05:00',
+                'additional_notes' => 'il manque des tapis', 'edit_deadline' => '2026-10-01', 'submitted_at' => '2026-09-10 19:05:00',
                 'unlocked_by' => 1, 'unlocked_at' => '2026-09-21 09:15:00',
             ],
             [
@@ -132,7 +132,7 @@ class LogbookSeeder extends Seeder
 
         // P5 artistes présents
         $artists = [[1, 3, 'lead'], [2, 3, 'lead'], [3, 3, 'lead'], [3, 5, 'occasional'], [4, 3, 'lead'],
-                    [5, 4, 'lead'], [6, 4, 'lead'], [6, 5, 'occasional'], [7, 6, 'lead'], [8, 6, 'lead'], [8, 4, 'occasional']];
+            [5, 4, 'lead'], [6, 4, 'lead'], [6, 5, 'occasional'], [7, 6, 'lead'], [8, 6, 'lead'], [8, 4, 'occasional']];
         foreach ($artists as [$entry, $user, $role]) {
             DB::table('logbook_entry_user')->insert(['logbook_entry_id' => $entry, 'user_id' => $user, 'member_role' => $role]);
         }
