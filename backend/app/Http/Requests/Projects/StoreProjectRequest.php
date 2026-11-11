@@ -34,7 +34,8 @@ class StoreProjectRequest extends FormRequest
                 Rule::exists('locations', 'id')->where('is_active', true),
             ],
 
-            // Intervenant·e principal·e : un compte intervenant actif. Les ponctuel·le·s ne se
+            // Intervenant·e principal·e : un compte intervenant actif. Les ponctuel·le·s s'ajoutent
+            // ensuite depuis la page du projet (#251). Historique : les ponctuel·le·s ne se
             // saisissent pas ici, ils s'ajoutent en enregistrant une fiche (cliente, 16/09/2026).
             'principal_user_id' => [
                 'required',
