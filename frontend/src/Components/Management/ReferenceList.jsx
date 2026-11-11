@@ -56,7 +56,19 @@ function DraftForm({ fields, draft, setDraft, errors, onSubmit, onCancel, submit
   );
 }
 
-export default function ReferenceList({ title, intro, noun, addLabel, fields, load, create, update, meta, name = (item) => item.name }) {
+const DEFAULT_WORDING = {
+  off: 'Désactiver',
+  on: 'Réactiver',
+  tag: 'Désactivé',
+  doneOff: 'désactivé',
+  doneOn: 'réactivé',
+  askOff: (n) => `Désactiver « ${n} » ? Il ne sera plus proposé dans les menus ; ce qui l’utilise déjà le garde.`,
+  askOn: (n) => `Réactiver « ${n} » ? Il sera de nouveau proposé dans les menus.`,
+};
+
+export default function ReferenceList({ title, intro, noun, addLabel, fields, load, create, update, meta, name = (item) => item.name, wording = {}, headingLevel = 2 }) {
+  const w = { ...DEFAULT_WORDING, ...wording };
+  const Heading = `h${headingLevel}`;
   const { logout } = useAuth();
   const headingId = useId();
   const [state, setState] = useState({ status: 'loading', items: [] });
@@ -145,17 +157,16 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
   }
 
   async function toggle(item) {
-    const activate = !item.is_active;
-    const question = activate
-      ? `Réactiver « ${name(item)} » ? Il sera de nouveau proposé dans les menus.`
-      : `Désactiver « ${name(item)} » ? Il ne sera plus proposé dans les menus ; ce qui l’utilise déjà le garde.`;
+    // Sans is_active (réponse partielle), l'élément est actif : comme l'affichage.
+    const activate = item.is_active === false;
+    const question = activate ? w.askOn(name(item)) : w.askOff(name(item));
     if (!window.confirm(question)) return;
     setBusyId(item.id);
     setNotice({ kind: '', text: '' });
     try {
       const updated = await update(item.id, { is_active: activate });
       setState((current) => ({ ...current, items: current.items.map((other) => (other.id === updated.id ? { ...other, ...updated } : other)) }));
-      setNotice({ kind: 'success', text: `« ${name(updated)} » ${activate ? 'réactivé' : 'désactivé'}.` });
+      setNotice({ kind: 'success', text: `« ${name(updated)} » ${activate ? w.doneOn : w.doneOff}.` });
     } catch (error) {
       fail(error, 'La modification n’a pas abouti. Réessayez dans un instant.');
     } finally {
@@ -166,9 +177,9 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
   return (
     <section className="reference-list" aria-labelledby={headingId}>
       <div className="reference-heading">
-        <h2 id={headingId} className="section-title" ref={headingRef} tabIndex={-1}>
+        <Heading id={headingId} className="section-title" ref={headingRef} tabIndex={-1}>
           {title}
-        </h2>
+        </Heading>
         {editing !== 'nouveau' && (
           <Button variant="line" onClick={() => open('nouveau')}>
             + {addLabel}
@@ -205,7 +216,7 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
                   <div>
                     <p className="account-name">
                       {name(item)}
-                      {item.is_active === false && <span className="tag">Désactivé</span>}
+                      {item.is_active === false && <span className="tag">{w.tag}</span>}
                     </p>
                     {meta && <p className="account-meta">{meta(item)}</p>}
                   </div>
@@ -214,7 +225,7 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
                       Modifier<span className="visually-hidden">{` ${name(item)}`}</span>
                     </Button>
                     <Button variant="line" onClick={() => toggle(item)} disabled={busyId === item.id}>
-                      {item.is_active === false ? 'Réactiver' : 'Désactiver'}
+                      {item.is_active === false ? w.on : w.off}
                       <span className="visually-hidden">{` ${name(item)}`}</span>
                     </Button>
                   </div>

@@ -118,11 +118,62 @@ describe('Détail d’un projet', () => {
     expect(screen.getByText('du 15 septembre 2026 au 19 juin 2027')).toBeInTheDocument();
     expect(screen.getByText('DRAC')).toBeInTheDocument();
 
-    const subProjects = screen.getByRole('region', { name: 'Sous-projets' });
-    expect(within(subProjects).getAllByRole('listitem')).toHaveLength(4);
+    // Administratrice : les groupes se gèrent sur place (#250).
+    const groups = await screen.findByRole('region', { name: 'Groupes' });
+    expect(await within(groups).findAllByRole('listitem')).toHaveLength(4);
     // Aucun chiffre inventé tant que l'API des séances n'existe pas.
     expect(screen.queryByText(/participants$/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Taux de présence/i)).not.toBeInTheDocument();
+  });
+
+  it('montre les sous-projets en lecture seule à la super-utilisatrice (#250)', async () => {
+    mockApi({
+      'GET /projects/1': () => jsonResponse({ data: artsDanse }),
+      'GET /projects': () => jsonResponse({ data: list }),
+    });
+    renderAt('/projets/1', MOCK_USERS.super_user);
+    const subProjects = await screen.findByRole('region', { name: 'Sous-projets' });
+    expect(within(subProjects).getAllByRole('listitem')).toHaveLength(4);
+    expect(screen.queryByRole('button', { name: '+ Ajouter un groupe' })).not.toBeInTheDocument();
+  });
+
+  it('ajoute un groupe et retire un groupe, après confirmation (#250)', async () => {
+    let groups = artsDanse.sub_projects;
+    const fetchMock = mockApi({
+      'GET /projects/1': () => jsonResponse({ data: { ...artsDanse, sub_projects: groups } }),
+      'GET /projects': () => jsonResponse({ data: list }),
+      'POST /projects/1/sub-projects': (options) => {
+        const body = JSON.parse(options.body);
+        const created = { id: 99, ...body, expected_headcount: Number(body.expected_headcount), is_active: true };
+        groups = [...groups, created];
+        return jsonResponse({ data: created }, 201);
+      },
+      'PATCH /sub-projects/1': () => jsonResponse({ data: { ...artsDanse.sub_projects[0], is_active: false } }),
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    renderAt('/projets/1');
+    const section = await screen.findByRole('region', { name: 'Groupes' });
+    await within(section).findAllByRole('listitem');
+
+    await user.click(within(section).getByRole('button', { name: '+ Ajouter un groupe' }));
+    await user.type(within(section).getByLabelText(/Nom du groupe/), 'Seconde 9');
+    await user.type(within(section).getByLabelText(/Tranche d’âge/), '15-16 ans');
+    await user.type(within(section).getByLabelText(/Effectif prévu/), '0');
+    await user.click(within(section).getByRole('button', { name: 'Ajouter' }));
+    expect(within(section).getByText('Indiquez un nombre entier d’élèves.')).toBeInTheDocument();
+    await user.clear(within(section).getByLabelText(/Effectif prévu/));
+    await user.type(within(section).getByLabelText(/Effectif prévu/), '27');
+    await user.click(within(section).getByRole('button', { name: 'Ajouter' }));
+    expect(await within(section).findByRole('status')).toHaveTextContent('Groupe « Seconde 9 » ajouté.');
+    expect(await within(section).findByText('15-16 ans · 27 élèves prévus')).toBeInTheDocument();
+    const post = fetchMock.mock.calls.find(([, options]) => options?.method === 'POST');
+    expect(JSON.parse(post[1].body)).toMatchObject({ name: 'Seconde 9', age_range: '15-16 ans', expected_headcount: '27' });
+
+    await user.click(within(section).getAllByRole('button', { name: /^Retirer/ })[0]);
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('ses séances et ses chiffres restent'));
+    expect(await within(section).findByText('Retiré')).toBeInTheDocument();
+    expect(within(section).getAllByRole('button', { name: /^Remettre/ })).toHaveLength(1);
   });
 
   it('garde « Projets » actif dans le menu et propose les autres projets en onglets', async () => {

@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ScheduledSessionController;
 use App\Http\Controllers\Api\StatisticsController;
 use App\Http\Controllers\Api\StatisticsExportController;
+use App\Http\Controllers\Api\SubProjectController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -88,6 +89,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('projects/{project}/archive', [ProjectController::class, 'archive']);
         Route::post('projects/{project}/restore', [ProjectController::class, 'restore']);
         Route::post('projects/{project}/sessions', [ScheduledSessionController::class, 'store']);
+        // Groupes d'un projet après sa création (#250) : ajouter, corriger, retirer, remettre.
+        Route::post('projects/{project}/sub-projects', [SubProjectController::class, 'store']);
+        Route::patch('sub-projects/{subProject}', [SubProjectController::class, 'update']);
         // Modifier, annuler et rétablir une séance sans fiche (#180) : rien n'est effacé.
         Route::patch('sessions/{session}', [ScheduledSessionController::class, 'update']);
         Route::post('sessions/{session}/cancel', [ScheduledSessionController::class, 'cancel']);

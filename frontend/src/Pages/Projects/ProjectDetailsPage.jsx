@@ -4,7 +4,8 @@ import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import Button from '../../Components/UI/Button.jsx';
 import useAuth from '../../Hooks/useAuth.js';
 import { ROLES } from '../../Context/roles.js';
-import { getProject, listProjects } from '../../Services/ProjectService.js';
+import { createSubProject, getProject, listProjects, updateSubProject } from '../../Services/ProjectService.js';
+import ReferenceList from '../../Components/Management/ReferenceList.jsx';
 import { commonLocality, formatPeriod, statusLabel } from './projectLabels.js';
 import '../../assets/css/ProjectStyles.css';
 
@@ -124,7 +125,8 @@ function ProjectDetails({ project, canEdit, canReport }) {
   const locality = commonLocality(subProjects);
   const period = formatPeriod(project.start_date, project.end_date);
   // Un projet non découpé a un seul sous-projet qui porte son nom : pas de découpage à montrer.
-  const isSplit = subProjects.length > 1;
+  // Seuls les groupes actifs comptent (#250) : un groupe retiré ne fait pas un découpage.
+  const isSplit = subProjects.filter((sub) => sub.is_active !== false).length > 1;
 
   return (
     <>
@@ -190,7 +192,13 @@ function ProjectDetails({ project, canEdit, canReport }) {
         </dl>
       </header>
 
-      {isSplit && (
+      {canEdit && project.status !== 'archived' && (
+        <div className="project-section">
+          <GroupManager projectId={project.id} />
+        </div>
+      )}
+
+      {isSplit && !(canEdit && project.status !== 'archived') && (
         <section className="project-section" aria-labelledby="sous-projets">
           <h2 id="sous-projets" className="section-title">
             Sous-projets
@@ -198,7 +206,10 @@ function ProjectDetails({ project, canEdit, canReport }) {
           <ul className="subproject-grid">
             {subProjects.map((sub) => (
               <li key={sub.id} className="subproject-card">
-                <p className="subproject-name">{sub.name}</p>
+                <p className="subproject-name">
+                  {sub.name}
+                  {sub.is_active === false && <span className="tag">Retiré</span>}
+                </p>
                 <p className="subproject-meta">
                   {[sub.organization, sub.class_group, sub.age_range].filter(Boolean).join(' · ') || 'Groupe'}
                 </p>
@@ -211,5 +222,57 @@ function ProjectDetails({ project, canEdit, canReport }) {
         </section>
       )}
     </>
+  );
+}
+
+// ---------- Groupes du projet, gérés par l'administratrice (#250) ----------
+
+const GROUP_FIELDS = [
+  { key: 'name', label: 'Nom du groupe', required: true, maxLength: 150, requiredMessage: 'Indiquez le nom du groupe.' },
+  { key: 'class_group', label: 'Classe ou groupe', maxLength: 100 },
+  { key: 'age_range', label: 'Tranche d’âge', maxLength: 30 },
+  { key: 'expected_headcount', label: 'Effectif prévu', inputMode: 'numeric', pattern: /^[1-9]\d{0,4}$/, patternMessage: 'Indiquez un nombre entier d’élèves.' },
+  { key: 'organization', label: 'Structure', maxLength: 150 },
+  { key: 'city', label: 'Ville', maxLength: 100 },
+  { key: 'postal_code', label: 'Code postal', inputMode: 'numeric', pattern: /^\d{5}$/, patternMessage: 'Le code postal doit compter 5 chiffres.' },
+];
+
+const GROUP_WORDING = {
+  off: 'Retirer',
+  on: 'Remettre',
+  tag: 'Retiré',
+  doneOff: 'retiré',
+  doneOn: 'remis',
+  askOff: (n) => `Retirer le groupe « ${n} » ? Il ne sera plus proposé pour les nouvelles séances ; ses séances et ses chiffres restent.`,
+  askOn: (n) => `Remettre le groupe « ${n} » ? Il sera de nouveau proposé pour les séances.`,
+};
+
+const groupMeta = (g) =>
+  [
+    g.class_group,
+    g.age_range,
+    g.expected_headcount ? `${g.expected_headcount} élèves prévus` : null,
+    g.organization,
+    [g.postal_code, g.city].filter(Boolean).join(' '),
+  ]
+    .filter(Boolean)
+    .join(' · ') || 'Âge et effectif à compléter';
+
+function GroupManager({ projectId }) {
+  const load = useCallback(() => getProject(projectId).then((project) => project.sub_projects ?? []), [projectId]);
+  const create = useCallback((payload) => createSubProject(projectId, payload), [projectId]);
+  return (
+    <ReferenceList
+      title="Groupes"
+      intro="Les classes ou groupes du projet. La tranche d’âge et l’effectif prévu servent aux statistiques (âge, assiduité) et au pré-bilan."
+      noun="Groupe"
+      addLabel="Ajouter un groupe"
+      fields={GROUP_FIELDS}
+      load={load}
+      create={create}
+      update={updateSubProject}
+      meta={groupMeta}
+      wording={GROUP_WORDING}
+    />
   );
 }
