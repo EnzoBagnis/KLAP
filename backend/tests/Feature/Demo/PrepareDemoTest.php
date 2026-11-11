@@ -104,4 +104,15 @@ class PrepareDemoTest extends TestCase
             ->assertFailed();
         $this->assertSame(0, DB::table('users')->count());
     }
+
+    public function test_refuse_de_tourner_en_production(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+
+        $this->artisan('klap:demo', ['--force' => true])
+            ->expectsOutputToContain('refusé en production')
+            ->assertFailed();
+        // Retour à l'environnement de test : le tearDown relance migrate:fresh, qui demanderait confirmation.
+        $this->app->detectEnvironment(fn () => 'testing');
+    }
 }

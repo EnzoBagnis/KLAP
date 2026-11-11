@@ -43,6 +43,13 @@ class PrepareDemo extends Command
 
     public function handle(): int
     {
+        // Garde-fou (#255) : la démonstration efface toute la base, jamais en production.
+        if (app()->isProduction()) {
+            $this->error('klap:demo efface toute la base : refusé en production (APP_ENV=production). Pour le premier compte, utilisez klap:admin.');
+
+            return self::FAILURE;
+        }
+
         $day = $this->option('date') ?: LogbookEntry::localNow()->toDateString();
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) || ! strtotime($day)) {
             $this->error('La date doit être au format AAAA-MM-JJ.');
