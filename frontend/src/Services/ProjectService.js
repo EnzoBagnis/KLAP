@@ -73,3 +73,15 @@ export async function updateSubProject(id, changes) {
   const response = await apiRequest(`/sub-projects/${encodeURIComponent(id)}`, { method: 'PATCH', body: changes, token: getToken() });
   return response.data;
 }
+
+/** POST /projects/{id}/members (#251) : ajouter un·e intervenant·e ponctuel·le ; renvoie le projet. */
+export async function addProjectMember(projectId, userId) {
+  const response = await apiRequest(`/projects/${encodeURIComponent(projectId)}/members`, { method: 'POST', body: { user_id: Number(userId) }, token: getToken() });
+  return response.data;
+}
+
+/** DELETE /projects/{id}/members/{user} (#251) : retirer un·e ponctuel·le ; renvoie le projet. */
+export async function removeProjectMember(projectId, userId) {
+  const response = await apiRequest(`/projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(userId)}`, { method: 'DELETE', token: getToken() });
+  return response.data;
+}

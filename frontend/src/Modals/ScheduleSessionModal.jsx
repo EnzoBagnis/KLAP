@@ -172,7 +172,8 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
               .map((group) => ({ ...group, name: `${group.name} (désactivé)` }))
           : [];
         const groups = [...active, ...kept];
-        const team = detail.team ?? [];
+        // Les membres retiré·e·s de l'équipe (#251) ne reçoivent plus de séance, sauf celle qu'ils ont déjà.
+        const team = (detail.team ?? []).filter((member) => !member.end_date || (keepValues && session?.referent?.id === member.id));
         setProject({ status: 'ready', groups, team });
         // En modification, les groupes, l'intervenant·e et le lieu de la séance sont gardés.
         if (keepValues) return;

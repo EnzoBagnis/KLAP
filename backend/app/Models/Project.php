@@ -53,11 +53,21 @@ class Project extends Model
         }
 
         if ($user->hasRole(UserRole::Contributor)) {
-            return $query->whereHas('members', fn (Builder $members) => $members->whereKey($user->id));
+            // Membre actuel seulement (#251) : retiré·e de l'équipe, on ne voit plus le projet
+            // (ses propres séances et fiches restent lisibles par ailleurs).
+            return $query->whereHas('members', fn (Builder $members) => self::currentMember($members, $user));
         }
 
         // Rôle inconnu (ajouté plus tard à l'énumération) : rien, par défaut.
         return $query->whereRaw('1 = 0');
+    }
+
+    /** Appartenance en cours : sans date de fin, ou une date de fin qui n'est pas encore passée. */
+    public static function currentMember(Builder $members, User $user): Builder
+    {
+        return $members->whereKey($user->id)->where(fn (Builder $current) => $current
+            ->whereNull('project_user.end_date')
+            ->orWhereDate('project_user.end_date', '>=', LogbookEntry::localNow()->toDateString()));
     }
 
     public function subProjects(): HasMany

@@ -32,6 +32,8 @@ class ProjectResource extends JsonResource
                 'id' => $member->id,
                 'name' => $member->name,
                 'member_role' => $member->pivot->member_role,
+                // Retiré·e de l'équipe (#251) : garde la lecture de ses fiches, ne reçoit plus de séance.
+                'end_date' => $member->pivot->end_date,
             ])->values()),
             'funders' => $this->whenLoaded('funders', fn () => $this->funders->map(fn ($funder) => [
                 'id' => $funder->id,

@@ -113,8 +113,9 @@ describe('Détail d’un projet', () => {
     expect(await screen.findByRole('heading', { name: 'Arts Danse au Lycée Charles' })).toBeInTheDocument();
     expect(screen.getByText('Partenariat lycée')).toBeInTheDocument();
     expect(screen.getByText('Marseille · 13003')).toBeInTheDocument();
-    expect(screen.getByText('Léa Fournier')).toBeInTheDocument();
-    expect(screen.getByText('Marco Delaunay')).toBeInTheDocument();
+    // L'équipe figure dans l'en-tête (et, pour l'administratrice, dans la section Équipe, #251).
+    expect(screen.getAllByText('Léa Fournier').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Marco Delaunay').length).toBeGreaterThan(0);
     expect(screen.getByText('du 15 septembre 2026 au 19 juin 2027')).toBeInTheDocument();
     expect(screen.getByText('DRAC')).toBeInTheDocument();
 
@@ -174,6 +175,61 @@ describe('Détail d’un projet', () => {
     expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('ses séances et ses chiffres restent'));
     expect(await within(section).findByText('Retiré')).toBeInTheDocument();
     expect(within(section).getAllByRole('button', { name: /^Remettre/ })).toHaveLength(1);
+  });
+
+  it('ajoute un·e ponctuel·le à l’équipe et en retire un·e, après confirmation (#251)', async () => {
+    let team = artsDanse.team;
+    const fetchMock = mockApi({
+      'GET /projects/1': () => jsonResponse({ data: artsDanse }),
+      'GET /projects': () => jsonResponse({ data: list }),
+      'GET /users': () => jsonResponse({ data: [{ id: 3, name: 'Léa Fournier' }, { id: 7, name: 'Marco Delaunay' }, { id: 8, name: 'Nina Roussel' }] }),
+      'POST /projects/1/members': () => {
+        team = [...team, { id: 8, name: 'Nina Roussel', member_role: 'occasional', end_date: null }];
+        return jsonResponse({ data: { ...artsDanse, team } });
+      },
+      'DELETE /projects/1/members/7': () => {
+        team = team.map((m) => (m.id === 7 ? { ...m, end_date: '2026-11-11' } : m));
+        return jsonResponse({ data: { ...artsDanse, team } });
+      },
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    renderAt('/projets/1');
+    const section = await screen.findByRole('region', { name: 'Équipe' });
+    expect(within(section).getByText('Intervenant·e principal·e')).toBeInTheDocument();
+    expect(within(section).queryByRole('button', { name: /^Retirer\s*Léa Fournier/ })).not.toBeInTheDocument();
+
+    const select = within(section).getByLabelText('Ajouter un·e intervenant·e');
+    await waitFor(() => expect(within(select).getAllByRole('option')).toHaveLength(2)); // « Choisir… » et Nina
+    await user.click(within(section).getByRole('button', { name: 'Ajouter à l’équipe' }));
+    expect(within(section).getByText('Choisissez l’intervenant·e à ajouter.')).toBeInTheDocument();
+    await user.selectOptions(select, 'Nina Roussel');
+    await user.click(within(section).getByRole('button', { name: 'Ajouter à l’équipe' }));
+    expect(await within(section).findByRole('status')).toHaveTextContent('Nina Roussel fait maintenant partie de l’équipe');
+    const post = fetchMock.mock.calls.find(([, options]) => options?.method === 'POST');
+    expect(JSON.parse(post[1].body)).toEqual({ user_id: 8 });
+    // L'en-tête du projet suit l'équipe.
+    expect(screen.getByText('Marco Delaunay, Nina Roussel')).toBeInTheDocument();
+
+    await user.click(within(section).getByRole('button', { name: /^Retirer\s*Marco Delaunay/ }));
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Ses fiches restent lisibles'));
+    expect(await within(section).findByText('A quitté l’équipe le 11/11/2026 · ses fiches restent lisibles')).toBeInTheDocument();
+  });
+
+  it('affiche le refus de l’API quand il reste des séances à venir (#251)', async () => {
+    mockApi({
+      'GET /projects/1': () => jsonResponse({ data: artsDanse }),
+      'GET /projects': () => jsonResponse({ data: list }),
+      'GET /users': () => jsonResponse({ data: [] }),
+      'DELETE /projects/1/members/7': () =>
+        jsonResponse({ message: 'Marco Delaunay a encore 2 séances à venir sur ce projet : confiez-les à quelqu’un d’autre ou annulez-les avant de la ou le retirer.' }, 409),
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    renderAt('/projets/1');
+    const section = await screen.findByRole('region', { name: 'Équipe' });
+    await user.click(within(section).getByRole('button', { name: /^Retirer\s*Marco Delaunay/ }));
+    expect(await within(section).findByRole('alert')).toHaveTextContent('a encore 2 séances à venir');
   });
 
   it('garde « Projets » actif dans le menu et propose les autres projets en onglets', async () => {

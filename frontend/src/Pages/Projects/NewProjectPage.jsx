@@ -317,7 +317,7 @@ export default function NewProjectPage() {
               error={errors.principal_user_id}
               options={references.contributors.map((person) => ({ value: person.id, label: person.name }))}
             />
-            <p className="form-hint">Les intervenant·e·s ponctuel·le·s s’ajoutent ensuite, en remplissant une fiche sur le projet.</p>
+            <p className="form-hint">Les intervenant·e·s ponctuel·le·s s’ajoutent ensuite, depuis la page du projet (section Équipe).</p>
 
             <fieldset className="field" aria-describedby={errors.funder_ids ? 'financeurs-erreur' : undefined}>
               <legend className="field-label">Financeurs destinataires</legend>
