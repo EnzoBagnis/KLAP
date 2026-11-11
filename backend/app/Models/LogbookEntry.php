@@ -74,7 +74,7 @@ class LogbookEntry extends Model
         if ($user->hasRole(UserRole::Contributor)) {
             return $query->where(fn (Builder $own) => $own
                 ->where('logbook_entries.author_id', $user->id)
-                ->orWhereHas('scheduledSession.project.members', fn (Builder $members) => $members->whereKey($user->id)));
+                ->orWhereHas('scheduledSession.project.members', fn (Builder $members) => Project::currentMember($members, $user)));
         }
 
         // Rôle inconnu (ajouté plus tard à l'énumération) : rien, comme Project::scopeVisibleTo.

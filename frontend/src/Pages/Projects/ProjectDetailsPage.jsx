@@ -122,9 +122,11 @@ export default function ProjectDetailsPage() {
 }
 
 function ProjectDetails({ project, canEdit, canReport }) {
-  const lead = project.team?.filter((member) => member.member_role === 'lead') ?? [];
+  // L'équipe suit les ajouts et retraits de la section Équipe (#251), en-tête compris.
+  const [team, setTeam] = useState(project.team ?? []);
+  const lead = team.filter((member) => member.member_role === 'lead');
   // Les membres retiré·e·s de l'équipe (#251) ne figurent plus parmi les ponctuel·le·s actuel·le·s.
-  const occasional = project.team?.filter((member) => member.member_role === 'occasional' && !member.end_date) ?? [];
+  const occasional = team.filter((member) => member.member_role === 'occasional' && !member.end_date);
   const subProjects = project.sub_projects ?? [];
   const locality = commonLocality(subProjects);
   const period = formatPeriod(project.start_date, project.end_date);
@@ -165,7 +167,7 @@ function ProjectDetails({ project, canEdit, canReport }) {
           </div>
           {occasional.length > 0 && (
             <div>
-              <dt>Ponctuels (ajoutés par les fiches)</dt>
+              <dt>Intervenant·e·s ponctuel·le·s</dt>
               <dd>{occasional.map((member) => member.name).join(', ')}</dd>
             </div>
           )}
@@ -204,7 +206,7 @@ function ProjectDetails({ project, canEdit, canReport }) {
 
       {canEdit && project.status !== 'archived' && (
         <div className="project-section">
-          <TeamManager project={project} />
+          <TeamManager project={project} team={team} onTeamChange={setTeam} />
         </div>
       )}
 
@@ -289,10 +291,10 @@ function GroupManager({ projectId }) {
 
 // ---------- Équipe du projet, gérée par l'administratrice (#251) ----------
 
-function TeamManager({ project }) {
+function TeamManager({ project, team, onTeamChange: setTeam }) {
   const { logout } = useAuth();
-  const [team, setTeam] = useState(project.team ?? []);
   const [contributors, setContributors] = useState([]);
+  const [contributorsFailed, setContributorsFailed] = useState(false);
   const [choice, setChoice] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState({ kind: '', text: '' });
@@ -303,7 +305,10 @@ function TeamManager({ project }) {
     let cancelled = false;
     listContributors()
       .then((list) => !cancelled && setContributors(list))
-      .catch((failure) => failure.status === 401 && logout());
+      .catch((failure) => {
+        if (failure.status === 401) logout();
+        else if (!cancelled) setContributorsFailed(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -316,6 +321,14 @@ function TeamManager({ project }) {
   function failed(failure, fallback) {
     if (failure.status === 401) {
       logout();
+      return;
+    }
+    // Équipe changée entre-temps (retrait déjà fait ailleurs…) : on la relit.
+    if (failure.status === 404) {
+      getProject(project.id)
+        .then((fresh) => setTeam(fresh.team ?? []))
+        .catch(() => {});
+      setNotice({ kind: 'error', text: 'L’équipe a changé entre-temps : elle vient d’être rechargée.' });
       return;
     }
     const message = failure.errors?.user_id?.[0] ?? (failure.status === 409 || failure.status === 422 ? failure.message : null);
@@ -408,7 +421,13 @@ function TeamManager({ project }) {
           value={choice}
           onChange={(event) => setChoice(event.target.value)}
           error={error}
-          placeholder={available.length ? 'Choisir…' : 'Tous les intervenant·e·s actifs sont déjà dans l’équipe'}
+          placeholder={
+            contributorsFailed
+              ? 'La liste des intervenant·e·s n’a pas pu être chargée'
+              : available.length
+                ? 'Choisir…'
+                : 'Tous les intervenant·e·s actifs sont déjà dans l’équipe'
+          }
           options={available.map((person) => ({ value: String(person.id), label: person.name }))}
         />
         <div className="reference-form-actions">

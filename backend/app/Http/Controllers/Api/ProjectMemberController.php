@@ -43,8 +43,8 @@ class ProjectMemberController extends Controller
                 throw ValidationException::withMessages(['user_id' => 'Cette personne fait déjà partie de l’équipe.']);
             }
             if ($current) {
-                // Revient dans l'équipe : sa date de fin est levée, son rôle ne change pas.
-                $found->members()->updateExistingPivot($data['user_id'], ['end_date' => null]);
+                // Revient dans l'équipe : une nouvelle période commence aujourd'hui, son rôle ne change pas.
+                $found->members()->updateExistingPivot($data['user_id'], ['start_date' => LogbookEntry::localNow()->toDateString(), 'end_date' => null]);
             } else {
                 $found->members()->attach($data['user_id'], ['member_role' => 'occasional']);
             }
@@ -66,9 +66,14 @@ class ProjectMemberController extends Controller
             abort_if($member->pivot->member_role === 'lead', 409,
                 'C’est l’intervenant·e principal·e : choisissez-en un·e autre dans « Modifier » avant de la ou le retirer.');
 
-            $today = LogbookEntry::localNow()->toDateString();
-            $sessions = DB::table('scheduled_sessions')->where('project_id', $found->id)->where('referent_id', $member->id);
-            $upcoming = (clone $sessions)->where('status', '<>', 'cancelled')->whereDate('session_date', '>=', $today)
+            $now = LogbookEntry::localNow();
+            $today = $now->toDateString();
+            $sessions = DB::table('scheduled_sessions')->where('project_id', $found->id)->where('referent_id', $member->id)
+                ->where('status', '<>', 'cancelled');
+            // À venir : un autre jour, ou aujourd'hui mais pas encore terminée.
+            $upcoming = (clone $sessions)
+                ->where(fn ($q) => $q->whereDate('session_date', '>', $today)
+                    ->orWhere(fn ($q) => $q->whereDate('session_date', $today)->where('end_time', '>', $now->format('H:i:s'))))
                 ->whereNotExists(fn ($q) => $q->from('logbook_entries')->whereColumn('logbook_entries.scheduled_session_id', 'scheduled_sessions.id'))
                 ->count();
             if ($upcoming > 0) {

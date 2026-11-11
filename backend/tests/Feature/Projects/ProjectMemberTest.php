@@ -88,6 +88,45 @@ class ProjectMemberTest extends TestCase
         $this->deleteJson("/api/projects/{$this->project->id}/members/{$this->marco->id}")->assertNotFound();
         $this->postJson("/api/projects/{$this->project->id}/members", ['user_id' => $this->marco->id])->assertOk();
         $this->assertNull($this->pivot($this->marco)->end_date);
+        // Une nouvelle période commence aujourd'hui.
+        $this->assertSame('2026-11-11', substr((string) $this->pivot($this->marco)->start_date, 0, 10));
+    }
+
+    public function test_retire_e_on_ne_voit_plus_le_projet_mais_ses_propres_seances_oui(): void
+    {
+        $this->project->members()->attach($this->marco->id, ['member_role' => 'occasional']);
+        $past = $this->sessionFor($this->marco, '2026-11-02');
+        $this->sessionFor($this->lead, '2026-11-20');
+        $this->deleteJson("/api/projects/{$this->project->id}/members/{$this->marco->id}")->assertOk();
+
+        // Le jour du retrait, l'appartenance court encore ; le lendemain, plus de projet.
+        Sanctum::actingAs($this->marco);
+        $this->getJson("/api/projects/{$this->project->id}")->assertOk();
+        $this->travelTo(now()->addDay());
+        $this->getJson("/api/projects/{$this->project->id}")->assertNotFound();
+        $this->getJson('/api/projects')->assertJsonCount(0, 'data');
+        $ids = collect($this->getJson('/api/sessions?from=2026-11-01&to=2026-11-30')->assertOk()->json('data'))->pluck('id');
+        $this->assertEquals([$past->id], $ids->all());
+    }
+
+    public function test_une_seance_du_matin_deja_terminee_ne_bloque_pas_et_les_annulees_ne_comptent_pas(): void
+    {
+        $this->project->members()->attach($this->marco->id, ['member_role' => 'occasional']);
+        // Il est 10 h : la séance de 8 h à 9 h est passée, celle annulée de cet après-midi ne compte pas.
+        ScheduledSession::factory()->create(['project_id' => $this->project->id, 'referent_id' => $this->marco->id, 'session_date' => '2026-11-11', 'start_time' => '08:00', 'end_time' => '09:00']);
+        ScheduledSession::factory()->create(['project_id' => $this->project->id, 'referent_id' => $this->marco->id, 'session_date' => '2026-11-11', 'start_time' => '14:00', 'end_time' => '16:00', 'status' => 'cancelled']);
+
+        $this->deleteJson("/api/projects/{$this->project->id}/members/{$this->marco->id}")->assertOk();
+        $this->assertSame('2026-11-11', (string) $this->pivot($this->marco)->end_date);
+    }
+
+    public function test_avec_seulement_des_seances_annulees_le_lien_est_supprime(): void
+    {
+        $this->project->members()->attach($this->marco->id, ['member_role' => 'occasional']);
+        ScheduledSession::factory()->create(['project_id' => $this->project->id, 'referent_id' => $this->marco->id, 'session_date' => '2026-11-02', 'status' => 'cancelled']);
+
+        $this->deleteJson("/api/projects/{$this->project->id}/members/{$this->marco->id}")->assertOk();
+        $this->assertNull($this->pivot($this->marco));
     }
 
     public function test_refuse_de_retirer_avec_des_seances_a_venir_ou_l_intervenante_principale(): void

@@ -208,6 +208,8 @@ describe('Détail d’un projet', () => {
     expect(await within(section).findByRole('status')).toHaveTextContent('Nina Roussel fait maintenant partie de l’équipe');
     const post = fetchMock.mock.calls.find(([, options]) => options?.method === 'POST');
     expect(JSON.parse(post[1].body)).toEqual({ user_id: 8 });
+    // L'en-tête du projet suit l'équipe.
+    expect(screen.getByText('Marco Delaunay, Nina Roussel')).toBeInTheDocument();
 
     await user.click(within(section).getByRole('button', { name: /^Retirer\s*Marco Delaunay/ }));
     expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Ses fiches restent lisibles'));
