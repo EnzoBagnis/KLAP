@@ -8,7 +8,7 @@ export default function StarRating({ label, name, value, onChange, error, requir
   const errorId = `${useId()}-erreur`;
 
   return (
-    <fieldset className="field rating" aria-describedby={error ? errorId : undefined} disabled={disabled}>
+    <fieldset className="field rating" role="radiogroup" aria-invalid={error ? true : undefined} aria-describedby={error ? errorId : undefined} disabled={disabled}>
       <legend className="field-label">
         {label}
         {required && (
@@ -27,7 +27,6 @@ export default function StarRating({ label, name, value, onChange, error, requir
               name={name}
               value={note}
               checked={value === note}
-              aria-invalid={error ? true : undefined}
               onChange={() => onChange(note)}
             />
             <span aria-hidden="true">{note}</span>

@@ -151,6 +151,7 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
     loadReferences();
     if (session) loadProject(String(session.project.id), { keepValues: true });
     // loadProject est stable pour une ouverture donnée : seule l'ouverture relance le chargement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, loadReferences]);
 
   // Le formulaire arrive après le chargement des listes : on y place le focus.

@@ -12,7 +12,10 @@ export default function BaseModal({ open, title, onClose, children, actions, clo
   const titleId = useId();
   const dialogRef = useRef(null);
   const closableRef = useRef(closable);
-  closableRef.current = closable;
+  // On garde la dernière valeur de `closable` sans relancer l'effet d'ouverture.
+  useEffect(() => {
+    closableRef.current = closable;
+  }, [closable]);
 
   useEffect(() => {
     if (!open) return undefined;

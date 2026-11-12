@@ -131,6 +131,8 @@ export default function LocationSelect({ locations, value, onChange, onCreated, 
         ]}
       />
       {open && (
+        // Le groupe écoute Entrée et Échap pour ses champs : il ne reçoit jamais le focus lui-même.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
         <div ref={panelRef} className="location-new" role="group" aria-label="Nouveau lieu" onKeyDown={onKeyDown}>
           {failure && (
             <p className="form-alert" role="alert">
