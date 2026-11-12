@@ -4,7 +4,12 @@ import useAuth from '../../Hooks/useAuth.js';
 import { navItemsForRole } from './navigation.js';
 import NotificationBell from './NotificationBell.jsx';
 
-// « Léa Fournier » donne « LF ».
+/**
+ * Les initiales d'un nom : « Léa Fournier » donne « LF ».
+ *
+ * @param {string} [name]
+ * @returns {string}
+ */
 export function initials(name = '') {
   return name
     .trim()
@@ -15,16 +20,22 @@ export function initials(name = '') {
     .join('');
 }
 
-/*
- * Navigation principale. Sur ordinateur, sidebar fixe de 260 px.
- * Sur téléphone, le même élément devient le menu plein écran ouvert par le Header.
- * Les entrées viennent de navigation.js, filtrées selon le rôle de l'utilisateur.
+/**
+ * La navigation principale. Sur ordinateur, c'est une barre latérale fixe de 260 px. Sur
+ * téléphone, le même élément devient le menu plein écran que le Header ouvre. Les entrées
+ * viennent de navigation.js, et on les filtre selon le rôle de l'utilisateur.
+ *
+ * @param {object} props
+ * @param {string} props.id
+ * @param {boolean} props.open  le menu est ouvert (téléphone)
+ * @param {() => void} [props.onNavigate]
+ * @param {number} props.notificationCount
  */
 export default function Sidebar({ id, open, onNavigate, notificationCount }) {
   const { user, logout } = useAuth();
   const items = navItemsForRole(user?.role);
 
-  // ProtectedRoute renvoie vers /connexion dès que l'utilisateur disparaît.
+  // On n'a pas à rediriger : ProtectedRoute renvoie vers /connexion dès que l'utilisateur disparaît.
   function handleLogout() {
     onNavigate?.();
     logout();

@@ -1,8 +1,14 @@
 import { Link } from 'react-router-dom';
 
-// Cloche visible pour tous les rôles (choix de l'équipe). L'administratrice et la
-// super-utilisatrice reçoivent les fiches soumises (#84, #122) ; les demandes de
-// déverrouillage iront à l'administratrice seule.
+/**
+ * La cloche, qu'on montre à tous les rôles (choix de l'équipe). L'administratrice et la
+ * super-utilisatrice y reçoivent les fiches soumises (#84, #122) ; l'administratrice seule,
+ * les demandes de réouverture (#130).
+ *
+ * @param {object} props
+ * @param {number} [props.count=0]  le nombre de notifications non lues
+ * @param {() => void} [props.onClick]
+ */
 export default function NotificationBell({ count = 0, onClick }) {
   const label =
     count > 0 ? `Notifications, ${count} non lue${count > 1 ? 's' : ''}` : 'Notifications';

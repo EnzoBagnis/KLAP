@@ -1,6 +1,13 @@
-// Bouton d'ouverture du menu, visible sur téléphone seulement.
-// Le menu lui-même est la Sidebar : une seule navigation pour tous les écrans.
-// `ref` permet au gabarit de rendre le focus au bouton quand le menu se ferme.
+/**
+ * Le bouton d'ouverture du menu, visible sur téléphone seulement. Le menu lui-même est la
+ * Sidebar : on n'a qu'une navigation pour tous les écrans.
+ *
+ * @param {object} props
+ * @param {boolean} props.open
+ * @param {() => void} props.onToggle
+ * @param {string} props.controls  l'identifiant du menu
+ * @param {React.Ref<HTMLButtonElement>} props.ref  pour que le gabarit rende le focus au bouton quand le menu se ferme
+ */
 export default function HamburgerMenu({ open, onToggle, controls, ref }) {
   return (
     <button

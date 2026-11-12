@@ -6,9 +6,10 @@ import { NotificationsProvider } from '../Context/NotificationsContext.jsx';
 import useNotifications from '../Hooks/useNotifications.js';
 import '../assets/css/LayoutStyles.css';
 
+/** L'identifiant du menu, que le bouton du Header désigne (aria-controls). */
 const MENU_ID = 'menu-principal';
 
-// Gabarit des écrans connectés : navigation et zone de contenu.
+/** Le gabarit des écrans connectés : la navigation et la zone de contenu. */
 export default function MainLayout() {
   return (
     <NotificationsProvider>
@@ -17,14 +18,18 @@ export default function MainLayout() {
   );
 }
 
+/**
+ * Le gabarit lui-même. On le sépare de MainLayout pour qu'il puisse lire le compteur de la
+ * cloche, que NotificationsProvider fournit.
+ */
 function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef(null);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   const toggleMenu = useCallback(() => setMenuOpen((open) => !open), []);
 
-  // Menu mobile ouvert : focus sur la première entrée, page de fond figée,
-  // Échap ferme le menu et rend le focus au bouton.
+  // Quand le menu mobile est ouvert : on met le focus sur la première entrée, on fige la page
+  // de fond, et Échap ferme le menu en rendant le focus au bouton.
   useEffect(() => {
     if (!menuOpen) return undefined;
 
@@ -50,12 +55,12 @@ function Layout() {
 
   return (
     <div className={`app-layout${menuOpen ? ' menu-open' : ''}`}>
-      {/* Lien d'évitement (RGAA 12.7, #233) : premier élément au clavier, visible quand il a le focus. */}
+      {/* Le lien d'évitement (RGAA 12.7, #233) : premier élément au clavier, visible quand il a le focus. */}
       <a
         href="#contenu"
         className="skip-link"
         onClick={(event) => {
-          // Pas de changement d'adresse : le focus va directement à la zone principale.
+          // On ne change pas l'adresse : on envoie directement le focus à la zone principale.
           event.preventDefault();
           document.getElementById('contenu')?.focus();
         }}

@@ -1,6 +1,15 @@
 import { useId } from 'react';
 
-// Menu déroulant au même format que TextInput (libellé, astérisque, erreur reliée au champ).
+/**
+ * Le menu déroulant, au même format que TextInput (libellé, astérisque, erreur reliée au champ).
+ *
+ * @param {object} props
+ * @param {string} props.label
+ * @param {boolean} [props.required=false]
+ * @param {string} [props.error]
+ * @param {string} [props.placeholder='Choisir…']  le libellé du choix vide
+ * @param {Array<{value: string, label: string}>} props.options
+ */
 export default function SelectInput({ label, required = false, error, id, placeholder, options, ...selectProps }) {
   const generatedId = useId();
   const selectId = id ?? generatedId;

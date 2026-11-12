@@ -5,10 +5,19 @@ import Button from '../UI/Button.jsx';
 import SelectInput from './SelectInput.jsx';
 import TextInput from './TextInput.jsx';
 
+/** La valeur du choix « Nouveau lieu… » dans le menu. */
 const NEW = '__nouveau__';
+/** Un nouveau lieu, avant toute saisie. */
 const EMPTY = { name: '', postal_code: '', city: '', address: '' };
+/** Le libellé d'un lieu dans le menu : « Grand studio (Marseille) ». */
 const label = (place) => `${place.name} (${place.city})`;
 
+/**
+ * Les erreurs qu'on détecte avant d'appeler l'API, avec les mêmes clés qu'elle.
+ *
+ * @param {{name: string, postal_code: string, city: string, address: string}} draft
+ * @returns {Object<string, string>}
+ */
 function validate(draft) {
   const errors = {};
   if (!draft.name.trim()) errors.name = 'Indiquez le nom du lieu.';
@@ -17,11 +26,21 @@ function validate(draft) {
   return errors;
 }
 
-/*
- * Menu des lieux avec « Nouveau lieu… » (#135) : « chacun peut créer un nouveau lieu (projets
- * en tournée) ; nom, code postal et ville obligatoires » (contexte client). Les champs se
- * déplient dans le formulaire parent (pas de formulaire imbriqué) ; le lieu créé est ajouté
- * à la liste par `onCreated` et sélectionné.
+/**
+ * Le menu des lieux, avec « Nouveau lieu… » (#135) : « chacun peut créer un nouveau lieu
+ * (projets en tournée) ; nom, code postal et ville obligatoires » (contexte client). On déplie
+ * les champs dans le formulaire parent (pas de formulaire imbriqué) ; une fois le lieu créé,
+ * on l'ajoute à la liste par `onCreated` et on le sélectionne.
+ *
+ * @param {object} props
+ * @param {Array<{id: number, name: string, city: string}>} props.locations
+ * @param {string} props.value  l'identifiant du lieu choisi
+ * @param {(value: string) => void} props.onChange
+ * @param {(location: object) => void} props.onCreated
+ * @param {string} [props.error]
+ * @param {string} [props.label='Lieu']
+ * @param {string} props.name
+ * @param {boolean} [props.required]
  */
 export default function LocationSelect({ locations, value, onChange, onCreated, error, label: fieldLabel = 'Lieu', name, required }) {
   const { logout } = useAuth();
@@ -42,7 +61,7 @@ export default function LocationSelect({ locations, value, onChange, onCreated, 
       setOpen(true);
       return;
     }
-    // Un lieu existant choisi pendant la saisie d'un nouveau : on abandonne le nouveau.
+    // Si on choisit un lieu existant pendant la saisie d'un nouveau, on abandonne le nouveau.
     if (open) {
       setOpen(false);
       setDraft(EMPTY);
@@ -87,7 +106,7 @@ export default function LocationSelect({ locations, value, onChange, onCreated, 
       } else if (failed.status === 422 && Object.keys(failed.errors ?? {}).some((key) => key in EMPTY)) {
         const fieldErrors = Object.fromEntries(Object.entries(failed.errors).map(([key, messages]) => [key, messages[0]]));
         setErrors(fieldErrors);
-        // Le focus sur le champ refusé fait lire son message par les lecteurs d'écran.
+        // On met le focus sur le champ refusé : les lecteurs d'écran lisent ainsi son message.
         const first = Object.keys(EMPTY).find((key) => fieldErrors[key]);
         requestAnimationFrame(() => panelRef.current?.querySelector(`[name="nouveau_lieu_${first}"]`)?.focus());
       } else if (failed.status === 422) {
@@ -100,7 +119,7 @@ export default function LocationSelect({ locations, value, onChange, onCreated, 
     }
   }
 
-  // Entrée dans un champ du lieu : on crée le lieu au lieu d'envoyer le formulaire parent.
+  // Avec Entrée dans un champ du lieu, on crée le lieu au lieu d'envoyer le formulaire parent.
   // Sur un bouton, Entrée garde son effet (Annuler annule).
   function onKeyDown(event) {
     if (event.key === 'Enter' && event.target.tagName === 'INPUT') {

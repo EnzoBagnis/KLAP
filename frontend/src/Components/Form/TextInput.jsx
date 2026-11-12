@@ -1,7 +1,16 @@
 import { useId } from 'react';
 
-// Champ de formulaire de la maquette : libellé en capitales, astérisque rouge si obligatoire,
-// message d'erreur relié au champ pour les lecteurs d'écran.
+/**
+ * Le champ de formulaire de la maquette : libellé en capitales, astérisque rouge s'il est
+ * obligatoire, et message d'erreur qu'on relie au champ pour les lecteurs d'écran. Les autres
+ * propriétés (type, value, onChange…) vont telles quelles à l'<input>.
+ *
+ * @param {object} props
+ * @param {string} props.label
+ * @param {boolean} [props.required=false]
+ * @param {string} [props.error]  le message d'erreur, s'il y en a un
+ * @param {string} [props.id]  sinon on en génère un
+ */
 export default function TextInput({ label, required = false, error, id, 'aria-describedby': describedBy, ...inputProps }) {
   const generatedId = useId();
   const inputId = id ?? generatedId;

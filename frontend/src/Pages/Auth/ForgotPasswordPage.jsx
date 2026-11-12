@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import TextInput from '../../Components/Form/TextInput.jsx';
 import Button from '../../Components/UI/Button.jsx';
 import { requestPasswordReset } from '../../Services/PasswordService.js';
+import { EMAIL_PATTERN } from '../../Services/validation.js';
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/*
- * Mot de passe oublié (#81), hors connexion : on demande un lien par mail. La réponse est
- * la même que l'adresse existe ou non (l'API ne révèle pas quels comptes existent).
+/**
+ * Mot de passe oublié (#81), sans être connecté : on demande un lien par mail. La réponse est
+ * la même, que l'adresse existe ou non (l'API ne révèle pas quels comptes existent).
  */
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');

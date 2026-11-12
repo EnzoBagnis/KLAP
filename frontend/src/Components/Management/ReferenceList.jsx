@@ -6,18 +6,48 @@ import SelectInput from '../Form/SelectInput.jsx';
 import useAuth from '../../Hooks/useAuth.js';
 
 /*
- * Une liste de référence gérée par l'administratrice (#249) : financeurs, types de projet, lieux.
- * Ajouter, corriger sur place, désactiver ou réactiver ; jamais supprimer. Désactivé, un élément
- * n'est plus proposé dans les menus, mais ce qui l'utilise déjà le garde.
- *
- * fields : [{ key, label, required, maxLength, options, inputMode, hint }] ; options → menu.
+ * Une liste de référence que l'administratrice tient elle-même (#249) : financeurs, types de
+ * projet, lieux, et les groupes d'un projet (#250). On ajoute, on corrige sur place, on
+ * désactive ou on réactive ; on ne supprime jamais. Désactivé, un élément n'est plus proposé
+ * dans les menus, mais ce qui l'utilise déjà le garde.
  */
+
+/**
+ * Un champ du formulaire d'une liste.
+ *
+ * @typedef {object} Field
+ * @property {string} key  le nom du champ dans l'API
+ * @property {string} label
+ * @property {boolean} [required]
+ * @property {string} [requiredMessage]  le message si le champ obligatoire est vide
+ * @property {number} [maxLength]
+ * @property {RegExp} [pattern]
+ * @property {string} [patternMessage]  le message si la valeur ne respecte pas `pattern`
+ * @property {Array<{value: string, label: string}>} [options]  s'il y en a, le champ est un menu
+ * @property {string} [inputMode]
+ */
+
+/** Un brouillon vide : chaque champ à la chaîne vide. */
 const emptyDraft = (fields) => Object.fromEntries(fields.map((f) => [f.key, '']));
 
+/**
+ * Le brouillon prêt à être envoyé : on retire les espaces autour des textes.
+ *
+ * @param {Field[]} fields
+ * @param {object} draft
+ * @returns {object}
+ */
 function cleaned(fields, draft) {
   return Object.fromEntries(fields.map((f) => [f.key, typeof draft[f.key] === 'string' ? draft[f.key].trim() : draft[f.key]]));
 }
 
+/**
+ * Les erreurs qu'on détecte avant d'appeler l'API.
+ *
+ * @param {Field[]} fields
+ * @param {object} draft
+ * @returns {Object<string, string>}
+ */
 function localErrors(fields, draft) {
   const errors = {};
   for (const f of fields) {
@@ -29,6 +59,9 @@ function localErrors(fields, draft) {
   return errors;
 }
 
+/**
+ * Le formulaire d'ajout ou de modification d'un élément, qu'on affiche sur place dans la liste.
+ */
 function DraftForm({ fields, draft, setDraft, errors, onSubmit, onCancel, submitLabel, busy, idPrefix }) {
   const ref = useRef(null);
   useEffect(() => {
@@ -56,6 +89,10 @@ function DraftForm({ fields, draft, setDraft, errors, onSubmit, onCancel, submit
   );
 }
 
+/**
+ * Les mots de l'interface, qu'une liste peut remplacer : pour les groupes d'un projet, on dit
+ * « Retirer » et « Remettre » plutôt que « Désactiver » et « Réactiver ».
+ */
 const DEFAULT_WORDING = {
   off: 'Désactiver',
   on: 'Réactiver',
@@ -66,6 +103,23 @@ const DEFAULT_WORDING = {
   askOn: (n) => `Réactiver « ${n} » ? Il sera de nouveau proposé dans les menus.`,
 };
 
+/**
+ * La liste, avec ses actions.
+ *
+ * @param {object} props
+ * @param {string} props.title
+ * @param {string} [props.intro]
+ * @param {string} props.noun  le nom d'un élément, pour les messages (« Financeur »)
+ * @param {string} props.addLabel  le libellé du bouton d'ajout
+ * @param {Field[]} props.fields
+ * @param {() => Promise<object[]>} props.load
+ * @param {(payload: object) => Promise<object>} props.create
+ * @param {(id: number, changes: object) => Promise<object>} props.update
+ * @param {(item: object) => string} [props.meta]  la ligne d'information sous le nom
+ * @param {(item: object) => string} [props.name]  le nom affiché d'un élément
+ * @param {object} [props.wording]  les mots à remplacer, voir DEFAULT_WORDING
+ * @param {2|3} [props.headingLevel=2]
+ */
 export default function ReferenceList({ title, intro, noun, addLabel, fields, load, create, update, meta, name = (item) => item.name, wording = {}, headingLevel = 2 }) {
   const w = { ...DEFAULT_WORDING, ...wording };
   const Heading = `h${headingLevel}`;
@@ -73,7 +127,8 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
   const headingId = useId();
   const [state, setState] = useState({ status: 'loading', items: [] });
   const [notice, setNotice] = useState({ kind: '', text: '' });
-  const [editing, setEditing] = useState(null); // 'nouveau' ou l'id en cours de modification
+  // Ce qu'on est en train de saisir : 'nouveau', ou l'identifiant de l'élément qu'on modifie.
+  const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState({});
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
@@ -115,7 +170,7 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
     reload();
   }, [reload]);
 
-  // Après « Enregistrer » ou « Annuler », le formulaire disparaît : le focus revient au titre.
+  // Après « Enregistrer » ou « Annuler », le formulaire disparaît : on rend le focus au titre.
   const headingRef = useRef(null);
   function close() {
     setEditing(null);
@@ -140,7 +195,7 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
       const payload = cleaned(fields, draft);
       if (editing === 'nouveau') {
         const created = await create(payload);
-        // Liste relue : l'élément arrive complet (état, usage) et à sa place dans l'ordre.
+        // On relit la liste : l'élément arrive ainsi complet (état, usage) et à sa place dans l'ordre.
         setState({ status: 'ready', items: await load() });
         setNotice({ kind: 'success', text: `${noun} « ${name(created)} » ajouté.` });
       } else {
@@ -157,7 +212,7 @@ export default function ReferenceList({ title, intro, noun, addLabel, fields, lo
   }
 
   async function toggle(item) {
-    // Sans is_active (réponse partielle), l'élément est actif : comme l'affichage.
+    // Sans is_active (réponse partielle), on considère l'élément actif, comme à l'affichage.
     const activate = item.is_active === false;
     const question = activate ? w.askOn(name(item)) : w.askOff(name(item));
     if (!window.confirm(question)) return;

@@ -5,10 +5,10 @@ import useAuth from '../../Hooks/useAuth.js';
 import { listAccounts, setAccountActive } from '../../Services/AccountService.js';
 import { formatInstant } from '../../Pages/Logbook/logbookModel.js';
 
-/*
- * Comptes de l'application (#159) : désactiver le compte d'une personne qui quitte KLAP,
- * ou le réactiver. Désactivé, le compte perd aussitôt l'accès ; ses fiches sont conservées.
- * L'administratrice connectée n'a pas de bouton sur son propre compte.
+/**
+ * Les comptes de l'application (#159) : on désactive le compte d'une personne qui quitte
+ * KLAP, ou on le réactive. Désactivé, le compte perd aussitôt l'accès ; on conserve ses
+ * fiches. On ne propose pas de bouton à l'administratrice sur son propre compte.
  */
 export default function AccountList() {
   const { user, logout } = useAuth();

@@ -1,8 +1,18 @@
 import { useId } from 'react';
 
-/*
- * Note de 1 à 5 (engagement, expression, autonomie). Un groupe de boutons radio :
- * flèches du clavier natives, lecture « 3 sur 5 » par les lecteurs d'écran.
+/**
+ * Une note de 1 à 5 (engagement, expression, autonomie). On en fait un groupe de boutons
+ * radio : les flèches du clavier marchent d'elles-mêmes, et les lecteurs d'écran lisent
+ * « 3 sur 5 ».
+ *
+ * @param {object} props
+ * @param {string} props.label
+ * @param {string} props.name
+ * @param {number|null} props.value
+ * @param {(note: number) => void} props.onChange
+ * @param {string} [props.error]
+ * @param {boolean} [props.required=false]
+ * @param {boolean} [props.disabled=false]
  */
 export default function StarRating({ label, name, value, onChange, error, required = false, disabled = false }) {
   const errorId = `${useId()}-erreur`;
