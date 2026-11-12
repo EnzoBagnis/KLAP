@@ -4,9 +4,15 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// On garde la table users de Laravel (name, email, password...) et on ajoute ce qui manque pour KLAP
+/**
+ * On garde la table users de Laravel (name, email, password…) et on lui ajoute ce qui
+ * manque pour KLAP : le rôle, le téléphone, l'état actif et la dernière connexion.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
@@ -18,6 +24,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {

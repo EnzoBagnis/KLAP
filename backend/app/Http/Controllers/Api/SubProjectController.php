@@ -14,11 +14,14 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Groupes d'un projet après sa création (#250), administratrice seulement : ajouter, corriger,
- * retirer (désactiver) ou remettre. Un groupe retiré n'est plus proposé pour une nouvelle
- * séance ; ses séances, ses fiches et ses chiffres restent. Un projet archivé ne bouge plus.
+ * retirer (désactiver) ou remettre. On ne propose plus un groupe retiré pour une nouvelle
+ * séance, mais on garde ses séances, ses fiches et ses chiffres. Un projet archivé ne bouge plus.
  */
 class SubProjectController extends Controller
 {
+    /**
+     * On ajoute un groupe au projet.
+     */
     public function store(StoreSubProjectRequest $request): JsonResponse
     {
         $group = DB::transaction(function () use ($request) {
@@ -30,10 +33,15 @@ class SubProjectController extends Controller
         return (new SubProjectResource($group->fresh()))->response()->setStatusCode(201);
     }
 
+    /**
+     * On corrige un groupe, on le retire ou on le remet.
+     *
+     * @throws ValidationException si on retirait le dernier groupe actif du projet
+     */
     public function update(UpdateSubProjectRequest $request): SubProjectResource
     {
         $data = $request->validated();
-        // « 0 », « false », false… : la règle boolean accepte plusieurs écritures, on en garde une seule.
+        // « 0 », « false », false… : la règle boolean accepte plusieurs écritures, on n'en garde qu'une.
         if (array_key_exists('is_active', $data)) {
             $data['is_active'] = $request->boolean('is_active');
         }
@@ -54,7 +62,10 @@ class SubProjectController extends Controller
         return new SubProjectResource($group->fresh());
     }
 
-    /** Projet relu verrouillé : un projet archivé (même à l'instant) refuse toute modification. */
+    /**
+     * On relit le projet en le verrouillant : un projet archivé, même à l'instant, refuse
+     * toute modification.
+     */
     private function editable(int $id): Project
     {
         $project = Project::query()->lockForUpdate()->findOrFail($id);

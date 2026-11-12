@@ -5,24 +5,27 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/*
- * Champs de l'écran « Nouveau projet » (maquette, écran 58) absents du schéma :
- * - le type de projet, choisi dans la liste gérée par l'administratrice ;
- * - le nombre de séances prévues, objectif fixé à la création (le cahier des charges
- *   annonce le volume d'interventions de chaque projet avant tout planning). Le nombre
- *   de séances réalisées, lui, se calcule à partir des séances et n'est pas stocké.
+/**
+ * Les champs de l'écran « Nouveau projet » (maquette, écran 58) qui manquaient au schéma :
+ * - le type de projet, qu'on choisit dans la liste que tient l'administratrice ;
+ * - le nombre de séances prévues, l'objectif qu'on fixe à la création (le cahier des charges
+ *   annonce le volume d'interventions de chaque projet avant tout planning). Le nombre de
+ *   séances réalisées, lui, on le calcule à partir des séances : on ne le stocke pas.
  */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         $sqlite = DB::getDriverName() === 'sqlite';
 
         Schema::table('projects', function (Blueprint $table) use ($sqlite) {
             $column = $table->foreignId('project_type_id')->nullable()->after('description');
-            // Sur SQLite, une clé étrangère ajoutée oblige à reconstruire la table, ce qui
-            // casse les vues de statistiques qui la lisent. La contrainte vit donc sur
-            // MariaDB et MySQL, comme les CHECK.
+            // Sur SQLite, ajouter une clé étrangère oblige à reconstruire la table, ce qui
+            // casse les vues de statistiques qui la lisent. On ne pose donc la contrainte que
+            // sur MariaDB et MySQL, comme les CHECK.
             if (! $sqlite) {
                 $column->constrained('project_types');
             }
@@ -34,6 +37,9 @@ return new class extends Migration
         }
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         $sqlite = DB::getDriverName() === 'sqlite';

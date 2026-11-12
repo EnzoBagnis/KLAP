@@ -13,18 +13,27 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Équipe d'un projet (#251, anomalie AF7 de l'audit), administratrice seulement : ajouter un·e
- * intervenant·e ponctuel·le, ou le ou la retirer. Une séance ne peut être confiée qu'à un membre
- * du projet à sa date : sans cet écran, seul·e l'intervenant·e principal·e pouvait en animer.
+ * Équipe d'un projet (#251, anomalie AF7 de notre audit), administratrice seulement : ajouter
+ * un·e intervenant·e ponctuel·le, ou le ou la retirer. On ne peut confier une séance qu'à un
+ * membre du projet à sa date : sans cet écran, seul·e l'intervenant·e principal·e pouvait en animer.
  *
- * Retirer : refusé s'il reste des séances à venir à son nom (à confier à quelqu'un d'autre ou à
- * annuler d'abord). Avec des séances passées, l'appartenance se termine aujourd'hui : il ou elle
- * garde la lecture de ses fiches. Sinon, le lien est simplement supprimé.
+ * Pour retirer quelqu'un : on refuse s'il lui reste des séances à venir (il faut d'abord les
+ * confier à quelqu'un d'autre ou les annuler). S'il ou elle a des séances passées, on termine
+ * son appartenance aujourd'hui, pour lui garder la lecture de ses fiches. Sinon, on supprime
+ * simplement le lien.
  */
 class ProjectMemberController extends Controller
 {
+    /** Les relations qu'on renvoie avec le projet, comme ProjectController. */
     private const RELATIONS = ['defaultLocation', 'projectType', 'subProjects', 'members', 'funders'];
 
+    /**
+     * On ajoute un·e intervenant·e ponctuel·le à l'équipe, ou on le ou la fait revenir.
+     *
+     * @param  string  $project  l'identifiant du projet, tel qu'il arrive dans l'URL
+     *
+     * @throws ValidationException si la personne fait déjà partie de l'équipe
+     */
     public function store(Request $request, string $project): ProjectResource
     {
         $data = $request->validate([
@@ -39,11 +48,12 @@ class ProjectMemberController extends Controller
         $found = DB::transaction(function () use ($project, $data) {
             $found = $this->editable($project);
             $current = $found->members()->where('users.id', $data['user_id'])->first();
-            if ($current && $current->pivot->end_date === null) {
+            if ($current && $current->pivot->getAttribute('end_date') === null) {
                 throw ValidationException::withMessages(['user_id' => 'Cette personne fait déjà partie de l’équipe.']);
             }
             if ($current) {
-                // Revient dans l'équipe : une nouvelle période commence aujourd'hui, son rôle ne change pas.
+                // La personne revient dans l'équipe : on ouvre une nouvelle période à partir
+                // d'aujourd'hui, et on ne touche pas à son rôle.
                 $found->members()->updateExistingPivot($data['user_id'], ['start_date' => LogbookEntry::localNow()->toDateString(), 'end_date' => null]);
             } else {
                 $found->members()->attach($data['user_id'], ['member_role' => 'occasional']);
@@ -55,6 +65,12 @@ class ProjectMemberController extends Controller
         return new ProjectResource($found->fresh(self::RELATIONS));
     }
 
+    /**
+     * On retire un·e intervenant·e ponctuel·le de l'équipe.
+     *
+     * @param  string  $project  l'identifiant du projet, tel qu'il arrive dans l'URL
+     * @param  string  $user  l'identifiant du compte, tel qu'il arrive dans l'URL
+     */
     public function destroy(string $project, string $user): ProjectResource
     {
         abort_unless(ctype_digit($user), 404);
@@ -62,15 +78,16 @@ class ProjectMemberController extends Controller
         $found = DB::transaction(function () use ($project, $user) {
             $found = $this->editable($project);
             $member = $found->members()->where('users.id', $user)->first();
-            abort_if($member === null || $member->pivot->end_date !== null, 404);
-            abort_if($member->pivot->member_role === 'lead', 409,
+            abort_if($member === null || $member->pivot->getAttribute('end_date') !== null, 404);
+            abort_if($member->pivot->getAttribute('member_role') === 'lead', 409,
                 'C’est l’intervenant·e principal·e : choisissez-en un·e autre dans « Modifier » avant de la ou le retirer.');
 
             $now = LogbookEntry::localNow();
             $today = $now->toDateString();
             $sessions = DB::table('scheduled_sessions')->where('project_id', $found->id)->where('referent_id', $member->id)
                 ->where('status', '<>', 'cancelled');
-            // À venir : un autre jour, ou aujourd'hui mais pas encore terminée.
+            // On compte comme « à venir » une séance d'un autre jour, ou d'aujourd'hui mais pas
+            // encore terminée, et qui n'a pas encore de fiche.
             $upcoming = (clone $sessions)
                 ->where(fn ($q) => $q->whereDate('session_date', '>', $today)
                     ->orWhere(fn ($q) => $q->whereDate('session_date', $today)->where('end_time', '>', $now->format('H:i:s'))))
@@ -94,7 +111,11 @@ class ProjectMemberController extends Controller
         return new ProjectResource($found->fresh(self::RELATIONS));
     }
 
-    /** Projet relu verrouillé ; archivé, il ne bouge plus. */
+    /**
+     * On relit le projet en le verrouillant ; archivé, il ne bouge plus.
+     *
+     * @param  string  $id  l'identifiant du projet, tel qu'il arrive dans l'URL
+     */
     private function editable(string $id): Project
     {
         abort_unless(ctype_digit($id), 404);

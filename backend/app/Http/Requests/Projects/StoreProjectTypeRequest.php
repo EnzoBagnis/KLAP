@@ -5,8 +5,16 @@ namespace App\Http\Requests\Projects;
 use App\Rules\UniqueProjectTypeName;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Nouveau type de projet : un nom, unique sans tenir compte de la casse.
+ */
 class StoreProjectTypeRequest extends FormRequest
 {
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -14,6 +22,11 @@ class StoreProjectTypeRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [

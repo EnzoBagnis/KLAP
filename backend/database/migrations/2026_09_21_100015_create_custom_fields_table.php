@@ -5,9 +5,15 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Champs en plus propres à un projet. On les désactive, on ne les supprime jamais
+/**
+ * Champs supplémentaires propres à un projet. On les désactive, on ne les supprime jamais.
+ * La table est prête, mais l'application ne propose pas encore cette fonction.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('custom_fields', function (Blueprint $table) {
@@ -32,6 +38,9 @@ return new class extends Migration
         }
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('custom_fields');

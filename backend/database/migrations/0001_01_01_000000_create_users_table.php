@@ -4,10 +4,14 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Tables de Laravel pour les comptes : users, password_reset_tokens et sessions. On garde
+ * la table users telle quelle, et on lui ajoute nos champs dans la migration suivante.
+ */
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * On applique la migration.
      */
     public function up(): void
     {
@@ -38,7 +42,7 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * On annule la migration.
      */
     public function down(): void
     {

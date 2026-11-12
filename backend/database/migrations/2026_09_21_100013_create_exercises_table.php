@@ -5,9 +5,14 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Exercices d'une séance, 10 max. Le minimum de 2 à la soumission est vérifié côté API
+/**
+ * Exercices d'une séance, 10 au plus. Le minimum de 2 à la soumission, on le vérifie côté API.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('exercises', function (Blueprint $table) {
@@ -25,6 +30,9 @@ return new class extends Migration
         }
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('exercises');

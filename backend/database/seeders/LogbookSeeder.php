@@ -5,10 +5,15 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-// Fiches de démo. La 2 a été rouverte par Mariette, la 4 est un brouillon.
-// La séance 6 n'a pas de fiche : elle doit remonter dans v_missing_entries
+/**
+ * Fiches de démonstration. Mariette a rouvert la 2, la 4 est un brouillon. On n'a pas donné
+ * de fiche à la séance 6 : elle doit remonter dans v_missing_entries.
+ */
 class LogbookSeeder extends Seeder
 {
+    /**
+     * On remplit les tables.
+     */
     public function run(): void
     {
         $entries = [
@@ -96,7 +101,8 @@ class LogbookSeeder extends Seeder
             DB::table('logbook_entries')->insert($entry + ['created_at' => $date, 'updated_at' => $date]);
         }
 
-        // P4 : fiche, engagement, expression, autonomie, interaction, sensation, précision, évolution
+        // Partie 4, dans l'ordre : fiche, engagement, expression, autonomie, interaction,
+        // sensation, précision, évolution.
         $evaluations = [
             [1, 4, 3, 2, 'écoute, entraide', 'shyness', null, 'first_session'],
             [2, 4, 4, 3, 'écoute', 'buy_in', null, 'improvement'],
@@ -130,7 +136,7 @@ class LogbookSeeder extends Seeder
             }
         }
 
-        // P5 artistes présents
+        // Partie 5 : les artistes présents (fiche, compte, rôle).
         $artists = [[1, 3, 'lead'], [2, 3, 'lead'], [3, 3, 'lead'], [3, 5, 'occasional'], [4, 3, 'lead'],
             [5, 4, 'lead'], [6, 4, 'lead'], [6, 5, 'occasional'], [7, 6, 'lead'], [8, 6, 'lead'], [8, 4, 'occasional']];
         foreach ($artists as [$entry, $user, $role]) {

@@ -6,10 +6,17 @@ use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
+ * Fabrique de tests : un lieu actif à Marseille.
+ *
  * @extends Factory<Location>
  */
 class LocationFactory extends Factory
 {
+    /**
+     * Les valeurs par défaut.
+     *
+     * @return array<string, mixed>
+     */
     public function definition(): array
     {
         return [
@@ -22,6 +29,9 @@ class LocationFactory extends Factory
         ];
     }
 
+    /**
+     * Un lieu désactivé.
+     */
     public function inactive(): static
     {
         return $this->state(fn () => ['is_active' => false]);

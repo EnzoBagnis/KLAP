@@ -9,13 +9,16 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
- * Inviter quelqu'un (administratrice, route role:admin). Rôles proposés : intervenant·e ou
- * super-utilisatrice ; inviter une autre administratrice est une décision de la cliente.
- * Une invitation en cours pour la même adresse est remplacée (mail perdu, faute de frappe) :
- * sans liste ni annulation, refuser bloquerait l'adresse jusqu'à l'expiration.
+ * Inviter quelqu'un (administratrice, route role:admin). On propose deux rôles :
+ * intervenant·e ou super-utilisatrice ; inviter une autre administratrice est une décision
+ * de la cliente. On remplace une invitation en cours pour la même adresse (mail perdu, faute
+ * de frappe) : sans liste ni annulation, refuser bloquerait l'adresse jusqu'à l'expiration.
  */
 class StoreInvitationRequest extends FormRequest
 {
+    /**
+     * On met l'adresse en minuscules et sans espaces autour, pour comparer avec les comptes existants.
+     */
     protected function prepareForValidation(): void
     {
         if (is_string($this->input('email'))) {
@@ -23,16 +26,27 @@ class StoreInvitationRequest extends FormRequest
         }
     }
 
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
             'full_name' => ['required', 'string', 'max:160'],
-            // 190 : même limite que la connexion.
+            // 190 caractères : on garde la même limite qu'à la connexion.
             'email' => ['required', 'string', 'email', 'max:190'],
             'role' => ['required', Rule::in([UserRole::Contributor->value, UserRole::SuperUser->value])],
         ];
     }
 
+    /**
+     * Les contrôles qu'on fait après les règles : ceux qui croisent plusieurs champs ou qui
+     * lisent la base.
+     *
+     * @return list<callable(Validator): void>
+     */
     public function after(): array
     {
         return [
@@ -42,7 +56,8 @@ class StoreInvitationRequest extends FormRequest
                 }
                 $existing = User::query()->whereRaw('LOWER(email) = ?', [$this->input('email')])->first(['id', 'is_active']);
                 if ($existing !== null) {
-                    // Compte désactivé : on le réactive plutôt que de réinviter (#159). Route réservée à l'admin.
+                    // Pour un compte désactivé, on demande de le réactiver plutôt que de
+                    // réinviter (#159). On peut le dire : la route est réservée à l'administratrice.
                     $validator->errors()->add('email', $existing->is_active
                         ? 'Un compte existe déjà avec cette adresse.'
                         : 'Un compte désactivé existe avec cette adresse : réactivez-le dans la liste des comptes.');
@@ -51,6 +66,11 @@ class StoreInvitationRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [

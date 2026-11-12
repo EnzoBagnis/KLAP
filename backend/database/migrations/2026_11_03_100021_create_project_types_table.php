@@ -4,13 +4,16 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/*
- * Types de projet (« Partenariat lycée », « Projet annuel école »…), gérés par
- * l'administratrice. Comme les lieux et les champs personnalisés, un type se
- * désactive, il ne se supprime jamais : les projets qui l'utilisent le gardent.
+/**
+ * Types de projet (« Partenariat lycée », « Projet annuel école »…), que l'administratrice
+ * tient elle-même. Comme les lieux et les champs personnalisés, on désactive un type, on ne le
+ * supprime jamais : les projets qui l'utilisent le gardent.
  */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('project_types', function (Blueprint $table) {
@@ -21,6 +24,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('project_types');

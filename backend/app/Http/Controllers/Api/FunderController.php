@@ -11,14 +11,18 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Financeurs (#249), gérés par l'administratrice : création, renommage, désactivation.
- * Pas de suppression : un financeur désactivé n'est plus proposé pour un nouveau projet,
- * mais les projets qui l'ont le gardent (et leur pré-bilan aussi).
+ * Financeurs (#249), une liste que l'administratrice tient elle-même : création, renommage,
+ * désactivation. On ne supprime jamais un financeur : désactivé, on ne le propose plus pour
+ * un nouveau projet, mais les projets qui l'ont le gardent (et leur pré-bilan aussi).
  */
 class FunderController extends Controller
 {
+    /** Ce qu'on expose d'un financeur. */
     private const FIELDS = ['id', 'name', 'type', 'is_active'];
 
+    /**
+     * On liste tous les financeurs, les actifs d'abord, avec le nombre de projets qu'ils financent.
+     */
     public function index(): JsonResponse
     {
         $funders = Funder::query()
@@ -31,6 +35,9 @@ class FunderController extends Controller
         return response()->json(['data' => $funders]);
     }
 
+    /**
+     * On crée un financeur, actif, de catégorie « autre » si on ne la précise pas.
+     */
     public function store(StoreFunderRequest $request): JsonResponse
     {
         $funder = $this->saving(fn () => Funder::query()->create(['type' => 'other', ...$request->validated(), 'is_active' => true]));
@@ -38,6 +45,9 @@ class FunderController extends Controller
         return response()->json(['data' => $funder->fresh()->only(self::FIELDS)], 201);
     }
 
+    /**
+     * On renomme un financeur, on change sa catégorie, on le désactive ou on le réactive.
+     */
     public function update(UpdateFunderRequest $request, Funder $funder): JsonResponse
     {
         $this->saving(fn () => $funder->update($request->validated()));
@@ -45,8 +55,18 @@ class FunderController extends Controller
         return response()->json(['data' => $funder->fresh()->only(self::FIELDS)]);
     }
 
-    /** Deux enregistrements simultanés du même nom : le second bute sur l'index unique. */
-    private function saving(callable $write)
+    /**
+     * On exécute une écriture en traduisant le doublon : si deux personnes enregistrent le
+     * même nom en même temps, la seconde bute sur l'index unique.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $write
+     * @return T
+     *
+     * @throws ValidationException si le nom est déjà pris
+     */
+    private function saving(callable $write): mixed
     {
         try {
             return $write();

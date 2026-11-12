@@ -7,9 +7,15 @@ use App\Http\Requests\Statistics\StatisticsRequest;
 use App\Services\StatisticsService;
 use Illuminate\Http\JsonResponse;
 
-/** Statistiques agrégées (#113), en lecture seule : administratrice et super-utilisatrice. */
+/**
+ * Statistiques agrégées (#113), en lecture seule, pour l'administratrice et la
+ * super-utilisatrice.
+ */
 class StatisticsController extends Controller
 {
+    /**
+     * On calcule les statistiques pour les filtres demandés (projet, période).
+     */
     public function __invoke(StatisticsRequest $request): JsonResponse
     {
         $projectId = $request->validated('project_id');

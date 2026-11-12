@@ -7,10 +7,17 @@ use App\Models\SubProject;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
+ * Fabrique de tests : un groupe.
+ *
  * @extends Factory<SubProject>
  */
 class SubProjectFactory extends Factory
 {
+    /**
+     * Les valeurs par défaut.
+     *
+     * @return array<string, mixed>
+     */
     public function definition(): array
     {
         return [

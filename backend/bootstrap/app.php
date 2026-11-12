@@ -22,11 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Adresse d'API inconnue (dont un identifiant non numérique, #200) : même réponse qu'un
-        // élément introuvable ou interdit, pour ne rien révéler des routes ni des données.
+        // Pour une adresse d'API inconnue (dont un identifiant non numérique, #200), on donne la
+        // même réponse que pour un élément introuvable ou interdit : on ne révèle rien des
+        // routes ni des données.
         $exceptions->render(function (NotFoundHttpException $exception, Request $request) {
             if ($request->is('api', 'api/*') && $request->route() === null) {
-                // Mêmes options d'encodage que les 404 de Laravel : la réponse est identique à l'octet près.
+                // On reprend les options d'encodage des 404 de Laravel : la réponse est
+                // identique à l'octet près.
                 return response()->json(['message' => ''], 404, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             }
         });

@@ -8,9 +8,18 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
-/** @extends Factory<Invitation> */
+/**
+ * Fabrique de tests : une invitation en cours, envoyée par une administratrice.
+ *
+ * @extends Factory<Invitation>
+ */
 class InvitationFactory extends Factory
 {
+    /**
+     * Les valeurs par défaut.
+     *
+     * @return array<string, mixed>
+     */
     public function definition(): array
     {
         return [
@@ -24,7 +33,9 @@ class InvitationFactory extends Factory
         ];
     }
 
-    /** Jeton connu, pour l'utiliser dans un test. */
+    /**
+     * On fixe le jeton, pour pouvoir l'utiliser dans un test.
+     */
     public function withToken(string $token): static
     {
         return $this->state(['token_hash' => Invitation::hashToken($token)]);

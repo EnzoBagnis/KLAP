@@ -7,14 +7,17 @@ use Illuminate\Validation\Rule;
 
 /**
  * Nouveau lieu (#134), ouvert à tous les rôles : « chacun peut créer un nouveau lieu (projets
- * en tournée) ; champs obligatoires : nom, code postal, ville » (contexte client). Repris de la
- * branche de Lucas (#121), sans la colonne `structure` ni `is_klap`.
+ * en tournée) ; champs obligatoires : nom, code postal, ville » (contexte client). On est
+ * repartis de la branche de Lucas (#121), sans la colonne `structure` ni `is_klap`.
  */
 class StoreLocationRequest extends FormRequest
 {
+    /**
+     * On nettoie les champs de texte avant de les valider.
+     */
     protected function prepareForValidation(): void
     {
-        // Espaces réduits ; un champ vide après coup devient null (adresse facultative).
+        // On réduit les espaces ; un champ qui se retrouve vide devient null (l'adresse est facultative).
         $tidy = function ($value) {
             if (! is_string($value)) {
                 return $value;
@@ -29,6 +32,11 @@ class StoreLocationRequest extends FormRequest
             ->all());
     }
 
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -40,6 +48,11 @@ class StoreLocationRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [

@@ -5,14 +5,20 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-// Planning : on est le 21/09/2026 dans les données (séances passées, annulée, à venir)
+/**
+ * Planning. Dans les données, on est le 21/09/2026 : il y a des séances passées, une séance
+ * annulée et des séances à venir.
+ */
 class PlanningSeeder extends Seeder
 {
+    /**
+     * On remplit les tables.
+     */
     public function run(): void
     {
         $now = now();
 
-        // id, projet, date, début, fin, lieu, référent, type, précision, statut
+        // Dans l'ordre : id, projet, date, début, fin, lieu, référent, type, précision, statut.
         $sessions = [
             [1,  1, '2026-09-08', '10:00', '12:00', 4, 3, 'practice_workshop', null, 'done'],
             [2,  1, '2026-09-10', '14:00', '16:00', 4, 3, 'practice_workshop', null, 'done'],
@@ -38,7 +44,7 @@ class PlanningSeeder extends Seeder
             ]);
         }
 
-        // séance 4 = transversale sur 2 groupes, séance 8 = spectacle pour tout le lycée
+        // La séance 4 est transversale (2 groupes) ; la séance 8 est un spectacle pour tout le lycée.
         $groups = [
             [1, 1, 1, 18], [2, 3, 1, 22], [3, 4, 1, null],
             [4, 1, 1, 17], [4, 2, 1, 19],

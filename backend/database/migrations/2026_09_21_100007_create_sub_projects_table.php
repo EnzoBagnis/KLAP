@@ -5,9 +5,15 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Sous-projets (une classe, un collège...). Un projet en a toujours au moins un
+/**
+ * Sous-projets (une classe, un collège…), qu'on appelle « groupes » dans l'interface. Un
+ * projet en a toujours au moins un.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('sub_projects', function (Blueprint $table) {
@@ -23,7 +29,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            // sert à la clé étrangère composite de scheduled_session_sub_project
+            // On s'en sert pour la clé étrangère composite de scheduled_session_sub_project.
             $table->unique(['id', 'project_id']);
         });
 
@@ -32,6 +38,9 @@ return new class extends Migration
         }
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('sub_projects');

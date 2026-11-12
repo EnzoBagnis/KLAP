@@ -9,10 +9,17 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
+ * Fabrique de tests : un projet actif sur une année scolaire.
+ *
  * @extends Factory<Project>
  */
 class ProjectFactory extends Factory
 {
+    /**
+     * Les valeurs par défaut.
+     *
+     * @return array<string, mixed>
+     */
     public function definition(): array
     {
         return [

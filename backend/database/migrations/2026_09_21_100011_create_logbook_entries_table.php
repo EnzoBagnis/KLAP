@@ -5,10 +5,15 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Fiches du carnet de bord. La partie P4 (participants) est dans participant_evaluations.
-// Les checks ne bloquent pas les brouillons, seulement les fiches soumises
+/**
+ * Fiches du carnet de bord. La partie 4 (les participants) est dans participant_evaluations.
+ * Nos contraintes CHECK ne bloquent pas les brouillons, seulement les fiches soumises.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('logbook_entries', function (Blueprint $table) {
@@ -17,17 +22,17 @@ return new class extends Migration
             $table->foreignId('author_id')->constrained('users');
             $table->enum('status', ['draft', 'submitted', 'locked'])->default('draft')->index();
 
-            // P2
+            // Partie 2 : les objectifs.
             $table->string('objectives', 400)->nullable();
-            // P3
+            // Partie 3 : le déroulé de la séance.
             $table->boolean('adjustment_done')->nullable();          // fait / non fait
             $table->string('adjustment_detail', 500)->nullable();
             $table->string('highlights', 200)->nullable();           // temps forts ("rien" accepté)
             $table->string('tools_resources', 200)->nullable();
-            // P5
+            // Partie 5 : le bilan de l'intervenant·e.
             $table->string('learnings', 200)->nullable();            // les acquis
             $table->string('artist_review', 200)->nullable();
-            // P6
+            // Partie 6 : la suite à donner.
             $table->string('next_steps', 500)->nullable();
             $table->string('dropped_leads', 500)->nullable();        // pistes à abandonner
             $table->boolean('keep_in_class')->default(false);        // maintien en classe avec les profs
@@ -52,6 +57,9 @@ return new class extends Migration
         }
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('logbook_entries');

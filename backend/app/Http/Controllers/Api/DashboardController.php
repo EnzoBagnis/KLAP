@@ -15,20 +15,26 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Tableau de bord (#146), page d'accueil de tous les rôles : une seule requête, les droits
- * restent côté serveur. Fiches à remplir, prochaines séances, dernières fiches rendues et,
- * pour l'administration, le suivi des fiches manquantes et des demandes de réouverture.
+ * Tableau de bord (#146), la page d'accueil de tous les rôles. On répond en une seule
+ * requête, et on garde les droits côté serveur : fiches à remplir, prochaines séances,
+ * dernières fiches rendues et, pour l'administration, le suivi des fiches manquantes et des
+ * demandes de réouverture.
  */
 class DashboardController extends Controller
 {
+    /** Le nombre de prochaines séances qu'on affiche. */
     private const UPCOMING = 5;
 
+    /** Le nombre de dernières fiches rendues qu'on affiche. */
     private const RECENT = 5;
 
-    /** Relations d'une séance au planning (ScheduledSessionResource), échéance de la fiche en plus. */
+    /** Les relations d'une séance au planning (ScheduledSessionResource) ; on y ajoute l'échéance de la fiche. */
     private const SESSION_RELATIONS = ['project', 'location', 'referent', 'subProjects',
         'logbookEntry:id,scheduled_session_id,status,edit_deadline'];
 
+    /**
+     * On assemble le tableau de bord de la personne connectée.
+     */
     public function __invoke(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -37,23 +43,26 @@ class DashboardController extends Controller
         return response()->json([
             'to_fill' => $this->toFill($user)->map(fn (ScheduledSession $session) => [
                 ...(new ScheduledSessionResource($session))->resolve(),
-                // Dernier jour pour rendre la fiche : J+10, ou l'échéance d'un brouillon rouvert.
-                'deadline' => ($session->logbookEntry?->edit_deadline
+                // Le dernier jour pour rendre la fiche : J+10, ou l'échéance d'un brouillon qu'on a rouvert.
+                'deadline' => ($session->logbookEntry->edit_deadline
                     ?? $session->session_date->copy()->addDays(LogbookEntry::EDIT_DAYS))->toDateString(),
             ])->all(),
             'upcoming' => ScheduledSessionResource::collection($this->upcoming($user))->resolve(),
             'recent_entries' => $this->recentEntries($user),
             'follow_up' => $manager ? [
                 ...(new StatisticsService)->missingSummary(),
-                // Seule l'administratrice rouvre une fiche : la super-utilisatrice n'a rien à traiter.
+                // Seule l'administratrice rouvre une fiche : on ne montre pas ce compteur à la
+                // super-utilisatrice, qui n'a rien à traiter.
                 'unlock_requests' => $user->hasRole(UserRole::Admin) ? $this->pendingUnlockRequests() : null,
             ] : null,
         ]);
     }
 
     /**
-     * Séances dont je suis référent·e, du jour ou passées, encore dans le délai, sans fiche
-     * ou avec un brouillon. Les plus anciennes d'abord : ce sont les plus urgentes.
+     * Les séances dont on est référent·e, du jour ou passées, encore dans le délai, sans fiche
+     * ou avec un brouillon. On met les plus anciennes d'abord : ce sont les plus urgentes.
+     *
+     * @return Collection<int, ScheduledSession>
      */
     private function toFill(User $user): Collection
     {
@@ -66,9 +75,9 @@ class DashboardController extends Controller
             ->whereHas('project', fn (Builder $project) => $project->where('status', '<>', 'archived'))
             ->whereDate('session_date', '<=', $today)
             ->where(fn (Builder $open) => $open
-                // Pas encore de fiche : elle s'ouvre jusqu'à J+10.
+                // Pas encore de fiche : on peut l'ouvrir jusqu'à J+10.
                 ->where(fn (Builder $none) => $none->doesntHave('logbookEntry')->whereDate('session_date', '>=', $oldest))
-                // Un brouillon, dans son délai (prolongé s'il a été rouvert).
+                // Un brouillon, dans son délai (prolongé si on l'a rouvert).
                 ->orWhereHas('logbookEntry', fn (Builder $entry) => $entry->where('status', 'draft')
                     ->whereDate('edit_deadline', '>=', $today)))
             ->with(self::SESSION_RELATIONS)
@@ -76,8 +85,13 @@ class DashboardController extends Controller
             ->get();
     }
 
-    /** Prochaines séances que je vois au planning, à partir d'aujourd'hui : ni annulées ni d'un projet archivé. */
-    private function upcoming(User $user)
+    /**
+     * Les prochaines séances qu'on voit au planning, à partir d'aujourd'hui : ni annulées, ni
+     * d'un projet archivé.
+     *
+     * @return Collection<int, ScheduledSession>
+     */
+    private function upcoming(User $user): Collection
     {
         return ScheduledSession::query()
             ->visibleTo($user)
@@ -90,7 +104,11 @@ class DashboardController extends Controller
             ->get();
     }
 
-    /** Dernières fiches rendues que je peux lire (droits emboîtés, #141). */
+    /**
+     * Les dernières fiches rendues qu'on peut lire (droits emboîtés, #141).
+     *
+     * @return list<array<string, mixed>>
+     */
     private function recentEntries(User $user): array
     {
         return LogbookEntry::query()
@@ -104,7 +122,7 @@ class DashboardController extends Controller
                 'id' => $entry->id,
                 'status' => $entry->status,
                 'submitted_at' => $entry->submitted_at?->toIso8601String(),
-                'author' => $entry->author ? ['id' => $entry->author->id, 'name' => $entry->author->name] : null,
+                'author' => ['id' => $entry->author->id, 'name' => $entry->author->name],
                 'session' => [
                     'id' => $entry->scheduledSession->id,
                     'session_date' => $entry->scheduledSession->session_date->toDateString(),
@@ -116,8 +134,9 @@ class DashboardController extends Controller
     }
 
     /**
-     * Fiches dont la dernière demande de réouverture est postérieure au dernier déverrouillage,
-     * et que l'administratrice peut encore rouvrir (séance non annulée, projet non archivé).
+     * On compte les fiches dont la dernière demande de réouverture est postérieure au dernier
+     * déverrouillage, et que l'administratrice peut encore rouvrir (séance non annulée, projet
+     * non archivé).
      */
     private function pendingUnlockRequests(): int
     {

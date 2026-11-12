@@ -5,14 +5,19 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-// Lieux et financeurs
+/**
+ * Les listes de référence : lieux, financeurs et types de projet.
+ */
 class ReferenceDataSeeder extends Seeder
 {
+    /**
+     * On remplit les tables.
+     */
     public function run(): void
     {
         $now = now();
 
-        // les 3 salles de KLAP + 2 lieux extérieurs
+        // Les 3 salles de KLAP (noms donnés par la cliente), plus 2 lieux extérieurs.
         $locations = [
             [1, 'Petit studio',        '5 avenue Rostand', '13003', 'Marseille', true,  1],
             [2, 'Grand studio',        '5 avenue Rostand', '13003', 'Marseille', true,  1],
@@ -27,8 +32,8 @@ class ReferenceDataSeeder extends Seeder
             ]);
         }
 
-        // Types de départ : ceux de la maquette et du cahier des charges.
-        // L'administratrice peut en ajouter, les renommer ou les désactiver.
+        // Les types de départ : ceux de la maquette et du cahier des charges. L'administratrice
+        // peut en ajouter, les renommer ou les désactiver.
         foreach ([
             [1, 'Partenariat lycée'],
             [2, 'Parcours collège'],

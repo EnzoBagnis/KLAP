@@ -10,19 +10,23 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
- * Programmer une séance (maquette, écran 52). Les contraintes CHECK de la base
- * (horaires, précision du type « autre ») et la clé étrangère composite du pivot
- * (sous-projets du même projet) sont reprises ici pour répondre en 422 partout,
- * SQLite compris. `status` et `created_by` ne sont jamais lus dans la requête.
+ * Programmer une séance (maquette, écran 52). On reprend ici les contraintes CHECK de la
+ * base (horaires, précision du type « autre ») et la clé étrangère composite du pivot
+ * (sous-projets du même projet), pour répondre en 422 partout, SQLite compris. On ne lit
+ * jamais `status` ni `created_by` dans la requête.
  */
 class StoreScheduledSessionRequest extends FormRequest
 {
+    /** Le projet de la séance, qu'on charge dans authorize(). */
     protected ?Project $project = null;
 
-    /** Projet inexistant : 404, avant toute validation. */
+    /**
+     * On vérifie que le projet existe : sinon 404, avant toute validation.
+     */
     public function authorize(): bool
     {
-        // Identifiant non numérique (« 1abc ») : 404, sans conversion implicite par la base.
+        // Pour un identifiant non numérique (« 1abc »), on répond 404 nous-mêmes : la base le
+        // convertirait en 1 sans rien dire.
         $id = (string) $this->route('project');
         $this->project = ctype_digit($id) ? Project::query()->find($id) : null;
         abort_if($this->project === null, 404);
@@ -30,11 +34,19 @@ class StoreScheduledSessionRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Le projet dans lequel on programme la séance.
+     */
     public function project(): Project
     {
         return $this->project;
     }
 
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $projectId = $this->project->id;
@@ -42,7 +54,7 @@ class StoreScheduledSessionRequest extends FormRequest
         return [
             'session_date' => ['required', 'date_format:Y-m-d'],
             'start_time' => ['required', 'date_format:H:i'],
-            // Comparé au début dans after() : la règle after plante si le début est un tableau.
+            // On la compare au début dans after() : la règle after plante si le début est un tableau.
             'end_time' => ['required', 'date_format:H:i'],
             'session_type' => ['required', Rule::in(ScheduledSession::TYPES)],
             'session_type_detail' => ['nullable', 'required_if:session_type,other', 'prohibited_unless:session_type,other', 'string', 'max:100'],
@@ -53,7 +65,7 @@ class StoreScheduledSessionRequest extends FormRequest
                 Rule::exists('users', 'id')->where('is_active', true),
                 Rule::exists('project_user', 'user_id')->where('project_id', $projectId),
             ],
-            // Au moins un groupe : toutes les statistiques passent par ce lien.
+            // On exige au moins un groupe : toutes les statistiques passent par ce lien.
             'sub_project_ids' => ['required', 'array', 'min:1'],
             'sub_project_ids.*' => [
                 'integer',
@@ -63,6 +75,12 @@ class StoreScheduledSessionRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les contrôles qu'on fait après les règles : ceux qui croisent plusieurs champs ou qui
+     * lisent la base.
+     *
+     * @return list<callable(Validator): void>
+     */
     public function after(): array
     {
         return [
@@ -76,20 +94,24 @@ class StoreScheduledSessionRequest extends FormRequest
                     $errors->add('end_time', 'La fin de la séance doit être après son début.');
                 }
 
-                // Le référent doit être affecté au projet à la date de la séance.
+                // Le ou la référent·e doit être affecté·e au projet à la date de la séance.
                 if (! $errors->hasAny(['referent_id', 'session_date'])) {
                     $assignment = DB::table('project_user')
                         ->where('project_id', $this->project->id)
                         ->where('user_id', $this->input('referent_id'))
                         ->first(['start_date', 'end_date']);
                     $date = $this->input('session_date');
-                    if ($assignment && (($assignment->start_date && $date < $assignment->start_date)
-                        || ($assignment->end_date && $date > $assignment->end_date))) {
+                    // On ne compare que les dates (AAAA-MM-JJ) : selon la base, la colonne peut
+                    // aussi porter une heure.
+                    $start = $assignment?->start_date ? substr((string) $assignment->start_date, 0, 10) : null;
+                    $end = $assignment?->end_date ? substr((string) $assignment->end_date, 0, 10) : null;
+                    if (($start !== null && $date < $start) || ($end !== null && $date > $end)) {
                         $errors->add('referent_id', 'L’intervenant·e n’est pas affecté·e au projet à cette date.');
                     }
                 }
 
-                // Un·e intervenant·e n'anime pas deux séances à la fois (#168) : doublon ou erreur de saisie.
+                // Un·e intervenant·e n'anime pas deux séances à la fois (#168) : on y voit un
+                // doublon ou une erreur de saisie.
                 if (! $errors->hasAny(['referent_id', 'session_date', 'start_time', 'end_time'])) {
                     $clash = ScheduledSession::overlapping((int) $this->input('referent_id'), (string) $this->input('session_date'),
                         (string) $this->input('start_time'), (string) $this->input('end_time'), $this->ignoredSessionId());
@@ -101,12 +123,19 @@ class StoreScheduledSessionRequest extends FormRequest
         ];
     }
 
-    /** Séance à ne pas compter dans les chevauchements : aucune à la programmation. */
+    /**
+     * La séance qu'on ne compte pas dans les chevauchements : aucune à la programmation.
+     */
     protected function ignoredSessionId(): ?int
     {
         return null;
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [
@@ -124,6 +153,11 @@ class StoreScheduledSessionRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les noms des champs, tels qu'on les écrit dans les messages.
+     *
+     * @return array<string, string>
+     */
     public function attributes(): array
     {
         return [

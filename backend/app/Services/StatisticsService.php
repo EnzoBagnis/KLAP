@@ -9,26 +9,40 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use stdClass;
 
 /**
- * Statistiques à partir des fiches rendues (submitted, locked), sans rien stocker.
- * Même calcul que les vues v_sub_project_participants, v_project_participants,
- * v_project_indicators et v_missing_entries, qui ne se filtrent pas par période
- * (pas de colonne de date) : ici, le SQL des vues est repris avec les filtres.
+ * Statistiques : on les calcule à partir des fiches rendues (submitted, locked), sans rien
+ * stocker. C'est le même calcul que les vues v_sub_project_participants,
+ * v_project_participants, v_project_indicators et v_missing_entries. Ces vues ne se filtrent
+ * pas par période (elles n'ont pas de colonne de date) : on reprend donc ici leur SQL, avec
+ * les filtres.
  *
- * Participants d'un sous-projet = maximum des présents sur ses séances ;
- * participants d'un projet = somme de ces maximums (jamais un cumul).
+ * Règle de la cliente : les participants d'un sous-projet sont le maximum des présents sur
+ * ses séances ; ceux d'un projet, la somme de ces maximums (jamais un cumul des séances).
  */
 class StatisticsService
 {
+    /** Les statuts d'une fiche rendue : les seules fiches qu'on compte. */
     private const RENDERED = ['submitted', 'locked'];
 
+    /**
+     * @param  int|null  $projectId  le projet auquel on se limite, ou null pour tous
+     * @param  string|null  $from  le début de la période (AAAA-MM-JJ), ou null pour ne pas borner
+     * @param  string|null  $to  la fin de la période (AAAA-MM-JJ), ou null pour ne pas borner
+     */
     public function __construct(
         private readonly ?int $projectId = null,
         private readonly ?string $from = null,
         private readonly ?string $to = null,
     ) {}
 
+    /**
+     * On calcule toutes les statistiques du périmètre : totaux, répartitions, observations,
+     * puis le détail par projet et par groupe.
+     *
+     * @return array{filters: array{project_id: int|null, from: string|null, to: string|null}, totals: array<string, mixed>, by_city: list<array<string, mixed>>, by_age_range: list<array<string, mixed>>, observations: array<string, mixed>, projects: Collection<int, array<string, mixed>>}
+     */
     public function compute(): array
     {
         $groups = $this->subProjectParticipants();
@@ -46,6 +60,7 @@ class StatisticsService
             ->get(['id', 'project_id', 'name', 'age_range', 'city', 'postal_code', 'expected_headcount'])
             ->groupBy('project_id');
 
+        /** @var Collection<int, array<string, mixed>> $rows */
         $rows = $projects->map(function ($project) use ($groups, $indicators, $documented, $missing, $subProjects) {
             $children = ($subProjects[$project->id] ?? collect())
                 ->map(fn ($group) => $this->groupRow($group, $groups[$group->id] ?? null))
@@ -63,7 +78,8 @@ class StatisticsService
             ];
         })->values();
 
-        $allGroups = $rows->flatMap(fn ($row) => $row['sub_projects'])->where('participants', '>', 0);
+        // Pour les répartitions, on ne garde que les groupes qui ont des participants.
+        $allGroups = $rows->pluck('sub_projects')->flatten(1)->where('participants', '>', 0);
 
         return [
             'filters' => ['project_id' => $this->projectId, 'from' => $this->from, 'to' => $this->to],
@@ -71,22 +87,27 @@ class StatisticsService
                 'participants' => $rows->sum('participants'),
                 'sessions_documented' => $rows->sum('sessions_documented'),
                 ...$this->missingCounts($missing),
-                // Moyennes sur toutes les évaluations, pas une moyenne des moyennes par projet.
+                // On fait la moyenne sur toutes les évaluations, pas une moyenne des moyennes par projet.
                 ...$this->averages($this->indicators(grouped: false)->first()),
             ],
-            // Provenance (ville et code postal, pas l'arrondissement) et âge, portés par le sous-projet.
+            // La provenance (ville et code postal, pas l'arrondissement : demande de la cliente)
+            // et l'âge sont portés par le sous-projet.
             'by_city' => $this->breakdown($allGroups, fn ($group) => [$group['city'], $group['postal_code']], ['city', 'postal_code']),
-            // Tranche d'âge saisie librement : « 16 - 17 ans » et « 16-17 ans » sont regroupées.
+            // La tranche d'âge se saisit librement : on regroupe « 16 - 17 ans » et « 16-17 ans ».
             'by_age_range' => $this->breakdown($allGroups, fn ($group) => [self::ageRange($group['age_range'])], ['age_range']),
-            // Sensations, évolution et interaction des fiches rendues (couleurs choisies par la cliente).
+            // Les sensations, l'évolution et l'interaction des fiches rendues.
             'observations' => $this->observations(),
             'projects' => $rows,
         ];
     }
 
     /**
-     * Ligne d'un groupe. Assiduité (choix d'équipe, à confirmer avec la cliente) : présents
-     * moyens sur les séances documentées, rapportés à l'effectif prévu du groupe.
+     * La ligne d'un groupe. Pour l'assiduité (un choix de l'équipe, à confirmer avec la
+     * cliente), on rapporte les présents moyens des séances documentées à l'effectif prévu du groupe.
+     *
+     * @param  stdClass  $group  la ligne de sub_projects
+     * @param  stdClass|null  $stats  ses chiffres, s'il a des séances documentées
+     * @return array<string, mixed>
      */
     private function groupRow(object $group, ?object $stats): array
     {
@@ -103,11 +124,15 @@ class StatisticsService
             'participants' => (int) ($stats->participants ?? 0),
             'sessions_documented' => (int) ($stats->sessions_documented ?? 0),
             'average_attendees' => $raw === null ? null : round($raw, 1),
-            // Calculé sur la moyenne exacte ; peut dépasser 100 % si plus de présents que prévu.
+            // On le calcule sur la moyenne exacte ; il peut dépasser 100 % s'il y a eu plus de
+            // présents que prévu.
             'attendance_rate' => $raw !== null && $expected > 0 ? (int) round($raw / $expected * 100) : null,
         ];
     }
 
+    /**
+     * On harmonise l'écriture d'une tranche d'âge : « 16 - 17  ans » devient « 16-17 ans ».
+     */
     private static function ageRange(?string $value): ?string
     {
         $value = $value === null ? '' : preg_replace(['/\s*-\s*/', '/\s+/'], ['-', ' '], trim($value));
@@ -115,7 +140,15 @@ class StatisticsService
         return $value === '' ? null : $value;
     }
 
-    /** Participants regroupés par clé (ville et code postal, ou tranche d'âge), du plus grand au plus petit. */
+    /**
+     * Les participants regroupés par clé (ville et code postal, ou tranche d'âge), du plus
+     * grand au plus petit.
+     *
+     * @param  Collection<int, array<string, mixed>>  $groups
+     * @param  callable(array<string, mixed>): list<string|null>  $key  la clé de regroupement d'un groupe
+     * @param  list<string>  $fields  les noms des champs de la clé, dans le même ordre
+     * @return list<array<string, mixed>>
+     */
     private function breakdown(Collection $groups, callable $key, array $fields): array
     {
         return $groups
@@ -130,15 +163,23 @@ class StatisticsService
             ->all();
     }
 
-    /** Fiches manquantes (toutes, en retard, encore à remplir) : mêmes chiffres que l'écran Statistiques. */
+    /**
+     * Les fiches manquantes (toutes, en retard, encore à remplir). Le tableau de bord s'en
+     * sert : il affiche ainsi les mêmes chiffres que l'écran Statistiques.
+     *
+     * @return array{entries_missing: int, entries_overdue: int, entries_to_fill: int}
+     */
     public function missingSummary(): array
     {
         return $this->missingCounts($this->missingEntries());
     }
 
     /**
-     * Fiches manquantes, en retard (échéance passée : J+10, ou nouvelle échéance après
-     * réouverture d'un brouillon) ou à remplir (encore dans le délai).
+     * On répartit les fiches manquantes : en retard (échéance passée : J+10, ou la nouvelle
+     * échéance d'un brouillon rouvert) ou à remplir (encore dans le délai).
+     *
+     * @param  Collection<int, stdClass>  $missing  les lignes de missingEntries()
+     * @return array{entries_missing: int, entries_overdue: int, entries_to_fill: int}
      */
     private function missingCounts(Collection $missing): array
     {
@@ -158,7 +199,11 @@ class StatisticsService
         ];
     }
 
-    /** Séances non annulées du périmètre (projet, période). */
+    /**
+     * On restreint une requête aux séances non annulées du périmètre (projet, période).
+     *
+     * @param  string  $session  l'alias de la table scheduled_sessions dans la requête
+     */
     private function scoped(Builder $query, string $session = 's'): Builder
     {
         return $query
@@ -168,7 +213,11 @@ class StatisticsService
             ->when($this->to, fn (Builder $q, $to) => $q->whereDate("{$session}.session_date", '<=', $to));
     }
 
-    /** v_sub_project_participants, filtrée. */
+    /**
+     * La vue v_sub_project_participants, avec nos filtres.
+     *
+     * @return Collection<int, stdClass> indexée par sub_project_id
+     */
     private function subProjectParticipants(): Collection
     {
         return $this->scoped(DB::table('scheduled_session_sub_project as sp')
@@ -182,7 +231,11 @@ class StatisticsService
             ->keyBy('sub_project_id');
     }
 
-    /** Séances documentées (fiche rendue) par projet. */
+    /**
+     * Le nombre de séances documentées (fiche rendue) par projet.
+     *
+     * @return Collection<int, int> indexée par project_id
+     */
     private function documentedSessions(): Collection
     {
         return $this->scoped(DB::table('logbook_entries as le')
@@ -193,7 +246,12 @@ class StatisticsService
             ->pluck('sessions', 'project_id');
     }
 
-    /** v_project_indicators, filtrée ; sans regroupement, une ligne pour tout le périmètre. */
+    /**
+     * La vue v_project_indicators, avec nos filtres.
+     *
+     * @param  bool  $grouped  une ligne par projet ; sinon une seule ligne pour tout le périmètre
+     * @return Collection<int, stdClass>
+     */
     private function indicators(bool $grouped = true): Collection
     {
         $query = $this->scoped(DB::table('logbook_entries as le')
@@ -207,8 +265,10 @@ class StatisticsService
     }
 
     /**
-     * v_missing_entries, filtrée : séances passées (heure de Paris) sans fiche rendue,
-     * avec l'échéance du brouillon s'il y en a un (une seule fiche par séance).
+     * La vue v_missing_entries, avec nos filtres : les séances passées (heure de Paris) sans
+     * fiche rendue, avec l'échéance du brouillon s'il y en a un (une seule fiche par séance).
+     *
+     * @return Collection<int, stdClass>
      */
     private function missingEntries(): Collection
     {
@@ -223,15 +283,19 @@ class StatisticsService
     }
 
     /**
-     * Ce que notent les intervenant·e·s, sur les fiches rendues du périmètre : nombre de fiches
-     * par sensation et par évolution (toutes les valeurs, même à zéro, dans l'ordre de la fiche),
-     * et nombre de fiches dont l'interaction cite chaque mot-clé suggéré. L'interaction est un
-     * texte libre : « Écoute et entraide dans les duos » compte pour « écoute » et pour
-     * « entraide », sans tenir compte des majuscules ni des accents (« ecoute » sur téléphone).
+     * Ce que notent les intervenant·e·s sur les fiches rendues du périmètre : le nombre de
+     * fiches par sensation et par évolution (toutes les valeurs, même à zéro, dans l'ordre de la
+     * fiche), et le nombre de fiches dont l'interaction cite chaque mot-clé suggéré.
+     * L'interaction est un texte libre : « Écoute et entraide dans les duos » compte pour
+     * « écoute » et pour « entraide », sans tenir compte des majuscules ni des accents
+     * (« ecoute » sur téléphone).
+     *
+     * @return array{entries: int, feelings: list<array{key: string, entries: int}>, progress: list<array{key: string, entries: int}>, interaction_keywords: list<array{key: string, entries: int}>}
      */
     private function observations(): array
     {
-        // Jointure gauche : une fiche rendue sans évaluation compte quand même dans le total.
+        // On fait une jointure gauche : une fiche rendue sans évaluation compte quand même
+        // dans le total.
         $rows = $this->scoped(DB::table('logbook_entries as le')
             ->join('scheduled_sessions as s', 's.id', '=', 'le.scheduled_session_id')
             ->leftJoin('participant_evaluations as pe', 'pe.logbook_entry_id', '=', 'le.id')
@@ -241,7 +305,7 @@ class StatisticsService
         $count = fn (array $values, string $column) => collect($values)
             ->map(fn (string $value) => ['key' => $value, 'entries' => $rows->where($column, $value)->count()])
             ->values()->all();
-        // Un mot-clé est cité quand un mot du texte commence par l'une de ses formes.
+        // On considère qu'un mot-clé est cité quand un mot du texte commence par l'une de ses formes.
         $plain = fn (?string $text) => mb_strtolower(Str::ascii((string) $text));
         $cites = fn (?string $text, array $stems) => collect($stems)
             ->contains(fn (string $stem) => preg_match('/(?<![a-z])'.preg_quote($stem, '/').'/', $plain($text)) === 1);
@@ -256,7 +320,12 @@ class StatisticsService
         ];
     }
 
-    /** Moyennes sur 5 (null sans aucune note) et nombre d'évaluations. */
+    /**
+     * Les moyennes sur 5 (null sans aucune note) et le nombre d'évaluations.
+     *
+     * @param  stdClass|null  $row  une ligne de indicators()
+     * @return array{evaluations: int, avg_engagement: float|null, avg_expression: float|null, avg_autonomy: float|null}
+     */
     private function averages(?object $row): array
     {
         $average = fn (string $key) => $row?->{$key} === null ? null : round((float) $row->{$key}, 2);

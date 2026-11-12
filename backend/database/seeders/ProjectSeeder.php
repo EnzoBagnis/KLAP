@@ -5,9 +5,14 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-// Les 5 vrais projets + un projet archivé pour tester les filtres
+/**
+ * Les 5 vrais projets de KLAP, plus un projet archivé pour tester les filtres.
+ */
 class ProjectSeeder extends Seeder
 {
+    /**
+     * On remplit les tables.
+     */
     public function run(): void
     {
         $now = now();
@@ -56,14 +61,14 @@ class ProjectSeeder extends Seeder
             ]);
         }
 
-        // intervenants principaux (lead) et ponctuels (occasional)
+        // Les intervenant·e·s principaux·ales (lead) et ponctuel·le·s (occasional).
         $members = [[1, 3, 'lead'], [1, 5, 'occasional'], [2, 4, 'lead'], [2, 5, 'occasional'],
             [3, 6, 'lead'], [4, 3, 'lead'], [5, 6, 'lead'], [5, 4, 'occasional'], [6, 7, 'lead']];
         foreach ($members as [$project, $user, $role]) {
             DB::table('project_user')->insert(['project_id' => $project, 'user_id' => $user, 'member_role' => $role]);
         }
 
-        // champ 2 désactivé le 14/09, ses anciennes valeurs restent
+        // On a désactivé le champ 2 le 14/09 : ses anciennes valeurs restent.
         DB::table('custom_fields')->insert([
             ['id' => 1, 'project_id' => 1, 'section' => 'session', 'label' => 'Lien avec le programme de spécialité', 'field_type' => 'text',
                 'options' => null, 'is_required' => false, 'position' => 1, 'is_active' => true,

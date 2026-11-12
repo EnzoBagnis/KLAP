@@ -5,11 +5,16 @@ namespace App\Http\Requests\Locations;
 use Illuminate\Validation\Rule;
 
 /**
- * Corriger, désactiver ou réactiver un lieu (#249), administratrice seulement. Désactivé, un lieu
- * n'est plus proposé dans les menus ; les projets et séances qui l'utilisent le gardent.
+ * Corriger, désactiver ou réactiver un lieu (#249), administratrice seulement. Désactivé, on
+ * ne le propose plus dans les menus ; les projets et les séances qui l'utilisent le gardent.
  */
 class UpdateLocationRequest extends StoreLocationRequest
 {
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $location = $this->route('location');
@@ -25,6 +30,11 @@ class UpdateLocationRequest extends StoreLocationRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return parent::messages() + [
