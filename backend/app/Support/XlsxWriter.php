@@ -63,6 +63,11 @@ final class XlsxWriter
         if ($this->sheets === []) {
             throw new RuntimeException('Un classeur doit contenir au moins une feuille.');
         }
+        // On vérifie le dossier nous-mêmes : sinon l'archive ne se plaint qu'à la fermeture,
+        // par un simple avertissement.
+        if (! is_dir(dirname($path)) || ! is_writable(dirname($path))) {
+            throw new RuntimeException("Impossible d'écrire {$path}.");
+        }
         $zip = new ZipArchive;
         if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new RuntimeException("Impossible d'écrire {$path}.");

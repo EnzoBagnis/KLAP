@@ -10,11 +10,18 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * Brouillon d'une fiche de séance (#15) : l'ouvrir, l'enregistrer, respecter les limites
+ * et le délai de J+10.
+ */
 class DraftLogbookTest extends TestCase
 {
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -45,6 +52,11 @@ class DraftLogbookTest extends TestCase
             ->assertJsonPath('message', 'Seul·e l’intervenant·e référent·e de la séance, l’administratrice ou la super-utilisatrice peut ouvrir sa fiche.');
     }
 
+    /**
+     * Les cas partagés par 2 tests, dont « l administration ouvre la fiche pour le referent ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function administration(): array
     {
         return ['administratrice' => [UserRole::Admin], 'super-utilisatrice' => [UserRole::SuperUser]];
@@ -115,6 +127,11 @@ class DraftLogbookTest extends TestCase
         $this->assertDatabaseHas('exercises', ['logbook_entry_id' => $id, 'position' => 1, 'label' => 'Duo']);
     }
 
+    /**
+     * Les cas de « refuse une valeur hors limites meme en brouillon ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function invalidDrafts(): array
     {
         return [
@@ -129,6 +146,9 @@ class DraftLogbookTest extends TestCase
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     #[DataProvider('invalidDrafts')]
     public function test_refuse_une_valeur_hors_limites_meme_en_brouillon(array $payload, string $field): void
     {
@@ -307,5 +327,17 @@ class DraftLogbookTest extends TestCase
 
         $this->session->forceFill(['session_date' => '2026-09-01'])->save();
         $this->actingAs($admin)->postJson("/api/sessions/{$this->session->id}/logbook-entry")->assertForbidden(); // hors délai
+    }
+
+    public function test_une_premiere_saisie_invalide_n_ouvre_pas_la_fiche(): void
+    {
+        $open = fn (array $payload) => $this->actingAs($this->referent)->postJson("/api/sessions/{$this->session->id}/logbook-entry", $payload);
+
+        $open(['objectives' => str_repeat('a', 401)])->assertUnprocessable()->assertJsonValidationErrors('objectives');
+        // « autre » exige sa précision dès l'ouverture, comme la contrainte de la base.
+        $open(['evaluation' => ['feeling' => 'other']])->assertUnprocessable()
+            ->assertJsonValidationErrors(['evaluation.feeling_detail' => 'Précisez la sensation quand vous choisissez « autre ».']);
+
+        $this->assertSame(0, LogbookEntry::query()->count());
     }
 }

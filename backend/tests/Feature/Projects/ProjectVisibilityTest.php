@@ -18,18 +18,27 @@ class ProjectVisibilityTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** Un projet actif où Léa est principale. */
     private Project $braises;
 
+    /** Un projet actif où Léa n'intervient pas. */
     private Project $aimer;
 
+    /** Un projet en brouillon où Léa est principale. */
     private Project $draft;
 
+    /** Un projet archivé où Léa est principale. */
     private Project $archived;
 
+    /** Un projet archivé où Léa n'intervient pas. */
     private Project $otherArchived;
 
+    /** Léa, intervenante. */
     private User $lea;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -50,6 +59,11 @@ class ProjectVisibilityTest extends TestCase
         $this->archived->members()->attach($this->lea->id, ['member_role' => 'lead']);
     }
 
+    /**
+     * Les noms des projets que renvoie une adresse.
+     *
+     * @return list<string>
+     */
     private function names(string $uri): array
     {
         return $this->getJson($uri)->assertOk()->json('data.*.name');
@@ -124,13 +138,14 @@ class ProjectVisibilityTest extends TestCase
     {
         Sanctum::actingAs($this->lea);
         $etincelles = Project::where('name', 'Étincelles')->firstOrFail();
-        // Comme en production : sans la trace de débogage, qui contient la ligne d'appel.
+        // On se met comme en production : sans la trace de débogage, qui contient la ligne d'appel.
         config(['app.debug' => false]);
 
         $hidden = $this->getJson("/api/projects/{$etincelles->id}")->assertNotFound()->getContent();
         $missing = $this->getJson('/api/projects/999999')->assertNotFound()->getContent();
 
-        // Même réponse au caractère près : rien ne distingue un projet caché d'un id inconnu.
+        // On exige la même réponse au caractère près : rien ne doit distinguer un projet caché
+        // d'un identifiant inconnu.
         $this->assertSame($missing, $hidden);
         $this->assertStringNotContainsString('Étincelles', $hidden);
         $this->assertSame($missing, $this->getJson("/api/projects/{$this->otherArchived->id}")->getContent());

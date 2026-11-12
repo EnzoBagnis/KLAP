@@ -6,14 +6,23 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
-/** Durée de vie des jetons (#157) : 30 jours, purge planifiée. */
+/**
+ * Durée de vie des jetons (#157) : 30 jours, puis une purge planifiée chaque nuit.
+ */
 class TokenExpirationTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function me(string $token)
+    /**
+     * On lit son compte avec un jeton, comme un vrai client.
+     *
+     * @return TestResponse<JsonResponse>
+     */
+    private function me(string $token): TestResponse
     {
         $this->app['auth']->forgetGuards();
 

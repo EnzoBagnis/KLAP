@@ -5,17 +5,27 @@ namespace Tests\Feature\Auth;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
-/** Un compte désactivé ne peut plus utiliser son jeton (#148). Requêtes avec un vrai jeton Bearer. */
+/**
+ * Un compte désactivé ne peut plus utiliser son jeton (#148). On envoie les requêtes avec
+ * un vrai jeton Bearer.
+ */
 class InactiveAccountTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function withBearer(string $token, string $uri)
+    /**
+     * On appelle une route avec un jeton, comme un vrai client.
+     *
+     * @return TestResponse<JsonResponse>
+     */
+    private function withBearer(string $token, string $uri): TestResponse
     {
-        // Le garde garde l'utilisateur en mémoire d'une requête à l'autre dans un même test.
+        // Dans un même test, le garde retient l'utilisateur d'une requête à l'autre : on le vide.
         $this->app['auth']->forgetGuards();
 
         return $this->withToken($token)->getJson($uri);
@@ -27,7 +37,8 @@ class InactiveAccountTest extends TestCase
         $token = $user->createToken('api')->plainTextToken;
         $this->withBearer($token, '/api/me')->assertOk();
 
-        // Désactivation hors application (base de données) : le modèle n'est pas prévenu.
+        // On désactive directement en base, sans passer par l'application : le modèle n'est
+        // pas prévenu, et le jeton doit être refusé quand même.
         DB::table('users')->where('id', $user->id)->update(['is_active' => false]);
 
         $this->withBearer($token, '/api/me')->assertUnauthorized();

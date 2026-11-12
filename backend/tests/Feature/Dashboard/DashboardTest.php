@@ -8,18 +8,27 @@ use App\Models\Project;
 use App\Models\ScheduledSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\Feature\Logbook\LogbookTestHelpers;
 use Tests\TestCase;
 
-/** Tableau de bord (#146). Aujourd'hui : 6 octobre 2026 ; séance du référent : 5 octobre. */
+/**
+ * Tableau de bord (#146). Dans ces tests, on est le 6 octobre 2026, et la séance du ou de
+ * la référent·e date du 5 octobre.
+ */
 class DashboardTest extends TestCase
 {
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -27,11 +36,21 @@ class DashboardTest extends TestCase
         $this->admin = User::factory()->role(UserRole::Admin)->create();
     }
 
-    private function dashboard(?User $user = null)
+    /**
+     * On lit le tableau de bord, par défaut celui de l'intervenant·e référent·e.
+     *
+     * @return TestResponse<JsonResponse>
+     */
+    private function dashboard(?User $user = null): TestResponse
     {
         return $this->actingAs($user ?? $this->referent)->getJson('/api/dashboard')->assertOk();
     }
 
+    /**
+     * On programme une séance du projet pour un·e référent·e, à une date donnée.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
     private function sessionFor(User $referent, string $date, array $attributes = [], ?Project $project = null): ScheduledSession
     {
         return ScheduledSession::factory()->create([
@@ -41,6 +60,11 @@ class DashboardTest extends TestCase
         ] + $attributes);
     }
 
+    /**
+     * On ouvre la fiche de la séance courante, complète, et on la soumet.
+     *
+     * @return int l'identifiant de la fiche
+     */
     private function submit(): int
     {
         $id = $this->createEntry($this->completePayload());
@@ -55,7 +79,7 @@ class DashboardTest extends TestCase
         $this->sessionFor($this->referent, '2026-09-25'); // J+11 : plus de fiche possible
         $this->sessionFor($this->referent, '2026-10-07'); // à venir
         $this->sessionFor($this->referent, '2026-10-04', ['status' => 'cancelled']);
-        $this->sessionFor(User::factory()->role(UserRole::Contributor)->create(), '2026-10-05'); // pas la mienne
+        $this->sessionFor(User::factory()->role(UserRole::Contributor)->create(), '2026-10-05'); // la séance d'un·e autre intervenant·e
         $this->sessionFor($this->referent, '2026-10-03', [], Project::factory()->create(['status' => 'archived']));
 
         $response = $this->dashboard()->assertJsonCount(2, 'to_fill');
@@ -102,7 +126,7 @@ class DashboardTest extends TestCase
         $mine = $this->sessionFor($this->referent, '2026-10-08');
         $colleague = User::factory()->role(UserRole::Contributor)->create();
         $sameProject = $this->sessionFor($colleague, '2026-10-07');
-        $this->sessionFor($colleague, '2026-10-09', [], Project::factory()->create()); // projet où je n'interviens pas
+        $this->sessionFor($colleague, '2026-10-09', [], Project::factory()->create()); // un projet où le ou la référent·e n'intervient pas
         $this->sessionFor($this->referent, '2026-10-10', ['status' => 'cancelled']);
 
         $response = $this->dashboard()->assertJsonCount(2, 'upcoming');
@@ -154,7 +178,7 @@ class DashboardTest extends TestCase
             ->assertJsonPath('follow_up.entries_overdue', 1)
             ->assertJsonPath('follow_up.entries_to_fill', 1)
             ->assertJsonPath('follow_up.unlock_requests', 0);
-        // La super-utilisatrice ne rouvre pas de fiche : pas de demandes à traiter.
+        // La super-utilisatrice ne rouvre pas de fiche : on ne lui montre pas de demandes à traiter.
         $this->dashboard(User::factory()->role(UserRole::SuperUser)->create())
             ->assertJsonPath('follow_up.entries_missing', 2)
             ->assertJsonPath('follow_up.unlock_requests', null);

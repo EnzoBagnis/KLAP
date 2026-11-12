@@ -7,17 +7,27 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Mail\PasswordResetMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Testing\TestResponse;
+use RuntimeException;
 use Tests\TestCase;
 
-/** Mot de passe oublié (#81). */
+/**
+ * Mot de passe oublié (#81) : la demande de lien, puis le choix du nouveau mot de passe.
+ */
 class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** L'intervenante qui a oublié son mot de passe. */
     private User $lea;
 
+    /**
+     * On crée Léa et on intercepte les mails.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -25,7 +35,9 @@ class PasswordResetTest extends TestCase
         $this->lea = User::factory()->role(UserRole::Contributor)->create(['name' => 'Léa Fournier', 'email' => 'lea@klap.demo']);
     }
 
-    /** Demande un lien et renvoie le jeton envoyé par mail. */
+    /**
+     * On demande un lien et on renvoie le jeton envoyé par mail.
+     */
     private function requestToken(string $email = 'lea@klap.demo'): ?string
     {
         $this->postJson('/api/forgot-password', ['email' => $email])
@@ -41,7 +53,12 @@ class PasswordResetTest extends TestCase
         return $token;
     }
 
-    private function reset(string $token, string $password = 'Danse#2026', string $email = 'lea@klap.demo')
+    /**
+     * On choisit un nouveau mot de passe avec le jeton reçu.
+     *
+     * @return TestResponse<JsonResponse>
+     */
+    private function reset(string $token, string $password = 'Danse#2026', string $email = 'lea@klap.demo'): TestResponse
     {
         return $this->postJson('/api/reset-password', [
             'token' => $token, 'email' => $email, 'password' => $password, 'password_confirmation' => $password,
@@ -157,5 +174,19 @@ class PasswordResetTest extends TestCase
         }
 
         $this->postJson('/api/forgot-password', ['email' => 'lea@klap.demo'])->assertTooManyRequests();
+    }
+
+    public function test_un_mail_qui_ne_part_pas_ne_change_pas_la_reponse(): void
+    {
+        // Le serveur de mail est en panne : la réponse doit rester la même, pour ne pas révéler
+        // que le compte existe, et on doit garder une trace de l'échec.
+        Mail::shouldReceive('to')->once()->andThrow(new RuntimeException('Connexion SMTP refusée'));
+        $log = Log::spy();
+
+        $this->postJson('/api/forgot-password', ['email' => 'lea@klap.demo'])
+            ->assertOk()->assertJsonPath('message', PasswordResetController::SENT);
+
+        $log->shouldHaveReceived('error')->once()->withArgs(fn (string $message, array $context) => $message === 'Mail de mot de passe oublié non envoyé'
+            && $context['user_id'] === $this->lea->id);
     }
 }

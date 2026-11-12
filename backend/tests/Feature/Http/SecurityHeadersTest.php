@@ -10,10 +10,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 
-/** Durcissement relevé par l'audit de sécurité (#200). */
+/**
+ * Les durcissements qu'on a faits après l'audit de sécurité (#200) : en-têtes, pages sans
+ * cookie, identifiants numériques, origines CORS.
+ */
 class SecurityHeadersTest extends TestCase
 {
     use RefreshDatabase;
@@ -26,7 +30,7 @@ class SecurityHeadersTest extends TestCase
             $response->assertHeader($name, $value);
         }
         $response->assertHeaderMissing('X-Powered-By');
-        // En HTTP simple (local), pas de HSTS : il n'a de sens qu'en HTTPS.
+        // En HTTP simple (en local), on n'envoie pas HSTS : il n'a de sens qu'en HTTPS.
         $response->assertHeaderMissing('Strict-Transport-Security');
     }
 
@@ -43,7 +47,9 @@ class SecurityHeadersTest extends TestCase
             $this->assertSame([], $response->headers->getCookies(), $uri);
             $response->assertHeader('X-Content-Type-Options', 'nosniff');
             if (file_exists(public_path('index.html'))) {
-                $this->assertStringContainsString('<div id="root">', $response->getFile()->getContent(), $uri);
+                $file = $response->baseResponse;
+                $this->assertInstanceOf(BinaryFileResponse::class, $file);
+                $this->assertStringContainsString('<div id="root">', $file->getFile()->getContent(), $uri);
                 // Les scripts et le CSS du site doivent pouvoir se charger.
                 $response->assertHeader('Content-Security-Policy', SecurityHeaders::APP_CSP);
             } else {
@@ -96,9 +102,11 @@ class SecurityHeadersTest extends TestCase
     }
 
     /**
-     * Relit config/cors.php avec CORS_ALLOWED_ORIGINS forcée. Laravel lit $_SERVER, puis $_ENV,
-     * puis getenv() : les trois sont forcés, puis rétablis, sinon un .env qui définit déjà la
-     * variable (celui de la CI, copié de .env.example) l'emporterait.
+     * On relit config/cors.php en forçant CORS_ALLOWED_ORIGINS. Laravel lit $_SERVER, puis
+     * $_ENV, puis getenv() : on force les trois, puis on les rétablit. Sinon un .env qui définit
+     * déjà la variable (celui de la CI, copié de .env.example) l'emporterait.
+     *
+     * @return list<string>
      */
     private function corsOriginsWith(string $value): array
     {

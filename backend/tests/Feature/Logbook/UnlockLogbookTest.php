@@ -15,8 +15,12 @@ class UnlockLogbookTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -24,7 +28,11 @@ class UnlockLogbookTest extends TestCase
         $this->admin = User::factory()->role(UserRole::Admin)->create();
     }
 
-    /** Fiche soumise, verrouillée par la commande le 20 octobre. */
+    /**
+     * Une fiche soumise, puis verrouillée par le délai.
+     *
+     * @return int son identifiant
+     */
     private function lockedEntry(): int
     {
         $id = $this->createEntry($this->completePayload());
@@ -46,7 +54,7 @@ class UnlockLogbookTest extends TestCase
             ->assertJsonPath('data.unlocked_by.id', $this->admin->id)
             ->assertJsonPath('data.unlockable', false);
 
-        $row = DB::table('logbook_entries')->find($id);
+        $row = DB::table('logbook_entries')->where('id', $id)->first();
         $this->assertSame($this->admin->id, $row->unlocked_by);
         $this->assertNotNull($row->unlocked_at);
 
@@ -69,6 +77,11 @@ class UnlockLogbookTest extends TestCase
         $this->actingAs($this->referent)->postJson("/api/logbook-entries/{$id}/submit")->assertOk();
     }
 
+    /**
+     * Les cas de « seule l administratrice peut rouvrir ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function forbidden(): array
     {
         return ['intervenant·e' => [UserRole::Contributor], 'super-utilisatrice' => [UserRole::SuperUser]];

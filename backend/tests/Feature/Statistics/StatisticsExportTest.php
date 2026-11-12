@@ -15,8 +15,12 @@ class StatisticsExportTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -24,7 +28,12 @@ class StatisticsExportTest extends TestCase
         $this->admin = User::query()->where('email', 'mariette.travard@klap.demo')->firstOrFail();
     }
 
-    /** Ouvre le classeur téléchargé : [nom d'onglet => XML de la feuille]. */
+    /**
+     * On ouvre le classeur téléchargé.
+     *
+     * @param  string  $query  les filtres, sous la forme « ?from=… »
+     * @return array<string, string> le XML de chaque feuille, par nom d'onglet
+     */
     private function workbook(string $query = ''): array
     {
         $response = $this->actingAs($this->admin)->get('/api/statistics/export'.$query)->assertOk();
@@ -50,10 +59,10 @@ class StatisticsExportTest extends TestCase
         $this->assertSame('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type'));
         $this->assertMatchesRegularExpression('/statistiques-tous-les-projets-\d{4}-\d{2}-\d{2}\.xlsx/', $response->headers->get('Content-Disposition'));
         $this->assertSame(['Synthèse', 'Projets', 'Groupes', 'Provenance', 'Âge', 'Observations'], array_keys($this->workbook()));
-        // Réservé à l'administration : aucun cache partagé ne garde le fichier.
+        // Le fichier est réservé à l'administration : on vérifie qu'aucun cache partagé ne le garde.
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
-        $response->streamedContent(); // envoie, donc supprime, le fichier temporaire
+        $response->streamedContent(); // on envoie le fichier temporaire, ce qui le supprime
     }
 
     public function test_les_chiffres_sont_ceux_de_l_ecran_en_cellules_numeriques(): void
@@ -93,6 +102,11 @@ class StatisticsExportTest extends TestCase
         $this->assertStringContainsString('t="inlineStr"><is><t xml:space="preserve">=HYPERLINK(&quot;http://exemple.test&quot;,&quot;clic&quot;)</t>', $sheet);
     }
 
+    /**
+     * Les cas de « refuse aux intervenants et aux anonymes ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function forbidden(): array
     {
         return ['intervenante' => [UserRole::Contributor]];

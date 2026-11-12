@@ -15,10 +15,15 @@ class SubProjectManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** Le projet des tests. */
     private Project $project;
 
+    /** Le groupe des tests. */
     private SubProject $group;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
