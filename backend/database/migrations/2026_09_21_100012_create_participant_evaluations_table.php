@@ -5,9 +5,14 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// P4 - les participants, une ligne par fiche
+/**
+ * Partie 4 de la fiche : l'observation des participants. Une ligne par fiche.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('participant_evaluations', function (Blueprint $table) {
@@ -31,6 +36,9 @@ return new class extends Migration
         }
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('participant_evaluations');

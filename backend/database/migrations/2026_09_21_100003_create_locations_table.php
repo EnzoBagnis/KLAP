@@ -5,9 +5,14 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Lieux partagés, n'importe quel utilisateur peut en ajouter (projets en tournée)
+/**
+ * Lieux, partagés par toute l'équipe : n'importe qui peut en ajouter un (projets en tournée).
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('locations', function (Blueprint $table) {
@@ -29,6 +34,9 @@ return new class extends Migration
         }
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('locations');

@@ -4,10 +4,14 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Tables des files d'attente de Laravel. On ne s'en sert pas encore, mais on les garde
+ * pour pouvoir envoyer les mails en différé plus tard.
+ */
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * On applique la migration.
      */
     public function up(): void
     {
@@ -46,7 +50,7 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * On annule la migration.
      */
     public function down(): void
     {

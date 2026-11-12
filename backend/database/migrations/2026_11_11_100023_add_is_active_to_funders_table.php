@@ -5,11 +5,15 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Financeurs gérés par l'administratrice (#249) : un financeur se désactive au lieu d'être supprimé.
- * Désactivé, il n'est plus proposé pour un nouveau projet ; les projets qui l'ont le gardent.
+ * Financeurs tenus par l'administratrice (#249) : on désactive un financeur au lieu de le
+ * supprimer. Désactivé, on ne le propose plus pour un nouveau projet ; les projets qui l'ont
+ * le gardent.
  */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::table('funders', function (Blueprint $table) {
@@ -17,6 +21,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::table('funders', function (Blueprint $table) {

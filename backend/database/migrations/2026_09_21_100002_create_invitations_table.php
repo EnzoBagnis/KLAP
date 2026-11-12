@@ -4,9 +4,15 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// Pas d'inscription libre : un compte se crée uniquement via une invitation de l'admin
+/**
+ * Invitations. Il n'y a pas d'inscription libre : un compte se crée uniquement à partir
+ * d'une invitation de l'administratrice.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('invitations', function (Blueprint $table) {
@@ -23,6 +29,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('invitations');

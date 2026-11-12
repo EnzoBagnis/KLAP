@@ -6,10 +6,16 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
-// Mot de passe de tous les comptes : Klap2026!
-// A part Mariette et Emilie, les personnes et les mails en @klap.demo sont inventés
+/**
+ * Les comptes de démonstration. Ils ont tous le même mot de passe : Klap2026!
+ * À part Mariette et Emilie, on a inventé les personnes ; toutes les adresses en @klap.demo
+ * sont fictives.
+ */
 class UserSeeder extends Seeder
 {
+    /**
+     * On remplit les tables.
+     */
     public function run(): void
     {
         $pwd = Hash::make('Klap2026!');
@@ -38,7 +44,7 @@ class UserSeeder extends Seeder
             ]);
         }
 
-        // Samir a accepté son invitation, celle d'Inès est encore en attente
+        // Samir a accepté son invitation ; celle d'Inès est encore en attente.
         DB::table('invitations')->insert([
             [
                 'email' => 'samir.benali@klap.demo', 'full_name' => 'Samir Benali', 'role' => 'contributor',
