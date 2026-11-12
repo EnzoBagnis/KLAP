@@ -9,11 +9,13 @@ import { formatInstant } from '../Logbook/logbookModel.js';
 import '../../assets/css/FormStyles.css';
 import '../../assets/css/ProjectStyles.css';
 
+/** Le formulaire de changement de mot de passe, avant toute saisie. */
 const EMPTY = { current: '', password: '', confirmation: '' };
 
-/*
- * Mon profil (#71), lien du nom en bas du menu. Le nom et l'adresse viennent de l'invitation
- * (contexte client) : ils s'affichent sans se modifier ici. On y change son mot de passe.
+/**
+ * Mon profil (#71), où on arrive par son nom en bas du menu. Le nom et l'adresse viennent de
+ * l'invitation (contexte client) : on les affiche sans pouvoir les modifier ici. On y change
+ * son mot de passe.
  */
 export default function ProfilePage() {
   const { user, logout } = useAuth();

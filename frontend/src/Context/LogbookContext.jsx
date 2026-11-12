@@ -5,33 +5,42 @@ import { todayKey } from '../Pages/Planning/sessionLabels.js';
 import { getEntry, requestUnlock as requestUnlockEntry, submitEntry, unlockEntry, updateEntry } from '../Services/LogbookService.js';
 import { flattenErrors, formatDate, formFromEntry, payloadFromForm, stepsWithErrors } from '../Pages/Logbook/logbookModel.js';
 
+/** Le contexte de la fiche en cours de saisie. On le lit avec le hook useLogbook. */
 export const LogbookContext = createContext(null);
 
+/** Le message d'une fiche verrouillée, quand l'API n'en donne pas de plus précis. */
 const LOCK_MESSAGE = 'La fiche est verrouillée : le délai de 10 jours après la séance est passé.';
 
-/*
- * État d'une fiche en cours de saisie : la fiche de l'API, le formulaire, les erreurs
- * par champ, et les actions enregistrer / soumettre. Les étapes lisent et écrivent ici.
+/**
+ * L'état d'une fiche en cours de saisie : la fiche de l'API, le formulaire, les erreurs par
+ * champ, et les actions (enregistrer, soumettre, rouvrir, demander la réouverture). Les six
+ * étapes lisent et écrivent ici.
+ *
+ * @param {object} props
+ * @param {object} props.initialEntry  la fiche telle que l'API la renvoie
+ * @param {React.ReactNode} props.children
  */
 export function LogbookProvider({ initialEntry, children }) {
   const { user, logout } = useAuth();
   const [entry, setEntry] = useState(initialEntry);
-  // Les groupes sont ceux de la séance : leur ordre fixe les index des erreurs de présents.
+  // Les groupes sont ceux de la séance : on fige leur ordre, qui fixe les index des erreurs de présents.
   const [groupIds] = useState(() => initialEntry.session.sub_projects.map((group) => group.id));
   const [form, setForm] = useState(() => formFromEntry(initialEntry));
   const [snapshot, setSnapshot] = useState(() =>
     JSON.stringify(payloadFromForm(formFromEntry(initialEntry), groupIds)),
   );
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState(null); // { tone: 'error' | 'success', text }
+  // Le bandeau en haut de la fiche : { tone: 'error' | 'success', text }.
+  const [message, setMessage] = useState(null);
   const [busy, setBusy] = useState(false);
   const [lockedByApi, setLockedByApi] = useState(null);
 
   const payload = useMemo(() => payloadFromForm(form, groupIds), [form, groupIds]);
   const dirty = JSON.stringify(payload) !== snapshot;
 
-  // L'administration peut modifier toutes les fiches (#141) : si elle ne le peut pas, c'est que la
-  // fiche est verrouillée, ou que sa séance est annulée ou son projet archivé.
+  // L'administration peut modifier toutes les fiches (#141) : si elle ne le peut pas, c'est que
+  // la fiche est verrouillée, ou que sa séance est annulée ou son projet archivé. On en déduit
+  // la raison à afficher.
   const manages = user?.role === ROLES.ADMIN || user?.role === ROLES.SUPER_USER;
   let readOnlyReason = lockedByApi;
   if (!readOnlyReason && !entry.editable) {
@@ -54,7 +63,7 @@ export function LogbookProvider({ initialEntry, children }) {
     setSnapshot(JSON.stringify(payloadFromForm(next, groupIds)));
   }, [groupIds]);
 
-  /** Traite une erreur de l'API ; renvoie false (l'action a échoué). */
+  /** On traite une erreur de l'API ; on renvoie toujours false, puisque l'action a échoué. */
   const fail = useCallback(
     (error, prefix) => {
       if (error.status === 401) {
@@ -77,7 +86,7 @@ export function LogbookProvider({ initialEntry, children }) {
     [logout],
   );
 
-  /** Enregistre la saisie si elle a changé. */
+  /** On enregistre la saisie, si elle a changé. */
   const save = useCallback(
     async ({ force = false } = {}) => {
       if (readOnlyReason || (!dirty && !force)) return true;
@@ -96,7 +105,7 @@ export function LogbookProvider({ initialEntry, children }) {
     [readOnlyReason, dirty, entry.id, payload, accept, fail],
   );
 
-  /** Enregistre, puis soumet : l'API vérifie la fiche enregistrée. */
+  /** On enregistre, puis on soumet : c'est la fiche enregistrée que l'API vérifie. */
   const submit = useCallback(async () => {
     if (!(await save())) return false;
     setBusy(true);
@@ -112,7 +121,7 @@ export function LogbookProvider({ initialEntry, children }) {
     }
   }, [save, entry.id, accept, fail]);
 
-  /** Rouvre la fiche (administratrice) : nouvelle échéance donnée par l'API. */
+  /** L'administratrice rouvre la fiche ; l'API donne la nouvelle échéance. */
   const unlock = useCallback(async () => {
     setBusy(true);
     setMessage(null);
@@ -141,7 +150,7 @@ export function LogbookProvider({ initialEntry, children }) {
     }
   }, [entry.id, accept, logout]);
 
-  /** Demande la réouverture à l'administratrice (auteur d'une fiche verrouillée). */
+  /** L'auteur d'une fiche verrouillée demande sa réouverture à l'administratrice. */
   const requestUnlock = useCallback(async () => {
     setBusy(true);
     setMessage(null);
@@ -153,7 +162,7 @@ export function LogbookProvider({ initialEntry, children }) {
       if (error.status === 401) {
         logout();
       } else {
-        // Demande faite ailleurs (autre onglet) : on relit la fiche pour afficher son état.
+        // La demande a déjà été faite ailleurs (autre onglet) : on relit la fiche pour afficher son état.
         if (error.status === 409) getEntry(entry.id).then(accept).catch(() => {});
         setMessage({
           tone: 'error',

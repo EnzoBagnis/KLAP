@@ -1,14 +1,24 @@
 import { apiRequest } from './ApiClient.js';
 import { getToken } from './AuthService.js';
 
-// Gestion des comptes par l'administratrice (#159). Un compte n'est jamais supprimé.
+// Gestion des comptes par l'administratrice (#159). On ne supprime jamais un compte.
 
-/** GET /accounts : tous les comptes, les actifs d'abord. */
+/**
+ * GET /accounts : tous les comptes, les actifs d'abord.
+ *
+ * @returns {Promise<object[]>}
+ */
 export async function listAccounts() {
   return (await apiRequest('/accounts', { token: getToken() })).data;
 }
 
-/** PATCH /accounts/{id} : désactive ou réactive un compte, renvoie le compte à jour. */
+/**
+ * PATCH /accounts/{id} : on désactive ou on réactive un compte.
+ *
+ * @param {number} id
+ * @param {boolean} isActive
+ * @returns {Promise<object>} le compte à jour
+ */
 export async function setAccountActive(id, isActive) {
   const response = await apiRequest(`/accounts/${encodeURIComponent(id)}`, {
     method: 'PATCH',

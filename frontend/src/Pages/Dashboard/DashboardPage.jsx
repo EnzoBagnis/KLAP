@@ -10,19 +10,26 @@ import '../../assets/css/ProjectStyles.css';
 import '../../assets/css/StatisticsStyles.css';
 import '../../assets/css/DashboardStyles.css';
 
+/** Les noms des groupes d'une séance, séparés par des virgules. */
 const groupNames = (session) => session.sub_projects.map((group) => group.name).join(', ');
 
-/** « Aujourd'hui », sinon « lundi 5 octobre ». */
+/**
+ * Le jour d'une séance : « Aujourd'hui », sinon « lundi 5 octobre ».
+ *
+ * @param {string} isoDate  AAAA-MM-JJ
+ * @param {string} today  AAAA-MM-JJ
+ * @returns {string}
+ */
 function dayLabel(isoDate, today) {
   return isoDate === today ? 'Aujourd’hui' : dayTitle(isoDate);
 }
 
-/*
- * Tableau de bord (#72), page d'accueil de tous les rôles. Une seule requête (GET /dashboard) :
- * l'API ne renvoie que ce que la personne a le droit de voir.
- * - Fiches à remplir : en premier, c'est ce que l'intervenant·e vient faire après sa séance.
- * - Prochaines séances, dernières fiches rendues.
- * - Suivi (administration) : fiches en retard, demandes de réouverture.
+/**
+ * Le tableau de bord (#72), la page d'accueil de tous les rôles. On fait une seule requête
+ * (GET /dashboard) : l'API ne renvoie que ce que la personne a le droit de voir.
+ * - Les fiches à remplir, en premier : c'est ce que l'intervenant·e vient faire après sa séance.
+ * - Les prochaines séances et les dernières fiches rendues.
+ * - Le suivi (administration) : fiches en retard, demandes de réouverture.
  */
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -83,7 +90,7 @@ export default function DashboardPage() {
       {state.status === 'ready' && (
         <>
           {state.data.follow_up && <FollowUp followUp={state.data.follow_up} />}
-          {/* L'administration n'anime pas forcément de séance : sans fiche à remplir, la section est inutile. */}
+          {/* L'administration n'anime pas forcément de séance : sans fiche à remplir, on ne lui montre pas la section. */}
           {(state.data.to_fill.length > 0 || !state.data.follow_up) && <ToFill sessions={state.data.to_fill} today={today} />}
           <div className="dashboard-columns">
             <Upcoming sessions={state.data.upcoming} today={today} userId={user?.id} />
@@ -95,7 +102,12 @@ export default function DashboardPage() {
   );
 }
 
-/** Suivi de l'administration : ce qui attend une action, avec le lien pour la faire. */
+/**
+ * Le suivi de l'administration : ce qui attend une action, avec le lien pour la faire.
+ *
+ * @param {object} props
+ * @param {object} props.followUp  le bloc `follow_up` du tableau de bord
+ */
 function FollowUp({ followUp }) {
   const { entries_missing: missing, entries_overdue: overdue, unlock_requests: requests } = followUp;
   return (
@@ -133,7 +145,13 @@ function FollowUp({ followUp }) {
   );
 }
 
-/** Fiches à remplir : les plus anciennes d'abord (les plus urgentes), avec leur échéance. */
+/**
+ * Les fiches à remplir, les plus anciennes d'abord (ce sont les plus urgentes), avec leur échéance.
+ *
+ * @param {object} props
+ * @param {object[]} props.sessions
+ * @param {string} props.today  AAAA-MM-JJ
+ */
 function ToFill({ sessions, today }) {
   return (
     <section className="dashboard-section" aria-labelledby="a-remplir-titre">
@@ -171,7 +189,14 @@ function ToFill({ sessions, today }) {
   );
 }
 
-/** Prochaines séances visibles au planning (les cinq premières). */
+/**
+ * Les prochaines séances qu'on voit au planning (les cinq premières).
+ *
+ * @param {object} props
+ * @param {object[]} props.sessions
+ * @param {string} props.today  AAAA-MM-JJ
+ * @param {number} props.userId  pour signaler les séances dont on est référent·e
+ */
 function Upcoming({ sessions, today, userId }) {
   return (
     <section className="dashboard-section" aria-labelledby="prochaines-titre">
@@ -209,7 +234,12 @@ function Upcoming({ sessions, today, userId }) {
   );
 }
 
-/** Dernières fiches rendues que la personne peut lire. */
+/**
+ * Les dernières fiches rendues que la personne peut lire.
+ *
+ * @param {object} props
+ * @param {object[]} props.entries
+ */
 function RecentEntries({ entries }) {
   return (
     <section className="dashboard-section" aria-labelledby="dernieres-titre">

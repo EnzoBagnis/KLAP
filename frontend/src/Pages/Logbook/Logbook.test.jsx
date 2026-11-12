@@ -668,6 +668,60 @@ describe('Déverrouillage par l’administratrice', () => {
   });
 });
 
+describe('Étape 3 : l’ajustement', () => {
+  it('ne demande l’explication que pour « Fait », et ne l’envoie pas pour « Non fait »', async () => {
+    const fetchMock = mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: entry({ adjustment_done: true, adjustment_detail: 'Groupe fatigué : séance au sol.' }) }),
+      'PATCH /logbook-entries/7': (options) => jsonResponse({ data: entry(JSON.parse(options.body)) }),
+    });
+    const user = userEvent.setup();
+    renderAt('/fiches/7?etape=3');
+    expect(await screen.findByLabelText(/Quel ajustement, et pourquoi/)).toHaveValue('Groupe fatigué : séance au sol.');
+
+    await user.click(screen.getByRole('radio', { name: 'Non fait' }));
+    expect(screen.queryByLabelText(/Quel ajustement, et pourquoi/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
+    await waitFor(() => expect(bodyOf(fetchMock, 'PATCH')).toBeDefined());
+    // L'ancienne explication ne part pas : la cliente n'en veut pas quand rien n'a été ajusté.
+    expect(bodyOf(fetchMock, 'PATCH')).toMatchObject({ adjustment_done: false, adjustment_detail: null });
+  });
+
+  it('affiche sous le choix l’erreur de l’API sur l’ajustement', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: entry() }),
+      'PATCH /logbook-entries/7': () =>
+        jsonResponse({ message: 'Invalid', errors: { adjustment_done: ['Indiquez si un ajustement a été fait.'] } }, 422),
+    });
+    const user = userEvent.setup();
+    renderAt('/fiches/7?etape=3');
+    await user.type(await screen.findByRole('textbox', { name: 'Exercice 1' }), 'Marche');
+    await user.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
+
+    expect(await screen.findByText('Indiquez si un ajustement a été fait.')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /Ajustement prévu/ })).toHaveAccessibleDescription('Indiquez si un ajustement a été fait.');
+  });
+});
+
+describe('Étape 4 : les notes', () => {
+  it('signale une note refusée sur son groupe de boutons', async () => {
+    mockApi({
+      'GET /logbook-entries/7': () => jsonResponse({ data: entry() }),
+      'PATCH /logbook-entries/7': () =>
+        jsonResponse({ message: 'Invalid', errors: { 'evaluation.engagement': ['La note d’engagement va de 1 à 5.'] } }, 422),
+    });
+    const user = userEvent.setup();
+    renderAt('/fiches/7?etape=4');
+    const engagement = await screen.findByRole('radiogroup', { name: /Engagement/ });
+    await user.click(engagement.querySelector('input[value="4"]'));
+    await user.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }));
+
+    expect(await screen.findByText('La note d’engagement va de 1 à 5.')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: /Engagement/ })).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('radiogroup', { name: /Expression/ })).not.toHaveAttribute('aria-invalid');
+  });
+});
+
 describe('Liste des exercices', () => {
   it('compte les lignes remplies et place l’erreur de l’API sous la bonne ligne', async () => {
     mockApi({

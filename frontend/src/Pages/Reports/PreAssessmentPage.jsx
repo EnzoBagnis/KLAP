@@ -12,16 +12,19 @@ import '../../assets/css/FormStyles.css';
 import '../../assets/css/ProjectStyles.css';
 import '../../assets/css/StatisticsStyles.css';
 
+/** Un identifiant de projet dans l'URL : des chiffres seulement. */
 const ID = /^\d+$/;
+/** Le formulaire du pré-bilan, avant toute saisie. */
 const EMPTY_FORM = { funderId: '', from: '', to: '' };
 
-/** Nom de secours si l'en-tête du fichier n'est pas lisible. */
+/** Le nom de secours du fichier, si on n'arrive pas à lire son en-tête. */
 const fallbackName = (project) => `pre-bilan-${project?.id ?? 'projet'}.docx`;
 
-/*
- * Pré-bilan (#144) : l'administratrice ou la super-utilisatrice choisit un projet, un de ses
- * financeurs et, si elle veut, une période ; elle reçoit un document Word prêt à retravailler.
- * Le projet peut venir de l'URL (?projet=3), depuis le bouton « Pré-bilan » d'un projet.
+/**
+ * Le pré-bilan (#144) : l'administratrice ou la super-utilisatrice choisit un projet, un de
+ * ses financeurs et, si elle veut, une période ; elle reçoit un document Word prêt à
+ * retravailler. Le projet peut venir de l'URL (?projet=3), depuis le bouton « Pré-bilan »
+ * d'un projet.
  */
 export default function PreAssessmentPage() {
   const { user, logout } = useAuth();
@@ -39,7 +42,7 @@ export default function PreAssessmentPage() {
     document.title = 'Pré-bilan · KLAP';
   }, []);
 
-  // Archivés compris : un projet terminé et archivé a encore besoin de son bilan.
+  // On inclut les archivés : un projet terminé et archivé a encore besoin de son bilan.
   useEffect(() => {
     let active = true;
     listProjects({ includeArchived: true })
@@ -54,7 +57,7 @@ export default function PreAssessmentPage() {
     };
   }, [logout]);
 
-  // Les financeurs viennent du détail du projet choisi ; un seul financeur est présélectionné.
+  // Les financeurs viennent du détail du projet choisi ; s'il n'y en a qu'un, on le présélectionne.
   useEffect(() => {
     const request = ++lastProject.current;
     setBusy(false);
@@ -101,8 +104,8 @@ export default function PreAssessmentPage() {
     setErrors(found);
     if (Object.keys(found).length) return;
 
-    // Projet changé pendant la préparation : le fichier est enregistré, mais le message et les
-    // erreurs de l'ancien projet ne s'affichent pas sous le formulaire du nouveau.
+    // Si on a changé de projet pendant la préparation, on enregistre quand même le fichier, mais
+    // on n'affiche pas le message ni les erreurs de l'ancien projet sous le formulaire du nouveau.
     const request = lastProject.current;
     const current = () => request === lastProject.current;
     setBusy(true);
@@ -135,7 +138,7 @@ export default function PreAssessmentPage() {
     }
   }
 
-  // Le projet de l'URL reste dans le menu, même s'il n'est pas (encore) dans la liste.
+  // On garde le projet de l'URL dans le menu, même s'il n'est pas (encore) dans la liste.
   const options = projects.list.map((item) => ({
     value: String(item.id),
     label: item.status === 'archived' ? `${item.name} (archivé)` : item.name,

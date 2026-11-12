@@ -1,7 +1,7 @@
 import TextAreaInput from '../../../Components/Form/TextAreaInput.jsx';
 import useLogbook from '../../../Hooks/useLogbook.js';
 
-// Étape 6 : la suite (à reprendre, pistes abandonnées, maintien en classe, notes).
+/** Étape 6 : la suite (à reprendre, pistes abandonnées, maintien en classe, notes complémentaires). */
 export default function NextStepsStep() {
   const { form, set, errors } = useLogbook();
 

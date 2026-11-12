@@ -1,6 +1,17 @@
 import { useId } from 'react';
 
-// Champ texte multiligne, au même format que TextInput, avec un compteur de caractères.
+/**
+ * Le champ de texte sur plusieurs lignes, au même format que TextInput, avec un compteur de
+ * caractères quand on fixe une longueur maximale.
+ *
+ * @param {object} props
+ * @param {string} props.label
+ * @param {boolean} [props.required=false]
+ * @param {string} [props.error]
+ * @param {string} [props.hint]  une aide, qu'on affiche sous le libellé
+ * @param {number} [props.maxLength]
+ * @param {string} [props.value='']
+ */
 export default function TextAreaInput({ label, required = false, error, hint, id, maxLength, value = '', ...props }) {
   const generatedId = useId();
   const inputId = id ?? generatedId;

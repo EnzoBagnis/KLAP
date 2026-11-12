@@ -2,8 +2,12 @@ import { apiDownload } from './ApiClient.js';
 import { getToken } from './AuthService.js';
 
 /**
- * GET /projects/{id}/pre-report (#143) : pré-bilan Word d'un projet pour un financeur,
- * sur une période facultative (AAAA-MM-JJ, bornes incluses). Renvoie { blob, filename }.
+ * GET /projects/{id}/pre-report (#143) : le pré-bilan Word d'un projet pour un financeur,
+ * sur une période facultative.
+ *
+ * @param {number|string} projectId
+ * @param {{funderId: number|string, from?: string, to?: string}} filters  dates AAAA-MM-JJ, bornes incluses
+ * @returns {Promise<{blob: Blob, filename: string|null}>}
  */
 export async function downloadPreReport(projectId, { funderId, from, to }) {
   const query = new URLSearchParams({ funder_id: funderId });
@@ -12,7 +16,12 @@ export async function downloadPreReport(projectId, { funderId, from, to }) {
   return apiDownload(`/projects/${encodeURIComponent(projectId)}/pre-report?${query}`, { token: getToken() });
 }
 
-/** Propose le fichier à l'enregistrement, par un lien temporaire. */
+/**
+ * On propose le fichier à l'enregistrement, par un lien temporaire.
+ *
+ * @param {Blob} blob
+ * @param {string} filename
+ */
 export function saveFile(blob, filename) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -21,6 +30,6 @@ export function saveFile(blob, filename) {
   document.body.append(link);
   link.click();
   link.remove();
-  // Laisser au navigateur le temps de lancer le téléchargement avant de libérer le lien.
+  // On laisse au navigateur le temps de lancer le téléchargement avant de libérer le lien.
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

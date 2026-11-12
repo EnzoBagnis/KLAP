@@ -15,5 +15,11 @@ export default defineConfig(({ mode }) => ({
     globals: true,
     setupFiles: './src/setupTests.js',
     css: false,
+    // npm run coverage : on mesure le code de l'application, pas les tests ni les feuilles de style.
+    coverage: {
+      reporter: ['text-summary', 'html'],
+      include: ['src/**/*.{js,jsx}'],
+      exclude: ['src/**/*.test.{js,jsx}', 'src/setupTests.js', 'src/testUtils.js', 'src/main.jsx'],
+    },
   },
 }));
