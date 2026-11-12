@@ -187,7 +187,7 @@ class StatisticsService
         $overdue = $missing->filter(function ($row) use ($today) {
             $deadline = $row->edit_deadline !== null
                 ? substr((string) $row->edit_deadline, 0, 10)
-                : Carbon::parse(substr((string) $row->session_date, 0, 10))->addDays(LogbookEntry::EDIT_DAYS)->toDateString();
+                : LogbookEntry::deadlineFor(Carbon::parse(substr((string) $row->session_date, 0, 10)))->toDateString();
 
             return $deadline < $today;
         })->count();

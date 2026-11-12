@@ -27,7 +27,7 @@ class UpdateScheduledSessionRequest extends StoreScheduledSessionRequest
         abort_if($this->scheduled === null, 404);
         abort_if($this->scheduled->status === 'cancelled', 409, 'Cette séance est annulée : rétablissez-la avant de la modifier.');
         abort_if($this->scheduled->logbookEntry()->exists(), 409, 'Cette séance a déjà une fiche : elle ne se modifie plus.');
-        $deadline = $this->scheduled->session_date->copy()->addDays(LogbookEntry::EDIT_DAYS)->toDateString();
+        $deadline = LogbookEntry::deadlineFor($this->scheduled->session_date)->toDateString();
         abort_if(LogbookEntry::localNow()->toDateString() > $deadline, 409,
             'Le délai de 10 jours après cette séance est passé : elle ne se modifie plus.');
         $this->project = $this->scheduled->project;

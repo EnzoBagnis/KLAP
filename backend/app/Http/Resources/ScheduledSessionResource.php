@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\LogbookEntry;
 use App\Models\ScheduledSession;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -21,6 +22,8 @@ class ScheduledSessionResource extends JsonResource
         return [
             'id' => $this->id,
             'session_date' => $this->session_date->toDateString(),
+            // Le dernier jour où on peut ouvrir la fiche : le planning s'en sert pour proposer le lien (#269).
+            'entry_deadline' => LogbookEntry::deadlineFor($this->session_date)->toDateString(),
             // On renvoie « HH:MM » sur tous les moteurs : SQLite et MariaDB ne donnent pas le même format.
             'start_time' => substr((string) $this->start_time, 0, 5),
             'end_time' => substr((string) $this->end_time, 0, 5),
