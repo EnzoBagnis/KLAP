@@ -9,6 +9,7 @@ backend/.phpunit.result.cache
 # Frontend React/Vite
 frontend/node_modules/
 frontend/dist/
+frontend/coverage/
 frontend/.env
 
 # Env global (docker-compose)
