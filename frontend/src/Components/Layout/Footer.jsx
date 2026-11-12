@@ -4,8 +4,6 @@
  * 100% sémantique HTML5 — STRICTEMENT AUCUNE BALISE <div>.
  */
 
-import React from 'react';
-
 export const Footer = () => {
   // L'année se met à jour automatiquement chaque année
   const currentYear = new Date().getFullYear();
@@ -98,7 +96,7 @@ export const Footer = () => {
           <section className="footer-col" aria-label="Ressources et aide">
             <h3 className="footer-col-title">RESSOURCES</h3>
             <ul className="footer-links-list">
-              <li><a href="#guide" className="footer-link">Guide d'utilisation</a></li>
+              <li><a href="#guide" className="footer-link">Guide d’utilisation</a></li>
               <li><a href="#support" className="footer-link">Support & assistance</a></li>
             </ul>
           </section>
