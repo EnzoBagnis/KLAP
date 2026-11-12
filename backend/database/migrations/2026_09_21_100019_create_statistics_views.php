@@ -31,7 +31,7 @@ return new class extends Migration
         ");
 
         // participants d'un projet = somme des max de chaque sous-projet
-        DB::statement("
+        DB::statement('
             CREATE VIEW v_project_participants AS
             SELECT p.id AS project_id,
                    p.name,
@@ -39,7 +39,7 @@ return new class extends Migration
             FROM projects p
             LEFT JOIN v_sub_project_participants v ON v.project_id = p.id
             GROUP BY p.id, p.name
-        ");
+        ');
 
         // moyennes engagement / expression / autonomie par projet
         DB::statement("
