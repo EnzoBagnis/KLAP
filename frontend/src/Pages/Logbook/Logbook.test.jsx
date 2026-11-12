@@ -407,6 +407,24 @@ describe('Lien depuis le planning', () => {
     expect(screen.getByRole('link', { name: /Reprendre la fiche/ })).toHaveAttribute('href', '/planning/seances/3/fiche');
   });
 
+  it('pendant le rattrapage (#269), suit le délai donné par l’API plutôt que les 10 jours', async () => {
+    mockApi({
+      'GET /sessions': () =>
+        jsonResponse({
+          data: [
+            // Séance de juillet : l'API repousse le délai à la date de rattrapage.
+            session({ id: 1, session_date: '2026-07-10', entry_deadline: '2026-11-30' }),
+            // Délai donné par l'API, déjà passé : pas de lien.
+            session({ id: 2, session_date: '2026-07-09', entry_deadline: '2026-07-19' }),
+          ],
+        }),
+    });
+    renderAt('/planning?mois=2026-07');
+
+    expect(await screen.findByRole('link', { name: /Remplir la fiche/ })).toHaveAttribute('href', '/planning/seances/1/fiche');
+    expect(screen.getAllByRole('link', { name: /Remplir la fiche/ })).toHaveLength(1);
+  });
+
   it('l’administration ne peut plus créer la fiche après le délai de 10 jours', async () => {
     mockApi({
       'GET /sessions': () => jsonResponse({ data: [session({ id: 1, session_date: '2026-09-26' }), session({ id: 2, session_date: '2026-09-25' })] }),

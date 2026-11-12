@@ -276,9 +276,10 @@ function SessionActions({ session, label, onEdit, onStatus }) {
 function EntryLink({ session, label, userId, manages, today }) {
   const navigate = useNavigate();
   const fillable = session.status !== 'cancelled' && session.session_date <= today;
-  // Après le délai de 10 jours, l'API refuse d'ouvrir une fiche (#212) : on ne le propose plus.
+  // Après le délai, l'API refuse d'ouvrir une fiche (#212) : on ne le propose plus. Le délai
+  // vient de l'API (10 jours, ou la date de rattrapage, #269) ; à défaut, on compte 10 jours.
   // Un brouillon déjà ouvert reste accessible ; on l'affiche alors verrouillé.
-  const openable = fillable && today <= entryDeadline(session.session_date);
+  const openable = fillable && today <= (session.entry_deadline ?? entryDeadline(session.session_date));
   const hidden = <span className="visually-hidden"> du {label}</span>;
 
   // Référent·e : remplir, reprendre un brouillon ; une fiche rendue se consulte (#163).
