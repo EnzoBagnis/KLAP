@@ -2,8 +2,10 @@ import { apiDownload, apiRequest } from './ApiClient.js';
 import { getToken } from './AuthService.js';
 
 /**
- * GET /statistics (#113) : totaux et détail par projet, sur les fiches rendues.
- * Filtres facultatifs : { projectId, from, to } (dates AAAA-MM-JJ, bornes incluses).
+ * On écrit les filtres dans l'adresse.
+ *
+ * @param {{projectId?: string|number, from?: string, to?: string}} [filters]  dates AAAA-MM-JJ, bornes incluses
+ * @returns {string} « ?project_id=…&from=… », ou une chaîne vide sans filtre
  */
 function queryOf({ projectId, from, to } = {}) {
   const query = new URLSearchParams();
@@ -13,11 +15,21 @@ function queryOf({ projectId, from, to } = {}) {
   return query.toString() ? `?${query}` : '';
 }
 
+/**
+ * GET /statistics (#113) : les totaux et le détail par projet, calculés sur les fiches rendues.
+ *
+ * @param {{projectId?: string|number, from?: string, to?: string}} [filters]
+ * @returns {Promise<object>}
+ */
 export async function getStatistics(filters = {}) {
   return (await apiRequest(`/statistics${queryOf(filters)}`, { token: getToken() })).data;
 }
 
-/** GET /statistics/export (#219) : les mêmes chiffres en classeur Excel. Renvoie { blob, filename }. */
+/**
+ * GET /statistics/export (#219) : les mêmes chiffres, en classeur Excel.
+ *
+ * @returns {Promise<{blob: Blob, filename: string|null}>}
+ */
 export async function exportStatistics(filters = {}) {
   return apiDownload(`/statistics/export${queryOf(filters)}`, { token: getToken() });
 }

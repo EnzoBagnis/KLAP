@@ -19,37 +19,37 @@ import OpenLogbookPage from '../Pages/Logbook/OpenLogbookPage.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import { NAV_ITEMS } from '../Components/Layout/navigation.js';
 
-/*
- * Les routes du menu sont dérivées de NAV_ITEMS : chemin, rôles autorisés et écran
- * (champ `page`) viennent de la même entrée, il n'y a pas de seconde liste ici.
- * Une entrée sans `page` affiche un écran provisoire.
+/**
+ * Toutes les routes de l'application. On dérive celles du menu de NAV_ITEMS : le chemin, les
+ * rôles autorisés et l'écran (champ `page`) viennent de la même entrée, il n'y a pas de
+ * seconde liste ici.
  */
 export default function AppRouter() {
   return (
     <Routes>
       <Route element={<AuthLayout />}>
         <Route path="/connexion" element={<LoginPage />} />
-        {/* Lien reçu par mail (#127) : hors connexion. */}
+        {/* Le lien reçu par mail (#127) : on l'ouvre sans être connecté. */}
         <Route path="/activation/:token" element={<ActivationPage />} />
-        {/* Mot de passe oublié (#81) : hors connexion, lien reçu par mail. */}
+        {/* Mot de passe oublié (#81) : sans être connecté, puis par le lien reçu par mail. */}
         <Route path="/mot-de-passe-oublie" element={<ForgotPasswordPage />} />
         <Route path="/reinitialisation/:token" element={<ResetPasswordPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
-          {NAV_ITEMS.map(({ path, label, roles, page: Page }) => (
+          {NAV_ITEMS.map(({ path, roles, page: Page }) => (
             <Route
               key={path}
               path={path}
               element={
                 <ProtectedRoute roles={roles}>
-                  {Page ? <Page /> : <Placeholder title={label} />}
+                  <Page />
                 </ProtectedRoute>
               }
             />
           ))}
-          {/* Détail d'un projet : hors menu, « Projets » reste actif. L'API filtre par rôle. */}
+          {/* Le détail d'un projet : hors menu, « Projets » reste actif. C'est l'API qui filtre par rôle. */}
           <Route path="/projets/:id" element={<ProjectDetailsPage />} />
           {/* Gestion, onglet Utilisateurs : inviter une personne (#127), administratrice seulement. */}
           <Route
@@ -87,11 +87,11 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
-          {/* Fiche de séance : hors menu, « Planning » reste le point d'entrée. L'API vérifie les droits. */}
+          {/* La fiche de séance : hors menu, on y entre par le planning. C'est l'API qui vérifie les droits. */}
           <Route path="/planning/seances/:sessionId/fiche" element={<OpenLogbookPage />} />
           <Route path="/fiches/:id" element={<LogbookEntryPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          {/* Mon profil (#71) : lien du nom en bas du menu. */}
+          {/* Mon profil (#71) : on y arrive par son nom, en bas du menu. */}
           <Route path="/profil" element={<ProfilePage />} />
         </Route>
       </Route>
@@ -101,23 +101,9 @@ export default function AppRouter() {
   );
 }
 
-// Écran provisoire, à supprimer quand les vraies pages seront branchées.
-function Placeholder({ title }) {
-  // Titre d'onglet : sans lui, l'onglet garde celui de la page précédente (« Activer mon compte »).
-  useEffect(() => {
-    document.title = `${title} · KLAP`;
-  }, [title]);
-  return (
-    <section className="placeholder">
-      <h1>{title}</h1>
-      <p>Écran en cours de développement.</p>
-    </section>
-  );
-}
-
-/*
- * Adresse inconnue : hors des gabarits, donc avec sa propre zone principale (repère <main>
- * pour les lecteurs d'écran), et un chemin de retour.
+/**
+ * L'écran d'une adresse inconnue. On l'affiche hors des gabarits : il a donc sa propre zone
+ * principale (repère <main> pour les lecteurs d'écran), et un chemin de retour.
  */
 function NotFound() {
   useEffect(() => {

@@ -1,17 +1,20 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AuthService from '../Services/AuthService.js';
 
+/** Le contexte de la session. On le lit avec le hook useAuth. */
 export const AuthContext = createContext(null);
 
-/*
- * Session de l'utilisateur, branchée sur l'API (POST /login, GET /me, POST /logout).
+/**
+ * La session de l'utilisateur, qu'on branche sur l'API (POST /login, GET /me, POST /logout).
  *
- * `status` vaut 'loading' le temps de vérifier un jeton déjà enregistré, puis
+ * `status` vaut 'loading' le temps qu'on vérifie un jeton déjà enregistré, puis
  * 'authenticated' ou 'guest'. `user` a la forme de GET /api/me :
  *   { id, name, email, role, role_label }
  *
- * `initialUser` sert aux tests (voir MOCK_USERS dans testUtils.js) : il fixe l'utilisateur
- * sans aucun appel à l'API ; null simule un visiteur non connecté.
+ * @param {object} props
+ * @param {React.ReactNode} props.children
+ * @param {object|null} [props.initialUser]  pour nos tests (voir MOCK_USERS dans testUtils.js) :
+ *   on fixe l'utilisateur sans aucun appel à l'API ; null simule un visiteur non connecté
  */
 export function AuthProvider({ children, initialUser }) {
   const controlled = initialUser !== undefined;
@@ -22,7 +25,7 @@ export function AuthProvider({ children, initialUser }) {
     return AuthService.getToken() ? 'loading' : 'guest';
   });
 
-  // Incrémenté à chaque connexion ou déconnexion : une vérification lancée avant
+  // On l'incrémente à chaque connexion ou déconnexion : une vérification lancée avant
   // ne doit plus toucher à la session.
   const sessionVersion = useRef(0);
 
@@ -42,8 +45,8 @@ export function AuthProvider({ children, initialUser }) {
       })
       .catch((error) => {
         if (outdated()) return;
-        // Jeton révoqué : on l'oublie, s'il n'a pas été remplacé entre-temps.
-        // Serveur injoignable : on le garde pour la prochaine fois.
+        // Si le jeton est révoqué, on l'oublie, sauf s'il a été remplacé entre-temps.
+        // Si le serveur est injoignable, on le garde pour la prochaine fois.
         if (error.status === 401 && AuthService.getToken() === checkedToken) {
           AuthService.clearToken();
         }
@@ -53,7 +56,7 @@ export function AuthProvider({ children, initialUser }) {
     return () => {
       cancelled = true;
     };
-    // Vérification au montage seulement.
+    // On ne vérifie qu'au montage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
