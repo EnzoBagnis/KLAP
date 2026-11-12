@@ -9,13 +9,17 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Ajouter un groupe (sous-projet) à un projet existant (#250), administratrice seulement.
- * Les champs sont ceux de la création d'un projet ; le nom est unique dans le projet, sans tenir
- * compte de la casse.
+ * On reprend les champs de la création d'un projet ; le nom est unique dans le projet, sans
+ * tenir compte de la casse.
  */
 class StoreSubProjectRequest extends FormRequest
 {
+    /** Un code postal français : cinq chiffres. */
     protected const POSTAL_CODE = 'regex:/^[0-9]{5}$/';
 
+    /**
+     * Le projet de l'URL ; 404 s'il n'existe pas.
+     */
     public function project(): Project
     {
         $id = (string) $this->route('project');
@@ -25,6 +29,9 @@ class StoreSubProjectRequest extends FormRequest
         return $project;
     }
 
+    /**
+     * On réduit les espaces des champs de texte ; un champ qui se retrouve vide devient null.
+     */
     protected function prepareForValidation(): void
     {
         $tidy = fn ($value) => is_string($value) ? (($v = preg_replace('/\s+/u', ' ', trim($value))) === '' ? null : $v) : $value;
@@ -34,6 +41,11 @@ class StoreSubProjectRequest extends FormRequest
             ->all());
     }
 
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -47,7 +59,11 @@ class StoreSubProjectRequest extends FormRequest
         ];
     }
 
-    /** Nom unique dans le projet, sans tenir compte de la casse. */
+    /**
+     * La règle du nom : unique dans le projet, sans tenir compte de la casse.
+     *
+     * @param  int|null  $ignoreId  le groupe qu'on modifie, dont le propre nom n'est pas un doublon
+     */
     protected function uniqueName(?int $ignoreId = null): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail) use ($ignoreId) {
@@ -62,6 +78,11 @@ class StoreSubProjectRequest extends FormRequest
         };
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [
@@ -75,6 +96,11 @@ class StoreSubProjectRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les noms des champs, tels qu'on les écrit dans les messages.
+     *
+     * @return array<string, string>
+     */
     public function attributes(): array
     {
         return [

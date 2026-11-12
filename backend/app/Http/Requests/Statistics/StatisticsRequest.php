@@ -6,19 +6,33 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Validator;
 
-/** Filtres des statistiques : projet et période (date de séance, bornes incluses), tous facultatifs. */
+/**
+ * Filtres des statistiques : un projet et une période (date de séance, bornes incluses).
+ * On les laisse tous facultatifs.
+ */
 class StatisticsRequest extends FormRequest
 {
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
             'project_id' => ['bail', 'nullable', 'integer', 'exists:projects,id'],
             'from' => ['nullable', 'date_format:Y-m-d'],
-            // Comparé à `from` dans after() : la règle after_or_equal plante si `from` est un tableau.
+            // On le compare à `from` dans after() : la règle after_or_equal plante si `from` est un tableau.
             'to' => ['nullable', 'date_format:Y-m-d'],
         ];
     }
 
+    /**
+     * Les contrôles qu'on fait après les règles : ceux qui croisent plusieurs champs ou qui
+     * lisent la base.
+     *
+     * @return list<callable(Validator): void>
+     */
     public function after(): array
     {
         return [
@@ -33,6 +47,11 @@ class StatisticsRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [

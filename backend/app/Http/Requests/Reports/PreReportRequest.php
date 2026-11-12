@@ -8,13 +8,17 @@ use Illuminate\Support\Carbon;
 use Illuminate\Validation\Validator;
 
 /**
- * Pré-bilan Word (#143) : un projet, un financeur de ce projet, une période facultative
- * (date de séance, bornes incluses). Administratrice et super-utilisatrice (route).
+ * Pré-bilan Word (#143) : on demande un projet, un financeur de ce projet, et une période
+ * facultative (date de séance, bornes incluses). Administratrice et super-utilisatrice (route).
  */
 class PreReportRequest extends FormRequest
 {
+    /** Le projet de l'URL, qu'on charge dans authorize(). */
     private ?Project $project = null;
 
+    /**
+     * On vérifie que le projet existe : sinon 404.
+     */
     public function authorize(): bool
     {
         $id = (string) $this->route('project');
@@ -24,21 +28,35 @@ class PreReportRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Le projet dont on prépare le pré-bilan.
+     */
     public function project(): Project
     {
         return $this->project;
     }
 
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
             'funder_id' => ['bail', 'required', 'integer'],
             'from' => ['nullable', 'date_format:Y-m-d'],
-            // Comparé à `from` dans after() : la règle after_or_equal plante si `from` est un tableau.
+            // On le compare à `from` dans after() : la règle after_or_equal plante si `from` est un tableau.
             'to' => ['nullable', 'date_format:Y-m-d'],
         ];
     }
 
+    /**
+     * Les contrôles qu'on fait après les règles : ceux qui croisent plusieurs champs ou qui
+     * lisent la base.
+     *
+     * @return list<callable(Validator): void>
+     */
     public function after(): array
     {
         return [
@@ -55,6 +73,11 @@ class PreReportRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [

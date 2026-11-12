@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -27,6 +28,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Pivot $pivot la ligne de liaison, quand on a chargé le modèle par une relation plusieurs-à-plusieurs
  */
 class User extends Authenticatable
 {
@@ -63,6 +65,9 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * On branche les réactions du modèle à ses propres changements.
+     */
     protected static function booted(): void
     {
         // Quand on désactive un compte, on supprime ses jetons : la personne est déconnectée

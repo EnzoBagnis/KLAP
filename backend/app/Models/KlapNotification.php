@@ -59,6 +59,7 @@ class KlapNotification extends Model
             $where), 0, 255, '…');
     }
 
+    /** On nomme la table nous-mêmes : « notifications » est déjà prise par Laravel. */
     protected $table = 'klap_notifications';
 
     /** @var list<string> */

@@ -6,11 +6,17 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
 /**
- * Activer son compte : seul le mot de passe se choisit ; le nom et l'adresse viennent de
- * l'invitation (contexte client). Règles et messages repris de la branche de Lucas (#121).
+ * Activer son compte : on ne choisit que le mot de passe ; le nom et l'adresse viennent de
+ * l'invitation (contexte client). On a repris les règles et les messages de la branche de
+ * Lucas (#121).
  */
 class ActivateInvitationRequest extends FormRequest
 {
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -18,6 +24,11 @@ class ActivateInvitationRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [

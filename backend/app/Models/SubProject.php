@@ -6,6 +6,7 @@ use Database\Factories\SubProjectFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Carbon;
 
 /**
@@ -26,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Project $project
+ * @property-read Pivot $pivot la ligne de liaison, quand on a chargé le modèle par une relation plusieurs-à-plusieurs
  */
 class SubProject extends Model
 {

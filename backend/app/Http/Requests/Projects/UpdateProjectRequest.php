@@ -9,13 +9,18 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
- * Modification partielle d'un projet (#152), administratrice (route). Mêmes règles qu'à la
- * création ; un champ absent garde sa valeur. Les sous-projets ne se modifient pas ici.
+ * Modification partielle d'un projet (#152), administratrice (route). On applique les mêmes
+ * règles qu'à la création ; un champ absent garde sa valeur. Les groupes ne se modifient pas
+ * ici : ils ont leurs propres routes (#250).
  */
 class UpdateProjectRequest extends FormRequest
 {
+    /** Le projet de l'URL, qu'on charge dans authorize(). */
     private ?Project $project = null;
 
+    /**
+     * On vérifie que le projet existe (404) et qu'il n'est pas archivé (409).
+     */
     public function authorize(): bool
     {
         $id = (string) $this->route('project');
@@ -26,11 +31,19 @@ class UpdateProjectRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Le projet qu'on modifie.
+     */
     public function project(): Project
     {
         return $this->project;
     }
 
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         $project = $this->project;
@@ -38,39 +51,51 @@ class UpdateProjectRequest extends FormRequest
         return [
             'name' => ['sometimes', 'required', 'string', 'max:150'],
             'description' => ['sometimes', 'nullable', 'string'],
-            // Un type ou un lieu devenu inactif reste accepté tant qu'il ne change pas.
+            // On accepte encore un type ou un lieu devenu inactif, tant qu'il ne change pas.
             'project_type_id' => ['sometimes', 'nullable', 'integer', Rule::exists('project_types', 'id')
                 ->where(fn ($query) => $query->where('is_active', true)->orWhere('id', $project->project_type_id))],
             'planned_sessions' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:65535'],
             'start_date' => ['sometimes', 'nullable', 'date'],
             'end_date' => ['sometimes', 'nullable', 'date'],
-            // L'archivage passe par sa propre route, avec la confirmation du nom.
+            // On n'archive pas ici : l'archivage a sa propre route, avec la confirmation du nom.
             'status' => ['sometimes', 'required', Rule::in(Project::EDITABLE_STATUSES)],
             'default_location_id' => ['sometimes', 'required', 'integer', Rule::exists('locations', 'id')
                 ->where(fn ($query) => $query->where('is_active', true)->orWhere('id', $project->default_location_id))],
-            // Le ou la principal·e actuel·le reste accepté·e même si son compte a été désactivé (#148).
+            // On accepte encore le ou la principal·e actuel·le, même si son compte a été désactivé (#148).
             'principal_user_id' => ['sometimes', 'required', 'integer', Rule::exists('users', 'id')->where('role', 'contributor')
                 ->where(fn ($query) => $query->where('is_active', true)->orWhereIn('id', $this->currentLeadIds()))],
             'funder_ids' => ['sometimes', 'nullable', 'array'],
-            // Un financeur désactivé (#249) reste accepté sur un projet qui l'a déjà.
+            // On accepte encore un financeur désactivé (#249) sur un projet qui l'a déjà.
             'funder_ids.*' => ['integer', 'distinct', Rule::exists('funders', 'id')
                 ->where(fn ($query) => $query->where('is_active', true)->orWhereIn('id', $project->funders()->pluck('funders.id')))],
-            // Champs de l'écran de création qui ne se modifient pas ici : refusés plutôt qu'ignorés.
+            // Ces champs de l'écran de création ne se modifient pas ici : on les refuse, plutôt
+            // que de les ignorer en silence.
             'sub_projects' => ['prohibited'],
             'organization' => ['prohibited'],
             'city' => ['prohibited'],
             'postal_code' => ['prohibited'],
-            // Âge et effectif des groupes (#244) : saisis à la création, pas modifiés ici.
+            // L'âge et l'effectif des groupes (#244) se saisissent à la création ou sur le groupe.
             'age_range' => ['prohibited'],
             'expected_headcount' => ['prohibited'],
         ];
     }
 
+    /**
+     * Les identifiants des intervenant·e·s principaux·ales actuel·le·s du projet.
+     *
+     * @return list<int>
+     */
     private function currentLeadIds(): array
     {
         return $this->project->members()->wherePivot('member_role', 'lead')->pluck('users.id')->all();
     }
 
+    /**
+     * Les contrôles qu'on fait après les règles : ceux qui croisent plusieurs champs ou qui
+     * lisent la base.
+     *
+     * @return list<callable(Validator): void>
+     */
     public function after(): array
     {
         return [
@@ -78,7 +103,8 @@ class UpdateProjectRequest extends FormRequest
                 if ($validator->errors()->hasAny(['start_date', 'end_date'])) {
                     return;
                 }
-                // Comparées aux valeurs enregistrées : modifier seulement la fin ne la place pas avant le début.
+                // On compare avec les valeurs enregistrées : en ne modifiant que la fin, on ne
+                // doit pas pouvoir la placer avant le début.
                 $start = $this->has('start_date') ? $this->input('start_date') : $this->project->start_date?->toDateString();
                 $end = $this->has('end_date') ? $this->input('end_date') : $this->project->end_date?->toDateString();
                 if ($start && $end && Carbon::parse($end)->lt(Carbon::parse($start))) {
@@ -89,6 +115,11 @@ class UpdateProjectRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return (new StoreProjectRequest)->messages() + [
@@ -97,6 +128,11 @@ class UpdateProjectRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les noms des champs, tels qu'on les écrit dans les messages.
+     *
+     * @return array<string, string>
+     */
     public function attributes(): array
     {
         return (new StoreProjectRequest)->attributes();
