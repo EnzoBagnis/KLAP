@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Statistics\StatisticsRequest;
+use App\Models\LogbookEntry;
 use App\Services\StatisticsExport;
 use App\Services\StatisticsService;
 use Illuminate\Support\Facades\DB;
@@ -12,9 +13,16 @@ use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Throwable;
 
-/** Export Excel des statistiques (#219), mêmes filtres et mêmes droits que l'écran. */
+/**
+ * Export Excel des statistiques (#219), avec les mêmes filtres et les mêmes droits que l'écran.
+ */
 class StatisticsExportController extends Controller
 {
+    /**
+     * On écrit le classeur dans un fichier temporaire, puis on l'envoie en téléchargement.
+     *
+     * @throws RuntimeException si on ne peut pas créer le fichier temporaire
+     */
     public function __invoke(StatisticsRequest $request): BinaryFileResponse
     {
         $projectId = $request->validated('project_id');
@@ -34,12 +42,13 @@ class StatisticsExportController extends Controller
         }
 
         $name = 'statistiques-'.($projectName === null ? 'tous-les-projets' : (Str::slug($projectName) ?: 'projet'))
-            .'-'.now('Europe/Paris')->format('Y-m-d').'.xlsx';
+            .'-'.LogbookEntry::localNow()->format('Y-m-d').'.xlsx';
 
         $response = response()->download($path, $name, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ])->deleteFileAfterSend();
-        // Des chiffres réservés à l'administration : jamais gardés par un cache partagé.
+        // Ces chiffres sont réservés à l'administration : on interdit à tout cache partagé de
+        // les garder.
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');
 
