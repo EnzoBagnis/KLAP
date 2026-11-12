@@ -1,26 +1,29 @@
 # Qualité : ce qui est vérifié, et comment le refaire
 
 Ce document rassemble les vérifications faites sur l'application, avec leurs résultats et la façon
-de les reproduire. Les chiffres datent du 10 novembre 2026, branche `premain`.
+de les reproduire. Les chiffres datent du 12 novembre 2026, branche `premain`, après la revue de
+code complète (`docs/REVUE_DE_CODE.md`).
 
 ## 1. Intégration continue (à chaque push)
 
 `.github/workflows` vérifie à chaque push :
 - **Backend** :
+  - style du code (`composer style`, Pint) ;
+  - analyse statique (`composer analyse`, PHPStan niveau 6) : aucune erreur, aucune exception enregistrée ;
   - migrations et données de démonstration ;
   - réversibilité des migrations ;
   - tests sur SQLite **et** sur MariaDB, car les contraintes CHECK ne sont vérifiées que par MariaDB ;
   - `composer audit`.
-- **Frontend** : tests, `npm run build`, `npm audit`.
+- **Frontend** : analyse statique (`npm run lint`, ESLint avec les règles React, hooks et accessibilité), tests, `npm run build`, `npm audit`.
 
 Rien n'est fusionné dans `premain` sans CI verte.
 
 ## 2. Tests automatiques
 
-| | Fichiers | Tests | Résultat |
-|---|---|---|---|
-| Backend (PHPUnit) | 43 | 549, dont 13 propres à MariaDB | tous passent sur SQLite et MariaDB |
-| Frontend (Vitest) | 25 | 356 | tous passent |
+| | Fichiers | Tests | Résultat | Couverture |
+|---|---|---|---|---|
+| Backend (PHPUnit) | 47 | 604, dont 13 propres à MariaDB | tous passent sur SQLite et MariaDB | 98,7 % des lignes |
+| Frontend (Vitest) | 27 | 386 | tous passent | 93,8 % des lignes |
 
 À chaque push, la CI passe toute la suite sur SQLite, et sur MariaDB les 13 tests qui lui sont propres.
 La suite complète a aussi été passée à la main sur MariaDB avant chaque fusion.
@@ -37,7 +40,15 @@ Les tests backend passent par l'API, comme le ferait le frontend :
 docker compose exec backend php artisan test                     # SQLite
 docker compose exec -e DB_CONNECTION=mysql -e DB_DATABASE=klap_test backend php artisan test
 docker run --rm -v "$PWD/frontend":/app -w /app node:24-alpine npx vitest run
+docker compose exec backend composer analyse                     # PHPStan
+docker compose exec backend composer style                       # Pint
+docker run --rm -v "$PWD/frontend":/app -w /app node:24-alpine npm run lint
+docker run --rm -v "$PWD/frontend":/app -w /app node:24-alpine npm run coverage
 ```
+
+La couverture du backend se mesure avec `php artisan test --coverage` (il faut l'extension pcov ou
+Xdebug dans le conteneur). Ce qui n'est pas couvert : les filets contre deux écritures simultanées
+(index uniques) et des branches qu'aucune route ne peut atteindre.
 
 ## 3. Parcours vérifiés dans l'application
 
