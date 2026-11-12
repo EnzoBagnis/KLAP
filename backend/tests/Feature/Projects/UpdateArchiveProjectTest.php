@@ -8,7 +8,9 @@ use App\Models\Location;
 use App\Models\ProjectType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\Feature\Logbook\LogbookTestHelpers;
 use Tests\TestCase;
 
@@ -18,8 +20,12 @@ class UpdateArchiveProjectTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -28,12 +34,23 @@ class UpdateArchiveProjectTest extends TestCase
         $this->admin = User::factory()->role(UserRole::Admin)->create();
     }
 
-    private function edit(array $data, ?User $user = null)
+    /**
+     * On modifie le projet, par défaut en tant qu'administratrice.
+     *
+     * @param  array<string, mixed>  $data
+     * @return TestResponse<JsonResponse>
+     */
+    private function edit(array $data, ?User $user = null): TestResponse
     {
         return $this->actingAs($user ?? $this->admin)->patchJson("/api/projects/{$this->project->id}", $data);
     }
 
-    private function archive(string $name, ?User $user = null)
+    /**
+     * On archive le projet en saisissant un nom de confirmation.
+     *
+     * @return TestResponse<JsonResponse>
+     */
+    private function archive(string $name, ?User $user = null): TestResponse
     {
         return $this->actingAs($user ?? $this->admin)->postJson("/api/projects/{$this->project->id}/archive", ['confirm_name' => $name]);
     }

@@ -8,7 +8,9 @@ use App\Models\Project;
 use App\Models\ScheduledSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\Feature\Logbook\LogbookTestHelpers;
 use Tests\TestCase;
 
@@ -18,8 +20,12 @@ class DashboardTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -27,11 +33,21 @@ class DashboardTest extends TestCase
         $this->admin = User::factory()->role(UserRole::Admin)->create();
     }
 
-    private function dashboard(?User $user = null)
+    /**
+     * On lit le tableau de bord, par défaut celui de l'intervenant·e référent·e.
+     *
+     * @return TestResponse<JsonResponse>
+     */
+    private function dashboard(?User $user = null): TestResponse
     {
         return $this->actingAs($user ?? $this->referent)->getJson('/api/dashboard')->assertOk();
     }
 
+    /**
+     * On programme une séance du projet pour un·e référent·e, à une date donnée.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
     private function sessionFor(User $referent, string $date, array $attributes = [], ?Project $project = null): ScheduledSession
     {
         return ScheduledSession::factory()->create([
@@ -41,6 +57,11 @@ class DashboardTest extends TestCase
         ] + $attributes);
     }
 
+    /**
+     * On ouvre la fiche de la séance courante, complète, et on la soumet.
+     *
+     * @return int l'identifiant de la fiche
+     */
     private function submit(): int
     {
         $id = $this->createEntry($this->completePayload());

@@ -16,12 +16,20 @@ class ReadLogbookTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
         $this->setUpSession();
     }
 
+    /**
+     * Les cas de « l administration lit toutes les fiches ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function readers(): array
     {
         return ['administratrice' => [UserRole::Admin], 'super-utilisatrice' => [UserRole::SuperUser]];

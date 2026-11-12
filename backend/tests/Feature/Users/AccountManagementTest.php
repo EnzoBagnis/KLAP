@@ -5,6 +5,8 @@ namespace Tests\Feature\Users;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /** Gestion des comptes par l'administratrice (#159). */
@@ -12,15 +14,24 @@ class AccountManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
         $this->admin = User::factory()->role(UserRole::Admin)->create(['name' => 'Mariette Travard']);
     }
 
-    private function toggle(User $target, bool $active, ?User $actor = null)
+    /**
+     * On active ou on désactive un compte, par défaut en tant qu'administratrice.
+     *
+     * @return TestResponse<JsonResponse>
+     */
+    private function toggle(User $target, bool $active, ?User $actor = null): TestResponse
     {
         return $this->actingAs($actor ?? $this->admin)->patchJson("/api/accounts/{$target->id}", ['is_active' => $active]);
     }

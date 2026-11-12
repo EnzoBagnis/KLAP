@@ -18,6 +18,9 @@ class ScheduledSessionConstraintsTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -27,6 +30,12 @@ class ScheduledSessionConstraintsTest extends TestCase
         }
     }
 
+    /**
+     * Une ligne de séance valide, à insérer directement en base.
+     *
+     * @param  array<string, mixed>  $overrides  ce qu'on change pour violer une contrainte
+     * @return array<string, mixed>
+     */
     private function sessionRow(int $projectId, array $overrides = []): array
     {
         return array_merge([

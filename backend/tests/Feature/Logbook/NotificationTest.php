@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\KlapNotification;
 use App\Models\LogbookEntry;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -16,10 +17,15 @@ class NotificationTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /** La super-utilisatrice. */
     private User $superUser;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -30,6 +36,11 @@ class NotificationTest extends TestCase
         $this->superUser = User::factory()->role(UserRole::SuperUser)->create();
     }
 
+    /**
+     * On ouvre la fiche de la séance, complète, et on la soumet.
+     *
+     * @return int l'identifiant de la fiche
+     */
     private function submit(): int
     {
         $id = $this->createEntry($this->completePayload());
@@ -38,7 +49,12 @@ class NotificationTest extends TestCase
         return $id;
     }
 
-    private function notificationsOf(User $user)
+    /**
+     * Les notifications reçues par un compte.
+     *
+     * @return Collection<int, KlapNotification>
+     */
+    private function notificationsOf(User $user): Collection
     {
         return KlapNotification::query()->where('recipient_id', $user->id)->get();
     }

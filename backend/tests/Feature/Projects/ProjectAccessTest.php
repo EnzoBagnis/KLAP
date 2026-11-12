@@ -7,6 +7,8 @@ use App\Models\Location;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -19,6 +21,11 @@ class ProjectAccessTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Les cas partagés par 2 tests, dont « un visiteur non connecte est refuse ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function routes(): array
     {
         return [
@@ -31,7 +38,12 @@ class ProjectAccessTest extends TestCase
         ];
     }
 
-    private function callRoute(string $method, string $uri)
+    /**
+     * On appelle une route des projets, sur un projet créé pour l'occasion.
+     *
+     * @return TestResponse<JsonResponse>
+     */
+    private function callRoute(string $method, string $uri): TestResponse
     {
         $project = Project::factory()->create();
         $uri = str_replace(['{id}', '{type}'], [(string) $project->id, (string) $project->project_type_id], $uri);
@@ -54,7 +66,11 @@ class ProjectAccessTest extends TestCase
         $this->callRoute($method, $uri)->assertUnauthorized();
     }
 
-    /** Écritures et gestion des types : toujours réservées à l'administratrice. */
+    /**
+     * Les cas partagés par 2 tests, dont « un intervenant est refuse ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function adminOnlyRoutes(): array
     {
         return array_diff_key(self::routes(), array_flip(['liste', 'détail']));

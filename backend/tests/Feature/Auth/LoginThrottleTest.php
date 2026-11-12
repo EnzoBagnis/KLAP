@@ -5,14 +5,23 @@ namespace Tests\Feature\Auth;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
-/** Limite des tentatives de connexion (#150) : par compte et IP, plafond par IP. */
+/**
+ * Limite des tentatives de connexion (#150) : par compte et par IP, avec un plafond par IP.
+ */
 class LoginThrottleTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function attempt(string $email, string $ip = '10.0.0.1')
+    /**
+     * On tente une connexion avec un mauvais mot de passe, depuis une adresse IP donnée.
+     *
+     * @return TestResponse<JsonResponse>
+     */
+    private function attempt(string $email, string $ip = '10.0.0.1'): TestResponse
     {
         return $this->withServerVariables(['REMOTE_ADDR' => $ip])
             ->postJson('/api/login', ['email' => $email, 'password' => 'mauvais']);
@@ -25,7 +34,7 @@ class LoginThrottleTest extends TestCase
         }
 
         $this->attempt('lea@klap.demo')->assertTooManyRequests()->assertHeader('Retry-After');
-        // La casse et les espaces ne contournent pas la limite.
+        // On ne contourne pas la limite en changeant la casse ou en ajoutant des espaces.
         $this->attempt('  LEA@klap.demo ')->assertTooManyRequests();
     }
 

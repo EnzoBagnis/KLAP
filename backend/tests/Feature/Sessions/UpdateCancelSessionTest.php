@@ -8,6 +8,8 @@ use App\Models\ScheduledSession;
 use App\Models\SubProject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Testing\TestResponse;
 use Tests\Feature\Logbook\LogbookTestHelpers;
 use Tests\TestCase;
 
@@ -17,10 +19,15 @@ class UpdateCancelSessionTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /** Une séance à venir, sans fiche. */
     private ScheduledSession $upcoming;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -32,6 +39,12 @@ class UpdateCancelSessionTest extends TestCase
         $this->upcoming->subProjects()->attach($this->groupIds()[0], ['project_id' => $this->project->id]);
     }
 
+    /**
+     * Une demande de modification valide.
+     *
+     * @param  array<string, mixed>  $overrides  ce qu'on change dans la demande
+     * @return array<string, mixed>
+     */
     private function payload(array $overrides = []): array
     {
         return array_merge([
@@ -45,7 +58,13 @@ class UpdateCancelSessionTest extends TestCase
         ], $overrides);
     }
 
-    private function edit(array $data, ?ScheduledSession $session = null, ?User $user = null)
+    /**
+     * On modifie une séance, par défaut la prochaine, en tant qu'administratrice.
+     *
+     * @param  array<string, mixed>  $data
+     * @return TestResponse<JsonResponse>
+     */
+    private function edit(array $data, ?ScheduledSession $session = null, ?User $user = null): TestResponse
     {
         return $this->actingAs($user ?? $this->admin)->patchJson('/api/sessions/'.($session ?? $this->upcoming)->id, $data);
     }

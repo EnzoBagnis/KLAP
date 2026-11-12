@@ -15,8 +15,12 @@ class StatisticsExportTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -24,7 +28,12 @@ class StatisticsExportTest extends TestCase
         $this->admin = User::query()->where('email', 'mariette.travard@klap.demo')->firstOrFail();
     }
 
-    /** Ouvre le classeur téléchargé : [nom d'onglet => XML de la feuille]. */
+    /**
+     * On ouvre le classeur téléchargé.
+     *
+     * @param  string  $query  les filtres, sous la forme « ?from=… »
+     * @return array<string, string> le XML de chaque feuille, par nom d'onglet
+     */
     private function workbook(string $query = ''): array
     {
         $response = $this->actingAs($this->admin)->get('/api/statistics/export'.$query)->assertOk();
@@ -93,6 +102,11 @@ class StatisticsExportTest extends TestCase
         $this->assertStringContainsString('t="inlineStr"><is><t xml:space="preserve">=HYPERLINK(&quot;http://exemple.test&quot;,&quot;clic&quot;)</t>', $sheet);
     }
 
+    /**
+     * Les cas de « refuse aux intervenants et aux anonymes ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function forbidden(): array
     {
         return ['intervenante' => [UserRole::Contributor]];

@@ -14,6 +14,9 @@ class SubmitLogbookTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -39,6 +42,11 @@ class SubmitLogbookTest extends TestCase
         $this->postJson("/api/logbook-entries/{$id}/submit")->assertOk();
     }
 
+    /**
+     * Les cas de « refuse une fiche incomplete ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function incomplete(): array
     {
         return [
@@ -57,6 +65,11 @@ class SubmitLogbookTest extends TestCase
         ];
     }
 
+    /**
+     * Les cas de « rien est accepte dans les temps forts ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function nothingToReport(): array
     {
         // Moins de 5 caractères : refusés avant le correctif.
@@ -80,6 +93,9 @@ class SubmitLogbookTest extends TestCase
         $this->patchJson("/api/logbook-entries/{$id}", ['objectives' => 'Écoute du groupe'])->assertOk();
     }
 
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
     #[DataProvider('incomplete')]
     public function test_refuse_une_fiche_incomplete(array $overrides, string $field): void
     {

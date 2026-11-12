@@ -10,14 +10,21 @@ use ZipArchive;
 /** Générateur .xlsx sans dépendance (#219) : format accepté par Excel, contenu jamais interprété. */
 class XlsxWriterTest extends TestCase
 {
+    /** Le fichier temporaire du classeur. */
     private string $path;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
         $this->path = tempnam(sys_get_temp_dir(), 'test-xlsx-');
     }
 
+    /**
+     * On remet en état ce que les tests ont modifié.
+     */
     protected function tearDown(): void
     {
         @unlink($this->path);

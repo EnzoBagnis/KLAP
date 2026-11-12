@@ -15,6 +15,9 @@ class DraftLogbookTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -45,6 +48,11 @@ class DraftLogbookTest extends TestCase
             ->assertJsonPath('message', 'Seul·e l’intervenant·e référent·e de la séance, l’administratrice ou la super-utilisatrice peut ouvrir sa fiche.');
     }
 
+    /**
+     * Les cas partagés par 2 tests, dont « l administration ouvre la fiche pour le referent ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function administration(): array
     {
         return ['administratrice' => [UserRole::Admin], 'super-utilisatrice' => [UserRole::SuperUser]];
@@ -115,6 +123,11 @@ class DraftLogbookTest extends TestCase
         $this->assertDatabaseHas('exercises', ['logbook_entry_id' => $id, 'position' => 1, 'label' => 'Duo']);
     }
 
+    /**
+     * Les cas de « refuse une valeur hors limites meme en brouillon ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function invalidDrafts(): array
     {
         return [
@@ -129,6 +142,9 @@ class DraftLogbookTest extends TestCase
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     #[DataProvider('invalidDrafts')]
     public function test_refuse_une_valeur_hors_limites_meme_en_brouillon(array $payload, string $field): void
     {

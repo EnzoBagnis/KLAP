@@ -26,14 +26,27 @@ class StatisticsTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /** Le premier projet, à deux groupes. */
     private Project $projectA;
 
+    /** Le second projet, à un groupe. */
     private Project $projectB;
 
+    /**
+     * Nos groupes, par nom.
+     *
+     * @var array<string, SubProject>
+     */
     private array $groups = [];
 
+    /**
+     * On est le 5 novembre 2026. Le projet A a deux groupes et cinq séances (deux fiches
+     * rendues, un brouillon, une séance annulée, une séance sans fiche) ; le projet B a un groupe
+     * et une fiche rendue.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -53,6 +66,14 @@ class StatisticsTest extends TestCase
         $this->addSession($this->projectB, '2026-09-15', ['G3' => 15], 'submitted');
     }
 
+    /**
+     * On ajoute une séance au projet, avec ses présents par groupe et, si on donne un statut,
+     * sa fiche.
+     *
+     * @param  array<string, int|null>  $attendees  les présents, par nom de groupe
+     * @param  string|null  $status  le statut de la fiche, ou null pour ne pas en créer
+     * @param  array{0: int, 1: int, 2: int}|null  $notes  les notes d'engagement, d'expression et d'autonomie
+     */
     private function addSession(Project $project, string $date, array $attendees, ?string $status, ?array $notes = null, string $sessionStatus = 'planned'): void
     {
         $session = ScheduledSession::factory()->create([
@@ -84,6 +105,12 @@ class StatisticsTest extends TestCase
         }
     }
 
+    /**
+     * On lit les statistiques en tant qu'administratrice.
+     *
+     * @param  array<string, mixed>  $query  les filtres
+     * @return array<string, mixed>
+     */
     private function statistics(array $query = []): array
     {
         return $this->actingAs($this->admin)
@@ -92,6 +119,12 @@ class StatisticsTest extends TestCase
             ->json('data');
     }
 
+    /**
+     * La ligne d'un projet dans les statistiques.
+     *
+     * @param  array<string, mixed>  $data  le résultat de statistics()
+     * @return array<string, mixed>
+     */
     private function project(array $data, Project $project): array
     {
         return collect($data['projects'])->firstWhere('id', $project->id);
@@ -259,6 +292,11 @@ class StatisticsTest extends TestCase
             ->assertJsonPath('errors.project_id', ['Le projet demandé n’existe pas.']);
     }
 
+    /**
+     * Les cas de « lecture par l administration ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function readers(): array
     {
         return ['administratrice' => [UserRole::Admin], 'super-utilisatrice' => [UserRole::SuperUser]];
@@ -277,6 +315,11 @@ class StatisticsTest extends TestCase
         $this->getJson('/api/statistics')->assertUnauthorized();
     }
 
+    /**
+     * Les cas de « refuse des filtres invalides ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function invalidFilters(): array
     {
         return [
@@ -288,6 +331,9 @@ class StatisticsTest extends TestCase
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $query
+     */
     #[DataProvider('invalidFilters')]
     public function test_refuse_des_filtres_invalides(array $query, string $field): void
     {
@@ -296,6 +342,9 @@ class StatisticsTest extends TestCase
             ->assertJsonValidationErrors($field);
     }
 
+    /**
+     * On renseigne la ville, l'âge et l'effectif prévu de nos groupes.
+     */
     private function describeGroups(): void
     {
         foreach ([

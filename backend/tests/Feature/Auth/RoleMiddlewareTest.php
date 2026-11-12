@@ -8,16 +8,21 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
+/**
+ * Le middleware `role`, qui réserve une route à certains rôles.
+ */
 class RoleMiddlewareTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * On déclare deux routes de test : on vérifie ainsi le middleware seul, sans dépendre
+     * des règles d'une route métier.
+     */
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Route de test : le middleware est vérifié ici, pas sur les routes
-        // métier, qui n'existent pas encore (voir #55).
         Route::middleware(['auth:sanctum', 'role:admin'])
             ->get('/api/test-admin', fn () => response()->json(['ok' => true]));
 
@@ -25,6 +30,9 @@ class RoleMiddlewareTest extends TestCase
             ->get('/api/test-lecture', fn () => response()->json(['ok' => true]));
     }
 
+    /**
+     * On crée un compte du rôle donné et on renvoie son jeton.
+     */
     private function tokenPour(UserRole $role): string
     {
         $user = User::create([

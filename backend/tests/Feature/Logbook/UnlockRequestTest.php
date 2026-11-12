@@ -5,8 +5,11 @@ namespace Tests\Feature\Logbook;
 use App\Enums\UserRole;
 use App\Models\KlapNotification;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -16,10 +19,15 @@ class UnlockRequestTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /** La super-utilisatrice. */
     private User $superUser;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -30,7 +38,11 @@ class UnlockRequestTest extends TestCase
         $this->superUser = User::factory()->role(UserRole::SuperUser)->create();
     }
 
-    /** Fiche soumise, verrouillée par la commande le 20 octobre. */
+    /**
+     * Une fiche soumise, puis verrouillée par le délai.
+     *
+     * @return int son identifiant
+     */
     private function lockedEntry(): int
     {
         $id = $this->createEntry($this->completePayload());
@@ -42,12 +54,22 @@ class UnlockRequestTest extends TestCase
         return $id;
     }
 
-    private function request(int|string $id, ?User $user = null)
+    /**
+     * On demande la réouverture d'une fiche, par défaut en tant que référent·e.
+     *
+     * @return TestResponse<JsonResponse>
+     */
+    private function request(int|string $id, ?User $user = null): TestResponse
     {
         return $this->actingAs($user ?? $this->referent)->postJson("/api/logbook-entries/{$id}/unlock-request");
     }
 
-    private function requests()
+    /**
+     * Toutes les demandes de réouverture enregistrées.
+     *
+     * @return Collection<int, KlapNotification>
+     */
+    private function requests(): Collection
     {
         return KlapNotification::query()->where('type', 'unlock_request')->get();
     }
@@ -124,6 +146,11 @@ class UnlockRequestTest extends TestCase
         $this->assertCount(0, $this->requests());
     }
 
+    /**
+     * Les cas de « seul l auteur peut demander ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function notAuthor(): array
     {
         return ['administratrice' => ['admin'], 'super-utilisatrice' => ['superUser']];

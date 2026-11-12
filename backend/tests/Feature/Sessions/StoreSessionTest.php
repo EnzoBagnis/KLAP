@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\ScheduledSession;
 use App\Models\SubProject;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -17,8 +18,12 @@ class StoreSessionTest extends TestCase
     use RefreshDatabase;
     use SessionTestHelpers;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -27,7 +32,14 @@ class StoreSessionTest extends TestCase
         Sanctum::actingAs($this->admin);
     }
 
-    private function payload($groups, User $referent, array $overrides = []): array
+    /**
+     * Une demande de programmation valide.
+     *
+     * @param  Collection<int, SubProject>  $groups  les groupes concernés
+     * @param  array<string, mixed>  $overrides  ce qu'on change dans la demande
+     * @return array<string, mixed>
+     */
+    private function payload(Collection $groups, User $referent, array $overrides = []): array
     {
         return array_merge([
             'session_date' => '2026-10-05',
@@ -105,6 +117,11 @@ class StoreSessionTest extends TestCase
         ]))->assertCreated()->assertJsonPath('data.session_type_detail', 'Rencontre avec les parents');
     }
 
+    /**
+     * Les cas de « seule l administratrice programme ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function forbiddenRoles(): array
     {
         return ['super-utilisatrice' => [UserRole::SuperUser], 'intervenant' => [UserRole::Contributor]];
@@ -136,6 +153,11 @@ class StoreSessionTest extends TestCase
             ->assertJsonValidationErrors('project');
     }
 
+    /**
+     * Les cas de « refuse une saisie invalide sans rien creer ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function invalidPayloads(): array
     {
         return [
@@ -180,6 +202,11 @@ class StoreSessionTest extends TestCase
             ->assertJsonPath('errors.referent_id.0', 'L’intervenant·e n’est pas affecté·e au projet à cette date.');
     }
 
+    /**
+     * Les cas de « accepte un projet en brouillon ou termine ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function openStatuses(): array
     {
         return ['brouillon' => ['draft'], 'terminé' => ['finished']];

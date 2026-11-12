@@ -32,6 +32,11 @@ class ReadSessionsTest extends TestCase
             ->assertJsonPath('data.1.session_date', '2026-10-12');
     }
 
+    /**
+     * Les cas de « l administration lit les seances de tout projet ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function readers(): array
     {
         return ['administratrice' => [UserRole::Admin], 'super-utilisatrice' => [UserRole::SuperUser]];
@@ -116,6 +121,11 @@ class ReadSessionsTest extends TestCase
         $this->assertSame(['2026-10-05', '2026-10-06'], $dates->all());
     }
 
+    /**
+     * Les cas de « refuse une periode invalide ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function invalidPeriods(): array
     {
         return [

@@ -7,10 +7,16 @@ use App\Models\Project;
 use App\Models\ScheduledSession;
 use App\Models\SubProject;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 
 trait SessionTestHelpers
 {
-    /** Projet avec deux groupes et une intervenante principale affectée. */
+    /**
+     * Un projet avec deux groupes et une intervenante principale affectée.
+     *
+     * @param  array<string, mixed>  $attributes  ce qu'on change sur le projet
+     * @return array{0: Project, 1: Collection<int, SubProject>, 2: User}
+     */
     protected function projectWithTeam(array $attributes = []): array
     {
         $project = Project::factory()->create($attributes);
@@ -21,7 +27,12 @@ trait SessionTestHelpers
         return [$project, $groups, $lead];
     }
 
-    /** Séance d'un projet, rattachée aux groupes donnés (un seul par défaut). */
+    /**
+     * Une séance d'un projet, rattachée aux groupes donnés (un seul par défaut).
+     *
+     * @param  array<string, mixed>  $attributes
+     * @param  iterable<SubProject>|null  $groups
+     */
     protected function sessionFor(Project $project, array $attributes = [], $groups = null): ScheduledSession
     {
         $session = ScheduledSession::factory()->create(['project_id' => $project->id] + $attributes);

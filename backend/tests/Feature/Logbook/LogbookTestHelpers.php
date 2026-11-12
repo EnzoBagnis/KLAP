@@ -10,13 +10,21 @@ use App\Models\User;
 
 trait LogbookTestHelpers
 {
+    /** Le projet des tests. */
     protected Project $project;
 
+    /** La séance des tests. */
     protected ScheduledSession $session;
 
+    /** L'intervenant·e référent·e de la séance. */
     protected User $referent;
 
-    /** Séance du 5 octobre 2026, deux groupes, dont l'intervenante est référente. */
+    /**
+     * On prépare le décor commun : on est le 6 octobre 2026 à 9 h, et la séance du 5 octobre
+     * couvre deux groupes, avec son intervenant·e référent·e.
+     *
+     * @param  array<string, mixed>  $sessionAttributes  ce qu'on change sur la séance
+     */
     protected function setUpSession(array $sessionAttributes = []): void
     {
         $this->travelTo(now()->setDate(2026, 10, 6)->setTime(9, 0));
@@ -34,12 +42,22 @@ trait LogbookTestHelpers
         }
     }
 
+    /**
+     * Les identifiants des groupes de la séance.
+     *
+     * @return list<int>
+     */
     protected function groupIds(): array
     {
         return $this->session->subProjects()->pluck('sub_projects.id')->all();
     }
 
-    /** Fiche complète, prête à être soumise. */
+    /**
+     * Une fiche complète, prête à être soumise.
+     *
+     * @param  array<string, mixed>  $overrides  ce qu'on change dans la fiche
+     * @return array<string, mixed>
+     */
     protected function completePayload(array $overrides = []): array
     {
         // Les listes (exercices, présents) sont remplacées en entier, pas fusionnées indice par indice.
@@ -60,6 +78,12 @@ trait LogbookTestHelpers
         ], $overrides);
     }
 
+    /**
+     * L'intervenant·e référent·e ouvre la fiche de la séance.
+     *
+     * @param  array<string, mixed>  $payload  la première saisie
+     * @return int l'identifiant de la fiche
+     */
     protected function createEntry(array $payload = []): int
     {
         return $this->actingAs($this->referent)

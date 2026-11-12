@@ -13,6 +13,9 @@ use Tests\TestCase;
  */
 class PrepareDemoTest extends TestCase
 {
+    /**
+     * On remet en état ce que les tests ont modifié.
+     */
     protected function tearDown(): void
     {
         $this->artisan('migrate:fresh');
@@ -20,6 +23,11 @@ class PrepareDemoTest extends TestCase
         parent::tearDown();
     }
 
+    /**
+     * Le statut de chaque fiche, par identifiant.
+     *
+     * @return array<int, string>
+     */
     private function statuses(): array
     {
         return DB::table('logbook_entries')->orderBy('id')->pluck('status', 'id')->all();

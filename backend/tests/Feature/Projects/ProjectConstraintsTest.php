@@ -20,6 +20,9 @@ class ProjectConstraintsTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -29,7 +32,12 @@ class ProjectConstraintsTest extends TestCase
         }
     }
 
-    /** Lignes liées créées d'abord : seule l'insertion du projet peut lever l'exception attendue. */
+    /**
+     * Une ligne de projet valide, à insérer directement en base.
+     *
+     * @param  array<string, mixed>  $overrides  ce qu'on change pour violer une contrainte
+     * @return array<string, mixed>
+     */
     private function projectRow(array $overrides): array
     {
         return array_merge([

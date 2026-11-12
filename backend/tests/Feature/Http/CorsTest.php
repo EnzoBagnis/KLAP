@@ -8,6 +8,9 @@ use Tests\TestCase;
 /** Le frontend, sur une autre origine, doit pouvoir lire Retry-After (réponses 429). */
 class CorsTest extends TestCase
 {
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();

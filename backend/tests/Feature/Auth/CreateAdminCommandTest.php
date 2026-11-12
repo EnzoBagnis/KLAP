@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
-/** Premier compte d'administratrice, créé sur le serveur (#255). */
+/**
+ * Le premier compte d'administratrice, qu'on crée sur le serveur avec klap:admin (#255).
+ */
 class CreateAdminCommandTest extends TestCase
 {
     use RefreshDatabase;
@@ -35,7 +37,7 @@ class CreateAdminCommandTest extends TestCase
             return $mail->hasTo('mariette@kelemenis.fr') && str_starts_with($mail->url, 'https://klap.example.org/reinitialisation/');
         });
 
-        // Le lien du mail sert bien à choisir le mot de passe, puis à se connecter.
+        // On vérifie que le lien du mail sert bien à choisir le mot de passe, puis à se connecter.
         $token = explode('?', basename($url))[0];
         $this->postJson('/api/reset-password', [
             'token' => $token, 'email' => 'mariette@kelemenis.fr', 'password' => 'Klap-Mariette-2026!', 'password_confirmation' => 'Klap-Mariette-2026!',
