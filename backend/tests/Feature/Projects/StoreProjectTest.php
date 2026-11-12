@@ -13,6 +13,9 @@ use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * Création d'un projet (#55, écran 58 de la maquette), réservée à l'administratrice.
+ */
 class StoreProjectTest extends TestCase
 {
     use RefreshDatabase;
@@ -121,7 +124,7 @@ class StoreProjectTest extends TestCase
 
     public function test_le_groupe_unique_recoit_l_age_et_l_effectif_du_projet(): void
     {
-        // Sans eux, les statistiques n'ont ni tranche d'âge ni assiduité (#244).
+        // Sans eux, nos statistiques n'ont ni tranche d'âge ni assiduité (#244).
         $payload = $this->payload(['name' => 'Étincelles', 'age_range' => '15-16 ans', 'expected_headcount' => 28]);
         unset($payload['sub_projects']);
 

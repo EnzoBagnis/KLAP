@@ -159,7 +159,7 @@ class UpdateArchiveProjectTest extends TestCase
             ->assertJsonPath('errors.confirm_name.0', 'Attention aux majuscules : saisissez exactement « Arts Danse au Lycée Charles ».');
         $this->assertSame('active', $this->project->fresh()->status);
 
-        // Espaces en trop ignorés.
+        // On ignore les espaces en trop.
         $this->archive('  Arts  Danse au Lycée Charles ')->assertOk()
             ->assertJsonPath('data.status', 'archived')
             ->assertJsonPath('data.archived_at', now()->toIso8601String());
@@ -176,7 +176,7 @@ class UpdateArchiveProjectTest extends TestCase
         $this->assertDatabaseHas('sub_projects', ['project_id' => $this->project->id]);
         $this->edit(['name' => 'X'])->assertStatus(409);
         $this->archive('Arts Danse au Lycée Charles')->assertStatus(409);
-        // Masqué de la liste par défaut, toujours lisible en détail.
+        // On le masque de la liste par défaut, mais il reste lisible en détail.
         $this->actingAs($this->admin)->getJson('/api/projects')->assertJsonCount(0, 'data');
         $this->actingAs($this->admin)->getJson("/api/projects/{$this->project->id}")->assertOk();
     }

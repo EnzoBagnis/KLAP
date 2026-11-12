@@ -59,10 +59,10 @@ class StatisticsExportTest extends TestCase
         $this->assertSame('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type'));
         $this->assertMatchesRegularExpression('/statistiques-tous-les-projets-\d{4}-\d{2}-\d{2}\.xlsx/', $response->headers->get('Content-Disposition'));
         $this->assertSame(['Synthèse', 'Projets', 'Groupes', 'Provenance', 'Âge', 'Observations'], array_keys($this->workbook()));
-        // Réservé à l'administration : aucun cache partagé ne garde le fichier.
+        // Le fichier est réservé à l'administration : on vérifie qu'aucun cache partagé ne le garde.
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
-        $response->streamedContent(); // envoie, donc supprime, le fichier temporaire
+        $response->streamedContent(); // on envoie le fichier temporaire, ce qui le supprime
     }
 
     public function test_les_chiffres_sont_ceux_de_l_ecran_en_cellules_numeriques(): void

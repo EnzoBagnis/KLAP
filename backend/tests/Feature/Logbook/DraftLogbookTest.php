@@ -10,6 +10,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * Brouillon d'une fiche de séance (#15) : l'ouvrir, l'enregistrer, respecter les limites
+ * et le délai de J+10.
+ */
 class DraftLogbookTest extends TestCase
 {
     use LogbookTestHelpers;
@@ -323,5 +327,17 @@ class DraftLogbookTest extends TestCase
 
         $this->session->forceFill(['session_date' => '2026-09-01'])->save();
         $this->actingAs($admin)->postJson("/api/sessions/{$this->session->id}/logbook-entry")->assertForbidden(); // hors délai
+    }
+
+    public function test_une_premiere_saisie_invalide_n_ouvre_pas_la_fiche(): void
+    {
+        $open = fn (array $payload) => $this->actingAs($this->referent)->postJson("/api/sessions/{$this->session->id}/logbook-entry", $payload);
+
+        $open(['objectives' => str_repeat('a', 401)])->assertUnprocessable()->assertJsonValidationErrors('objectives');
+        // « autre » exige sa précision dès l'ouverture, comme la contrainte de la base.
+        $open(['evaluation' => ['feeling' => 'other']])->assertUnprocessable()
+            ->assertJsonValidationErrors(['evaluation.feeling_detail' => 'Précisez la sensation quand vous choisissez « autre ».']);
+
+        $this->assertSame(0, LogbookEntry::query()->count());
     }
 }

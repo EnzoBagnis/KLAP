@@ -9,6 +9,9 @@ use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * Lecture du planning (#102) : par projet, par période, selon les droits.
+ */
 class ReadSessionsTest extends TestCase
 {
     use RefreshDatabase;
@@ -58,7 +61,7 @@ class ReadSessionsTest extends TestCase
         [$other] = $this->projectWithTeam();
         $this->sessionFor($project);
         Sanctum::actingAs($lead);
-        config(['app.debug' => false]); // comme en production : pas de trace qui distinguerait les deux 404
+        config(['app.debug' => false]); // comme en production : sans la trace, qui distinguerait les deux 404
 
         $this->getJson("/api/projects/{$project->id}/sessions")->assertOk()->assertJsonCount(1, 'data');
         $hidden = $this->getJson("/api/projects/{$other->id}/sessions")->assertNotFound()->getContent();

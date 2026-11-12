@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * Soumission d'une fiche (#19) : elle doit être complète, et la séance terminée.
+ */
 class SubmitLogbookTest extends TestCase
 {
     use LogbookTestHelpers;
@@ -72,7 +75,7 @@ class SubmitLogbookTest extends TestCase
      */
     public static function nothingToReport(): array
     {
-        // Moins de 5 caractères : refusés avant le correctif.
+        // Moins de 5 caractères : on les refusait avant le correctif (#225).
         return ['rien' => ['rien'], 'Rien' => ['Rien'], 'RAS' => ['RAS'], 'RAS.' => ['RAS.'], 'ras!' => ['ras!']];
     }
 

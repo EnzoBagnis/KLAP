@@ -8,6 +8,10 @@ use App\Models\ScheduledSession;
 use App\Models\SubProject;
 use App\Models\User;
 
+/**
+ * Le décor commun aux tests des fiches : un projet, une séance passée, son intervenant·e
+ * référent·e, et de quoi ouvrir une fiche complète.
+ */
 trait LogbookTestHelpers
 {
     /** Le projet des tests. */
@@ -60,7 +64,8 @@ trait LogbookTestHelpers
      */
     protected function completePayload(array $overrides = []): array
     {
-        // Les listes (exercices, présents) sont remplacées en entier, pas fusionnées indice par indice.
+        // On remplace les listes (exercices, présents) en entier : on ne les fusionne pas
+        // indice par indice.
         $lists = array_intersect_key($overrides, array_flip(['exercises', 'attendees']));
         $overrides = array_diff_key($overrides, $lists);
 

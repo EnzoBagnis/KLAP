@@ -142,7 +142,8 @@ class NotificationTest extends TestCase
 
     public function test_un_nom_de_projet_tres_long_ne_fait_pas_echouer_la_soumission(): void
     {
-        // Noms aux longueurs maximales des colonnes (150 et 255) : le message dépasserait 255.
+        // On prend des noms aux longueurs maximales des colonnes (150 et 255) : sans troncature,
+        // le message dépasserait 255 caractères.
         $this->project->update(['name' => str_repeat('p', 150)]);
         $this->referent->update(['name' => str_repeat('n', 120)]);
         $this->submit();

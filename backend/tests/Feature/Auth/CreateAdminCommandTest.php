@@ -70,4 +70,32 @@ class CreateAdminCommandTest extends TestCase
         $this->assertSame(UserRole::Contributor, User::query()->where('email', 'lea@klap.fr')->first()->role);
         Mail::assertNothingSent();
     }
+
+    public function test_refuse_un_compte_d_administratrice_desactive(): void
+    {
+        Mail::fake();
+        User::factory()->role(UserRole::Admin)->create(['email' => 'mariette@kelemenis.fr', 'is_active' => false]);
+
+        $this->artisan('klap:admin', ['email' => 'mariette@kelemenis.fr', 'nom' => 'Mariette Travard'])
+            ->expectsOutputToContain('est désactivé')
+            ->assertFailed();
+
+        // On ne réactive pas le compte en douce, et on n'envoie aucun lien.
+        $this->assertFalse(User::query()->where('email', 'mariette@kelemenis.fr')->firstOrFail()->is_active);
+        Mail::assertNothingSent();
+    }
+
+    public function test_le_mail_de_bienvenue_donne_le_lien_et_la_marche_a_suivre(): void
+    {
+        $user = User::factory()->role(UserRole::Admin)->create(['name' => "Awa N'Diaye"]);
+        $mail = new AdminWelcomeMail($user, 'https://klap.example.org/reinitialisation/abc?email=awa%40klap.fr', 60, 'https://klap.example.org/connexion');
+
+        $this->assertSame('Votre compte d’administratrice sur le carnet de bord de KLAP', $mail->envelope()->subject);
+        $text = $mail->render();
+        // Le nom garde son apostrophe, et le lien n'est pas échappé : il doit rester cliquable.
+        $this->assertStringContainsString("Bonjour Awa N'Diaye,", $text);
+        $this->assertStringContainsString('https://klap.example.org/reinitialisation/abc?email=awa%40klap.fr', $text);
+        $this->assertStringContainsString('valable 60 minutes', $text);
+        $this->assertStringContainsString('https://klap.example.org/connexion', $text);
+    }
 }

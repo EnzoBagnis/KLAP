@@ -9,8 +9,10 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -172,5 +174,19 @@ class PasswordResetTest extends TestCase
         }
 
         $this->postJson('/api/forgot-password', ['email' => 'lea@klap.demo'])->assertTooManyRequests();
+    }
+
+    public function test_un_mail_qui_ne_part_pas_ne_change_pas_la_reponse(): void
+    {
+        // Le serveur de mail est en panne : la réponse doit rester la même, pour ne pas révéler
+        // que le compte existe, et on doit garder une trace de l'échec.
+        Mail::shouldReceive('to')->once()->andThrow(new RuntimeException('Connexion SMTP refusée'));
+        $log = Log::spy();
+
+        $this->postJson('/api/forgot-password', ['email' => 'lea@klap.demo'])
+            ->assertOk()->assertJsonPath('message', PasswordResetController::SENT);
+
+        $log->shouldHaveReceived('error')->once()->withArgs(fn (string $message, array $context) => $message === 'Mail de mot de passe oublié non envoyé'
+            && $context['user_id'] === $this->lea->id);
     }
 }

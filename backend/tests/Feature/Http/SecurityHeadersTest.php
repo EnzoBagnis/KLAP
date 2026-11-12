@@ -14,7 +14,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 
-/** Durcissement relevé par l'audit de sécurité (#200). */
+/**
+ * Les durcissements qu'on a faits après l'audit de sécurité (#200) : en-têtes, pages sans
+ * cookie, identifiants numériques, origines CORS.
+ */
 class SecurityHeadersTest extends TestCase
 {
     use RefreshDatabase;
@@ -27,7 +30,7 @@ class SecurityHeadersTest extends TestCase
             $response->assertHeader($name, $value);
         }
         $response->assertHeaderMissing('X-Powered-By');
-        // En HTTP simple (local), pas de HSTS : il n'a de sens qu'en HTTPS.
+        // En HTTP simple (en local), on n'envoie pas HSTS : il n'a de sens qu'en HTTPS.
         $response->assertHeaderMissing('Strict-Transport-Security');
     }
 

@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Support\XlsxWriter;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use ZipArchive;
 
 /** Générateur .xlsx sans dépendance (#219) : format accepté par Excel, contenu jamais interprété. */
@@ -127,7 +128,15 @@ class XlsxWriterTest extends TestCase
 
     public function test_un_classeur_vide_est_refuse(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         (new XlsxWriter)->save($this->path);
+    }
+
+    public function test_un_emplacement_impossible_leve_une_erreur_claire(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage("Impossible d'écrire");
+
+        (new XlsxWriter)->sheet('Feuille', [['a']])->save(sys_get_temp_dir().'/dossier-inexistant-'.uniqid().'/classeur.xlsx');
     }
 }

@@ -21,8 +21,10 @@ class InvitationTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** Le jeton d'invitation des tests : 64 caractères. */
     private const TOKEN = 'jeton-de-test-0123456789-abcdefghijklmnopqrstuvwxyz-ABCDEFGHIJKL';
 
+    /** Un mot de passe qui respecte toutes les règles. */
     private const PASSWORD = 'Danse2026!';
 
     /** L'administratrice. */
@@ -79,7 +81,7 @@ class InvitationTest extends TestCase
         ]);
     }
 
-    // Création
+    // --- Création : l'administratrice invite ---
 
     public function test_l_administratrice_invite_et_le_mail_part_avec_le_lien(): void
     {
@@ -100,7 +102,7 @@ class InvitationTest extends TestCase
                 && str_starts_with($mail->url, 'http://localhost:3000/activation/')
                 && Invitation::hashToken($token) === $invitation->token_hash;
         });
-        // Le jeton n'apparaît ni dans la réponse ni en clair en base.
+        // On vérifie que le jeton n'apparaît ni dans la réponse, ni en clair en base.
         $this->assertStringNotContainsString('token', $response->getContent());
     }
 
@@ -255,7 +257,7 @@ class InvitationTest extends TestCase
         }
     }
 
-    // Lecture publique
+    // --- Lecture publique : la personne invitée ouvre son lien ---
 
     public function test_lit_une_invitation_valide_sans_connexion(): void
     {
@@ -280,7 +282,7 @@ class InvitationTest extends TestCase
         $this->getJson('/api/invitations/'.self::TOKEN)->assertStatus(410);
     }
 
-    // Activation
+    // --- Activation : elle choisit son mot de passe ---
 
     public function test_active_le_compte_avec_le_nom_et_l_adresse_de_l_invitation(): void
     {
@@ -303,7 +305,7 @@ class InvitationTest extends TestCase
         $this->assertSame('invitation_accepted', $notification->type);
         $this->assertSame('Paul Martin a activé son compte.', $notification->message);
 
-        // Le compte se connecte ensuite normalement.
+        // On vérifie que le compte se connecte ensuite normalement.
         $this->app['auth']->forgetGuards();
         $this->postJson('/api/login', ['email' => 'paul.martin@example.org', 'password' => self::PASSWORD])->assertOk();
     }

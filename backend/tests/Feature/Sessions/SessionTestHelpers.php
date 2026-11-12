@@ -9,6 +9,9 @@ use App\Models\SubProject;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * De quoi créer un projet avec son équipe et des séances, pour les tests du planning.
+ */
 trait SessionTestHelpers
 {
     /**

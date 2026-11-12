@@ -49,7 +49,8 @@ class PreReportTest extends TestCase
      */
     protected function tearDown(): void
     {
-        // Réponses jamais envoyées en test : deleteFileAfterSend ne passe pas, on nettoie ici.
+        // En test, les réponses ne sont jamais envoyées : deleteFileAfterSend ne passe pas, on
+        // nettoie donc ici.
         foreach (glob(sys_get_temp_dir().'/prebilan*') ?: [] as $file) {
             @unlink($file);
         }
@@ -139,7 +140,8 @@ class PreReportTest extends TestCase
         $this->assertStringContainsString('Séances documentées : 1', $text);
         $this->assertStringContainsString('Temps forts et anecdotes : Un duo improvisé très juste.', $text);
         $this->assertStringContainsString('Notes complémentaires : Salle trop petite.', $text);
-        // Remarques internes sur des mineurs : jamais envoyées au financeur sans l'accord de la cliente.
+        // Ce sont des remarques internes sur des mineurs : on ne les envoie jamais au financeur
+        // sans l'accord de la cliente.
         $this->assertStringNotContainsString('Écoute du groupe.', $text);
         $this->assertStringNotContainsString('Tensions entre deux élèves.', $text);
     }

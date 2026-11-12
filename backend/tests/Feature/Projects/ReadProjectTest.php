@@ -11,6 +11,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
+/**
+ * Lecture des projets (#55) : la liste et le détail.
+ */
 class ReadProjectTest extends TestCase
 {
     use RefreshDatabase;
@@ -78,7 +81,8 @@ class ReadProjectTest extends TestCase
     public function test_le_detail_renvoie_l_equipe_et_les_financeurs_mais_pas_la_liste(): void
     {
         $project = Project::factory()->create();
-        // Le ponctuel est inséré avant et son nom précède : le principal doit quand même sortir en premier.
+        // On insère le ponctuel d'abord, et son nom précède : le principal doit quand même
+        // sortir en premier.
         $anna = User::factory()->role(UserRole::Contributor)->create(['name' => 'Anna Bellini']);
         $lea = User::factory()->role(UserRole::Contributor)->create(['name' => 'Léa Fournier']);
         $project->members()->attach($anna->id, ['member_role' => 'occasional']);

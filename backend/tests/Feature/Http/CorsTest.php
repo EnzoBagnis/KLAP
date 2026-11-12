@@ -5,7 +5,10 @@ namespace Tests\Feature\Http;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
-/** Le frontend, sur une autre origine, doit pouvoir lire Retry-After (réponses 429). */
+/**
+ * CORS : le frontend, servi depuis une autre origine, doit pouvoir lire Retry-After sur
+ * nos réponses 429.
+ */
 class CorsTest extends TestCase
 {
     /**

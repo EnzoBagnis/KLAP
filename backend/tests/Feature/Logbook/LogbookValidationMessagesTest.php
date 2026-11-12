@@ -39,7 +39,7 @@ class LogbookValidationMessagesTest extends TestCase
             [['highlights' => str_repeat('a', 201)], 'highlights', 'Le champ temps forts ne doit pas dépasser 200 caractères.'],
             [['exercises' => array_fill(0, 11, 'x')], 'exercises', 'Une fiche compte au plus 10 exercices.'],
         ] as [$payload, $field, $message]) {
-            // Clés à points (« attendees.0.count ») : lues telles quelles, pas comme un chemin.
+            // On lit les clés à points (« attendees.0.count ») telles quelles, pas comme un chemin.
             $errors = $this->patchJson("/api/logbook-entries/{$id}", $payload)->assertUnprocessable()->json('errors');
             $this->assertSame($message, $errors[$field][0] ?? null, $field);
         }

@@ -13,6 +13,9 @@ use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * Programmation d'une séance (#102, #168), réservée à l'administratrice.
+ */
 class StoreSessionTest extends TestCase
 {
     use RefreshDatabase;

@@ -76,4 +76,12 @@ class RoleMiddlewareTest extends TestCase
     {
         $this->getJson('/api/test-admin')->assertStatus(401);
     }
+
+    public function test_sans_authentification_devant_lui_le_middleware_repond_401(): void
+    {
+        // Une route qu'on aurait oublié de protéger par auth:sanctum ne doit pas planter.
+        Route::middleware('role:admin')->get('/api/test-role-seul', fn () => response()->json(['ok' => true]));
+
+        $this->getJson('/api/test-role-seul')->assertUnauthorized();
+    }
 }

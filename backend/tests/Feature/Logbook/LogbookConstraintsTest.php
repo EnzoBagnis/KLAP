@@ -42,7 +42,8 @@ class LogbookConstraintsTest extends TestCase
             $this->patchJson("/api/logbook-entries/{$id}", $payload)->assertUnprocessable();
         }
 
-        // Effacer la précision d'une sensation « autre » déjà enregistrée : 422, pas 500.
+        // Si on efface la précision d'une sensation « autre » déjà enregistrée, on attend un
+        // 422, pas un 500.
         $this->patchJson("/api/logbook-entries/{$id}", ['evaluation' => ['feeling' => 'other', 'feeling_detail' => 'Fatigue']])->assertOk();
         foreach ([['evaluation' => ['feeling_detail' => null]], ['evaluation' => ['feeling_detail' => '']]] as $payload) {
             $this->patchJson("/api/logbook-entries/{$id}", $payload)->assertUnprocessable();

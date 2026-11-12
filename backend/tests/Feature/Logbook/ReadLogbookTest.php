@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * Lecture des fiches (#19, #141) : qui lit quoi, et ce que la réponse dit des droits.
+ */
 class ReadLogbookTest extends TestCase
 {
     use LogbookTestHelpers;

@@ -49,7 +49,7 @@ class UnlockRequestTest extends TestCase
         $this->postJson("/api/logbook-entries/{$id}/submit")->assertOk();
         $this->travelTo(now()->setDate(2026, 10, 20)->setTime(9, 0));
         $this->artisan('logbook:lock-expired');
-        KlapNotification::query()->delete(); // notifications de soumission, hors sujet ici
+        KlapNotification::query()->delete(); // on retire les notifications de soumission, hors sujet ici
 
         return $id;
     }
@@ -244,7 +244,8 @@ class UnlockRequestTest extends TestCase
         DB::enableQueryLog();
         $this->actingAs($this->referent)->getJson('/api/logbook-entries')
             ->assertJsonPath('data.0.unlock_requested_at', now()->toIso8601String());
-        // La date vient du withMax de la requête principale, pas d'une requête à part par fiche.
+        // On vérifie que la date vient du withMax de la requête principale, pas d'une requête
+        // à part pour chaque fiche.
         $this->assertSame(0, collect(DB::getQueryLog())->filter(fn ($q) => str_starts_with(strtolower($q['query']), 'select max('))->count());
     }
 }

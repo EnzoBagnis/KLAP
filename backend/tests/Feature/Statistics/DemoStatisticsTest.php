@@ -14,7 +14,7 @@ class DemoStatisticsTest extends TestCase
 
     public function test_59_participants_au_lycee_charles_et_non_un_cumul(): void
     {
-        // Dans la transaction du test : les autres tests ne voient pas ces données.
+        // On remplit la base dans la transaction du test : les autres tests ne voient pas ces données.
         $this->seed();
         $project = DB::table('projects')->where('name', 'like', 'Arts Danse au Lycée Charles%')->first();
         $admin = User::query()->where('email', 'mariette.travard@klap.demo')->firstOrFail();
@@ -45,7 +45,7 @@ class DemoStatisticsTest extends TestCase
         // « conflit, puis entraide » compte pour les deux ; « curiosité, entraide » pour entraide seulement.
         $this->assertSame(['écoute' => 4, 'entraide' => 4, 'conflit' => 1], array_column($all['interaction_keywords'], 'entries', 'key'));
 
-        // Même périmètre que le reste de l'écran : ici, un seul projet.
+        // On garde le même périmètre que le reste de l'écran : ici, un seul projet.
         $project = DB::table('projects')->where('name', 'like', 'Arts Danse au Lycée Charles%')->value('id');
         $one = $this->actingAs($admin)->getJson("/api/statistics?project_id={$project}")->json('data.observations');
         $this->assertSame(3, $one['entries']);
