@@ -9,20 +9,26 @@ use Illuminate\Validation\Rule;
 /**
  * Création d'un projet (écran 58 de la maquette).
  *
- * Les contraintes CHECK de la base sont ignorées sur SQLite : elles sont donc
- * reprises ici (dates, code postal, séances prévues) pour valoir partout.
- * `created_by` n'est jamais lu dans la requête : c'est l'utilisateur connecté.
+ * SQLite ignore les contraintes CHECK de la base : on les reprend donc ici (dates, code
+ * postal, séances prévues) pour qu'elles valent partout. On ne lit jamais `created_by` dans
+ * la requête : c'est l'utilisateur connecté.
  */
 class StoreProjectRequest extends FormRequest
 {
+    /** Un code postal français : cinq chiffres. */
     private const POSTAL_CODE = 'regex:/^[0-9]{5}$/';
 
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string'],
-            // Type choisi dans la liste gérée par l'administratrice ; un type désactivé n'est plus proposé.
+            // Le type se choisit dans la liste que tient l'administratrice ; on refuse un type désactivé.
             'project_type_id' => ['nullable', 'integer', Rule::exists('project_types', 'id')->where('is_active', true)],
             'planned_sessions' => ['nullable', 'integer', 'min:1', 'max:65535'],
             'start_date' => ['nullable', 'date'],
@@ -34,25 +40,25 @@ class StoreProjectRequest extends FormRequest
                 Rule::exists('locations', 'id')->where('is_active', true),
             ],
 
-            // Intervenant·e principal·e : un compte intervenant actif. Les ponctuel·le·s s'ajoutent
-            // ensuite depuis la page du projet (#251). Historique : les ponctuel·le·s ne se
-            // saisissent pas ici, ils s'ajoutent en enregistrant une fiche (cliente, 16/09/2026).
+            // L'intervenant·e principal·e doit être un compte intervenant actif. On ne saisit pas
+            // les ponctuel·le·s ici (demande de la cliente, 16/09/2026) : l'administratrice les
+            // ajoute ensuite depuis la page du projet (#251).
             'principal_user_id' => [
                 'required',
                 'integer',
                 Rule::exists('users', 'id')->where('role', 'contributor')->where('is_active', true),
             ],
-            // Financeurs destinataires : aucun, un ou plusieurs.
+            // Les financeurs : aucun, un ou plusieurs.
             'funder_ids' => ['nullable', 'array'],
             'funder_ids.*' => ['integer', 'distinct', Rule::exists('funders', 'id')->where('is_active', true)],
 
-            // Saisis au niveau du projet sur l'écran 58, portés en base par chaque
-            // sous-projet : ils servent de valeurs par défaut aux sous-projets.
+            // On saisit ces trois champs au niveau du projet (écran 58), mais c'est chaque
+            // sous-projet qui les porte en base : ils servent de valeurs par défaut.
             'organization' => ['nullable', 'string', 'max:150'],
             'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', self::POSTAL_CODE],
-            // Projet non découpé (#244) : tranche d'âge et effectif du groupe unique créé avec lui
-            // (ignorés quand des sous-projets sont donnés : chacun a les siens).
+            // Projet non découpé (#244) : la tranche d'âge et l'effectif du groupe unique qu'on
+            // crée avec lui. On les ignore quand des sous-projets sont donnés : chacun a les siens.
             'age_range' => ['nullable', 'string', 'max:30'],
             'expected_headcount' => ['nullable', 'integer', 'min:1', 'max:65535'],
 
@@ -68,6 +74,11 @@ class StoreProjectRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [
@@ -76,7 +87,8 @@ class StoreProjectRequest extends FormRequest
             'integer' => 'Le champ :attribute doit être un nombre entier.',
             'array' => 'Le champ :attribute doit être une liste.',
             'date' => 'Le champ :attribute doit être une date valide.',
-            // Règles de taille : Laravel attend un tableau par type (« max.string » à plat n'est pas lu).
+            // Pour les règles de taille, Laravel attend un tableau par type : il ne lit pas
+            // « max.string » écrit à plat.
             'max' => [
                 'string' => 'Le champ :attribute ne doit pas dépasser :max caractères.',
                 'numeric' => 'Le champ :attribute ne doit pas dépasser :max.',
@@ -93,6 +105,11 @@ class StoreProjectRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les noms des champs, tels qu'on les écrit dans les messages.
+     *
+     * @return array<string, string>
+     */
     public function attributes(): array
     {
         return [

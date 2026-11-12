@@ -9,14 +9,24 @@ import { createInvitation } from '../../Services/InvitationService.js';
 import { formatInstant } from '../Logbook/logbookModel.js';
 import '../../assets/css/FormStyles.css';
 import '../../assets/css/ProjectStyles.css';
+import { EMAIL_PATTERN } from '../../Services/validation.js';
 
+/**
+ * Les rôles qu'on peut donner à une personne invitée. Inviter une autre administratrice est
+ * une décision de la cliente : on ne le propose pas.
+ */
 const ROLE_OPTIONS = [
   { value: 'contributor', label: 'Intervenant·e' },
   { value: 'super_user', label: 'Super-utilisatrice' },
 ];
+/** Le formulaire d'invitation, avant toute saisie. */
 const EMPTY = { full_name: '', email: '', role: 'contributor' };
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Les contrôles qu'on fait avant l'envoi, avec les mêmes clés que l'API.
+ *
+ * @returns {Object<string, string>}
+ */
 function validate(form) {
   const errors = {};
   if (!form.full_name.trim()) errors.full_name = 'Indiquez le nom de la personne invitée.';
@@ -25,10 +35,10 @@ function validate(form) {
   return errors;
 }
 
-/*
- * Gestion, onglet Utilisateurs (maquette, écran 08) : inviter une personne (#127). Elle reçoit
- * un mail avec un lien pour choisir son mot de passe ; son nom et son adresse sont ceux saisis ici.
- * Sous le formulaire, la liste des comptes, à désactiver ou réactiver (#159).
+/**
+ * Gestion, onglet Utilisateurs (maquette, écran 08) : on invite une personne (#127). Elle
+ * reçoit un mail avec un lien pour choisir son mot de passe ; son nom et son adresse sont ceux
+ * qu'on saisit ici. Sous le formulaire, la liste des comptes, à désactiver ou réactiver (#159).
  */
 export default function UserManagementPage() {
   const { logout } = useAuth();

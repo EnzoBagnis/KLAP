@@ -4,12 +4,13 @@ import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import useAuth from '../../Hooks/useAuth.js';
 import { createEntryForSession, getEntryForSession } from '../../Services/LogbookService.js';
 
+/** Le message quand la fiche de la séance appartient déjà à quelqu'un d'autre. */
 const OTHER_AUTHOR =
   'Cette séance a déjà une fiche, rédigée par un autre intervenant. Demandez à l’administratrice de vous la transférer.';
 
-/*
- * Ouvre la fiche d'une séance depuis le planning : la reprend si elle existe, la crée
- * sinon (si une autre ouverture l'a créée entre-temps, 409, on la relit), puis y renvoie.
+/**
+ * On ouvre la fiche d'une séance depuis le planning : on la reprend si elle existe, on la crée
+ * sinon (si une autre ouverture l'a créée entre-temps, 409, on la relit), puis on y renvoie.
  */
 export default function OpenLogbookPage() {
   const { sessionId } = useParams();
@@ -31,7 +32,7 @@ export default function OpenLogbookPage() {
             entry = await createEntryForSession(sessionId);
           } catch (conflict) {
             if (conflict.status !== 409) throw conflict;
-            // Fiche déjà rédigée par un autre intervenant (changement de référent).
+            // La fiche a déjà été rédigée par un·e autre intervenant·e (changement de référent·e).
             entry = await getEntryForSession(sessionId).catch((reread) => {
               throw reread.status === 404 ? Object.assign(new Error(OTHER_AUTHOR), { status: 403 }) : reread;
             });

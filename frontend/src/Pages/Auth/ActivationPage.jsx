@@ -5,6 +5,12 @@ import Button from '../../Components/UI/Button.jsx';
 import LoadingSpinner from '../../Components/UI/LoadingSpinner.jsx';
 import { activateInvitation, getInvitation } from '../../Services/InvitationService.js';
 
+/**
+ * Le message à afficher quand l'invitation ne se charge pas.
+ *
+ * @param {import('../../Services/ApiClient.js').ApiError} error
+ * @returns {string}
+ */
 const loadError = (error) =>
   error.status === 0 || error.status === 404 || error.status === 410
     ? error.message
@@ -12,9 +18,9 @@ const loadError = (error) =>
       ? `Trop de tentatives. Réessayez dans ${error.retryAfter ?? 60} secondes.`
       : 'L’invitation n’a pas pu être lue. Réessayez dans un instant.';
 
-/*
- * Activation d'un compte depuis le lien d'invitation (#127), hors connexion. Le nom et
- * l'adresse viennent de l'invitation ; seul le mot de passe se choisit (contexte client).
+/**
+ * L'activation d'un compte depuis le lien d'invitation (#127), sans être connecté. Le nom et
+ * l'adresse viennent de l'invitation ; on ne choisit que le mot de passe (contexte client).
  */
 export default function ActivationPage() {
   const { token } = useParams();

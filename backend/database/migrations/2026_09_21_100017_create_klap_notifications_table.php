@@ -2,13 +2,17 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Notifications de l'appli (fiche rendue, demande de déverrouillage...).
-// Nommée klap_notifications pour laisser libre la table notifications de Laravel si on s'en sert un jour
+/**
+ * Notifications de l'application (fiche rendue, demande de réouverture…). On l'a nommée
+ * klap_notifications pour laisser libre la table notifications de Laravel, si on s'en sert un jour.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('klap_notifications', function (Blueprint $table) {
@@ -24,6 +28,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('klap_notifications');

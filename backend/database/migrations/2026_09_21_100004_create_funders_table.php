@@ -2,11 +2,16 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Financeurs des projets. Le pré-bilan se prépare par financeur.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('funders', function (Blueprint $table) {
@@ -17,6 +22,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('funders');

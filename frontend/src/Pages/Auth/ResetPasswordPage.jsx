@@ -4,9 +4,10 @@ import NewPasswordFields, { newPasswordErrors } from '../../Components/Form/NewP
 import Button from '../../Components/UI/Button.jsx';
 import { resetPassword } from '../../Services/PasswordService.js';
 
-/*
- * Nouveau mot de passe (#81), depuis le lien reçu par mail (jeton et adresse dans l'URL).
- * Mêmes règles qu'à l'activation. Ensuite, toutes les sessions sont fermées : on se reconnecte.
+/**
+ * Le choix d'un nouveau mot de passe (#81), depuis le lien reçu par mail (le jeton et l'adresse
+ * sont dans l'URL). On applique les mêmes règles qu'à l'activation. Ensuite, l'API ferme
+ * toutes les sessions : on se reconnecte.
  */
 export default function ResetPasswordPage() {
   const { token } = useParams();

@@ -21,7 +21,12 @@ import {
 import '../../assets/css/ProjectStyles.css';
 import '../../assets/css/PlanningStyles.css';
 
-/** Séances groupées par jour, dans l'ordre renvoyé par l'API (date puis heure). */
+/**
+ * On groupe les séances par jour, dans l'ordre où l'API les renvoie (date, puis heure).
+ *
+ * @param {object[]} sessions
+ * @returns {Array<[string, object[]]>} des couples [jour AAAA-MM-JJ, séances]
+ */
 function groupByDay(sessions) {
   const days = new Map();
   for (const session of sessions) {
@@ -31,10 +36,10 @@ function groupByDay(sessions) {
   return [...days.entries()];
 }
 
-/*
- * Planning (maquette, écrans 51 et 57) : séances d'un mois, groupées par jour.
- * Le mois est dans l'URL (?mois=2026-10) pour survivre au rechargement.
- * L'API filtre selon le rôle ; seule l'administratrice voit « Programmer une séance ».
+/**
+ * Le planning (maquette, écrans 51 et 57) : les séances d'un mois, groupées par jour. On met
+ * le mois dans l'URL (?mois=2026-10), pour qu'il survive au rechargement. L'API filtre selon
+ * le rôle ; seule l'administratrice voit « Programmer une séance ».
  */
 export default function PlanningPage() {
   const { user, logout } = useAuth();
@@ -43,7 +48,7 @@ export default function PlanningPage() {
   const month = parseMonth(monthKey);
   const [state, setState] = useState({ status: 'loading', sessions: [], error: '' });
   const [modalOpen, setModalOpen] = useState(false);
-  // Séance en cours de modification (#180) ; null pour programmer une nouvelle séance.
+  // La séance qu'on est en train de modifier (#180) ; null pour en programmer une nouvelle.
   const [editing, setEditing] = useState(null);
   const [actionError, setActionError] = useState('');
   const lastRequest = useRef(0);
@@ -97,7 +102,7 @@ export default function PlanningPage() {
     setModalOpen(true);
   };
 
-  // Annuler ou rétablir une séance (#180), après confirmation ; le planning est relu ensuite.
+  // On annule ou on rétablit une séance (#180), après confirmation ; on relit ensuite le planning.
   async function changeStatus(session, action) {
     const question =
       action === 'cancel'
@@ -217,14 +222,21 @@ export default function PlanningPage() {
   );
 }
 
-/*
- * Actions de l'administratrice sur une séance (#180) : une séance sans fiche se modifie ou
- * s'annule ; une séance annulée se rétablit. Une séance qui a une fiche ne bouge plus.
+/**
+ * Les actions de l'administratrice sur une séance (#180) : une séance sans fiche se modifie
+ * ou s'annule ; une séance annulée se rétablit. Une séance qui a une fiche ne bouge plus.
+ *
+ * @param {object} props
+ * @param {object} props.session
+ * @param {string} props.label  le jour de la séance en toutes lettres, pour nommer les boutons
+ * @param {(session: object) => void} props.onEdit
+ * @param {(session: object, action: 'cancel'|'restore') => void} props.onStatus
  */
 function SessionActions({ session, label, onEdit, onStatus }) {
-  // Jour, horaire et projet : deux séances du même jour ont des boutons distincts au lecteur d'écran.
+  // On nomme les boutons avec le jour, l'horaire et le projet : au lecteur d'écran, deux
+  // séances du même jour ont ainsi des boutons distincts.
   const hidden = <span className="visually-hidden"> du {label}, {session.start_time}, {session.project.name}</span>;
-  // Projet archivé : ses séances ne bougent plus (l'API refuserait).
+  // Projet archivé : ses séances ne bougent plus (l'API refuserait), on ne propose donc rien.
   if (session.project.status === 'archived') return null;
   if (session.status === 'cancelled') {
     return (
@@ -248,18 +260,26 @@ function SessionActions({ session, label, onEdit, onStatus }) {
   );
 }
 
-/*
- * Lien vers la fiche d'une séance (#141) :
- * - le ou la référent·e la remplit (création au besoin) ;
+/**
+ * Le lien vers la fiche d'une séance (#141) :
+ * - le ou la référent·e la remplit (on la crée au besoin) ;
  * - une fiche existante se consulte : collègues du projet, administration ;
- * - l'administration peut créer la fiche pour le ou la référent·e, après confirmation.
+ * - l'administration peut créer la fiche à la place du ou de la référent·e, après confirmation.
+ *
+ * @param {object} props
+ * @param {object} props.session
+ * @param {string} props.label  le jour de la séance en toutes lettres, pour nommer les liens
+ * @param {number} props.userId
+ * @param {boolean} props.manages  administratrice ou super-utilisatrice
+ * @param {string} props.today  AAAA-MM-JJ
  */
 function EntryLink({ session, label, userId, manages, today }) {
   const navigate = useNavigate();
   const fillable = session.status !== 'cancelled' && session.session_date <= today;
-  // Après le délai de 10 jours, l'API refuse d'ouvrir une fiche (#212) : on ne la propose plus.
-  // Un brouillon déjà ouvert reste accessible ; il s'affiche alors verrouillé.
-  const openable = fillable && today <= entryDeadline(session.session_date);
+  // Après le délai, l'API refuse d'ouvrir une fiche (#212) : on ne le propose plus. Le délai
+  // vient de l'API (10 jours, ou la date de rattrapage, #269) ; à défaut, on compte 10 jours.
+  // Un brouillon déjà ouvert reste accessible ; on l'affiche alors verrouillé.
+  const openable = fillable && today <= (session.entry_deadline ?? entryDeadline(session.session_date));
   const hidden = <span className="visually-hidden"> du {label}</span>;
 
   // Référent·e : remplir, reprendre un brouillon ; une fiche rendue se consulte (#163).

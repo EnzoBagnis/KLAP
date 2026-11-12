@@ -9,7 +9,7 @@ use Tests\TestCase;
 /**
  * Connexion à la base (issue #53).
  *
- * La suite tourne sur SQLite en mémoire (phpunit.xml), on vérifie donc la
+ * Notre suite tourne sur SQLite en mémoire (phpunit.xml) : on vérifie donc la
  * configuration sans ouvrir la connexion. Le dernier test interroge le serveur
  * quand il est joignable.
  */
@@ -65,8 +65,8 @@ class DatabaseConnectionTest extends TestCase
         try {
             $version = DB::connection('mysql')->selectOne('SELECT VERSION() AS version')->version;
         } catch (PDOException $e) {
-            // Serveur hors ligne : on passe. Identifiants ou base erronés : on échoue,
-            // c'est précisément ce que ce test doit détecter.
+            // Si le serveur est hors ligne, on passe le test. Si les identifiants ou la base
+            // sont faux, on échoue : c'est précisément ce que ce test doit détecter.
             if (! preg_match('/\[200[23]\]/', $e->getMessage())) {
                 throw $e;
             }

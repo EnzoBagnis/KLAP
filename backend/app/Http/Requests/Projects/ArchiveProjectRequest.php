@@ -7,13 +7,18 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 /**
- * Archivage d'un projet (#152), administratrice (route). Garde-fou repris de la branche de
- * Lucas (#121) : le nom exact du projet est demandé. Rien n'est effacé (règle de la cliente).
+ * Archivage d'un projet (#152), administratrice (route). On a repris le garde-fou de la
+ * branche de Lucas (#121) : on demande le nom exact du projet. On n'efface rien (règle de la
+ * cliente).
  */
 class ArchiveProjectRequest extends FormRequest
 {
+    /** Le projet de l'URL, qu'on charge dans authorize(). */
     private ?Project $project = null;
 
+    /**
+     * On vérifie que le projet existe (404) et qu'il n'est pas déjà archivé (409).
+     */
     public function authorize(): bool
     {
         $id = (string) $this->route('project');
@@ -24,16 +29,30 @@ class ArchiveProjectRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Le projet qu'on archive.
+     */
     public function project(): Project
     {
         return $this->project;
     }
 
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return ['confirm_name' => ['required', 'string']];
     }
 
+    /**
+     * Les contrôles qu'on fait après les règles : ceux qui croisent plusieurs champs ou qui
+     * lisent la base.
+     *
+     * @return list<callable(Validator): void>
+     */
     public function after(): array
     {
         return [
@@ -53,6 +72,11 @@ class ArchiveProjectRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [
@@ -61,7 +85,9 @@ class ArchiveProjectRequest extends FormRequest
         ];
     }
 
-    /** Espaces en trop ignorés : seule la saisie du nom compte. */
+    /**
+     * On ignore les espaces en trop : seule la saisie du nom compte.
+     */
     private static function normalize(mixed $value): string
     {
         return preg_replace('/\s+/u', ' ', trim((string) $value));

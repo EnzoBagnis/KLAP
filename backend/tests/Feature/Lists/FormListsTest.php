@@ -16,6 +16,9 @@ class FormListsTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * On connecte un compte du rôle donné.
+     */
     private function actingAsRole(UserRole $role): User
     {
         $user = User::factory()->role($role)->create(['name' => 'Zoé Connectée']);
@@ -24,6 +27,11 @@ class FormListsTest extends TestCase
         return $user;
     }
 
+    /**
+     * Les cas de « un visiteur non connecte est refuse ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function allRoutes(): array
     {
         return [
@@ -39,6 +47,11 @@ class FormListsTest extends TestCase
         $this->getJson($uri)->assertUnauthorized();
     }
 
+    /**
+     * Les cas de « comptes et financeurs sont reserves a l admin ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function adminOnly(): array
     {
         return [
@@ -57,6 +70,11 @@ class FormListsTest extends TestCase
         $this->getJson($uri)->assertForbidden();
     }
 
+    /**
+     * Les cas partagés par 2 tests, dont « tous les roles lisent les lieux actifs tries par nom ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function roles(): array
     {
         return array_map(fn (UserRole $role) => [$role], array_combine(

@@ -3,8 +3,18 @@ import logo from '../../assets/images/KlapLogo.png';
 import HamburgerMenu from './HamburgerMenu.jsx';
 import NotificationBell from './NotificationBell.jsx';
 
-// Barre du haut sur téléphone (maquette « Barre mobile », 64 px).
-// Masquée sur ordinateur, où la sidebar porte le logo et la cloche.
+/**
+ * La barre du haut sur téléphone (maquette « Barre mobile », 64 px). On la masque sur
+ * ordinateur, où la barre latérale porte le logo et la cloche.
+ *
+ * @param {object} props
+ * @param {boolean} props.menuOpen
+ * @param {() => void} props.onToggleMenu
+ * @param {() => void} props.onNavigate  on ferme le menu quand on change de page
+ * @param {string} props.menuId  l'identifiant du menu que le bouton ouvre
+ * @param {React.RefObject<HTMLButtonElement>} props.menuButtonRef
+ * @param {number} props.notificationCount
+ */
 export default function Header({
   menuOpen,
   onToggleMenu,

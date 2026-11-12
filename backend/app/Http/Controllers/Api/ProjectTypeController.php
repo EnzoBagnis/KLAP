@@ -9,12 +9,15 @@ use App\Models\ProjectType;
 use Illuminate\Http\JsonResponse;
 
 /**
- * Liste des types de projet, gérée par l'administratrice : création, renommage,
- * désactivation. Pas de suppression : un type désactivé n'est plus proposé à la
+ * Types de projet, une liste que l'administratrice tient elle-même : création, renommage,
+ * désactivation. On ne supprime jamais un type : désactivé, on ne le propose plus à la
  * création d'un projet, mais les projets qui l'utilisent le gardent.
  */
 class ProjectTypeController extends Controller
 {
+    /**
+     * On liste tous les types, les actifs d'abord, avec le nombre de projets qui les utilisent.
+     */
     public function index(): JsonResponse
     {
         $types = ProjectType::query()
@@ -27,6 +30,9 @@ class ProjectTypeController extends Controller
         return response()->json(['data' => $types]);
     }
 
+    /**
+     * On crée un type de projet.
+     */
     public function store(StoreProjectTypeRequest $request): JsonResponse
     {
         $type = ProjectType::create($request->validated());
@@ -34,6 +40,9 @@ class ProjectTypeController extends Controller
         return response()->json(['data' => $type->only(['id', 'name', 'is_active'])], 201);
     }
 
+    /**
+     * On renomme un type, on le désactive ou on le réactive.
+     */
     public function update(UpdateProjectTypeRequest $request, ProjectType $projectType): JsonResponse
     {
         $projectType->update($request->validated());

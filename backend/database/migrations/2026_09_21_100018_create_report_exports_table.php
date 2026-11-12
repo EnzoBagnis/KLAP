@@ -2,12 +2,16 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Historique des exports du pré-bilan (le .docx est généré à la volée, pas stocké)
+/**
+ * Historique des exports du pré-bilan. On génère le .docx à la volée : on ne le stocke pas.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('report_exports', function (Blueprint $table) {
@@ -24,6 +28,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('report_exports');

@@ -57,6 +57,10 @@ return [
     // Adresse du frontend, pour les liens envoyés par mail (activation d'un compte).
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
 
+    // Rattrapage (#269) : jusqu'à cette date incluse (AAAA-MM-JJ), on peut ouvrir la fiche de
+    // n'importe quelle séance passée, même au-delà des 10 jours. Vide : la règle des 10 jours seule.
+    'catch_up_until' => env('KLAP_CATCH_UP_UNTIL'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

@@ -9,7 +9,10 @@ import { formatInstant } from '../Logbook/logbookModel.js';
 import '../../assets/css/ProjectStyles.css';
 import '../../assets/css/NotificationStyles.css';
 
-/** Notifications du compte connecté (#123) : les 30 dernières, non lues en tête de lecture. */
+/**
+ * Les notifications du compte connecté (#123) : les 30 dernières. Un clic marque la
+ * notification comme lue et ouvre la fiche concernée.
+ */
 export default function NotificationsPage() {
   const { logout } = useAuth();
   const { unreadCount, setUnreadCount } = useNotifications();
@@ -31,10 +34,10 @@ export default function NotificationsPage() {
     [logout],
   );
 
-  // Nombre de non lues que la liste affichée connaît déjà (voir plus bas).
+  // Le nombre de non lues que la liste affichée connaît déjà (voir plus bas).
   const known = useRef(null);
 
-  // `quiet` : rechargement en arrière-plan, sans écran d'attente (nouvelle notification).
+  // Avec `quiet`, on recharge en arrière-plan, sans écran d'attente (nouvelle notification).
   const load = useCallback((quiet = false) => {
     const request = ++lastRequest.current;
     if (!quiet) setState({ status: 'loading', notifications: [], error: '' });
@@ -59,8 +62,9 @@ export default function NotificationsPage() {
     };
   }, [load]);
 
-  // La cloche se recharge seule (#211) : quand elle voit une nouvelle notification, la liste
-  // affichée se met à jour aussi (#231). Une lecture fait baisser le compteur : rien à recharger.
+  // La cloche se recharge seule (#211) : quand elle voit une nouvelle notification, on met
+  // aussi à jour la liste affichée (#231). Une lecture fait baisser le compteur : là, on n'a
+  // rien à recharger.
   useEffect(() => {
     if (state.status === 'ready' && known.current !== null && unreadCount > known.current) load(true);
     if (state.status === 'ready') known.current = unreadCount;
@@ -89,7 +93,7 @@ export default function NotificationsPage() {
         markLocally([notification.id]);
         setUnreadCount((count) => Math.max(0, count - 1));
       } catch (error) {
-        // La lecture n'empêche pas d'ouvrir la fiche.
+        // Si le marquage échoue, on ouvre la fiche quand même.
         setActionError(fail(error, 'La notification n’a pas pu être marquée comme lue.'));
       } finally {
         setPendingId(null);
@@ -117,7 +121,7 @@ export default function NotificationsPage() {
       <div className="page-heading">
         <div>
           <h1 className="page-title">Notifications</h1>
-          {/* Région toujours présente : les lecteurs d'écran annoncent ses changements. */}
+          {/* On garde cette région toujours présente : les lecteurs d'écran annoncent ses changements. */}
           <p className="page-subtitle" aria-live="polite">
             {state.status === 'ready' && (unread === 0 ? 'Tout est lu' : `${unread} non lue${unread > 1 ? 's' : ''}`)}
           </p>

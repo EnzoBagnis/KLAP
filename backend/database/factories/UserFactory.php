@@ -9,17 +9,19 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
+ * Fabrique de tests : un compte.
+ *
  * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
     /**
-     * The current password being used by the factory.
+     * Le mot de passe haché, qu'on ne calcule qu'une fois pour tous les comptes d'un test.
      */
     protected static ?string $password;
 
     /**
-     * Define the model's default state.
+     * Les valeurs par défaut.
      *
      * @return array<string, mixed>
      */
@@ -34,6 +36,9 @@ class UserFactory extends Factory
         ];
     }
 
+    /**
+     * Un compte du rôle donné.
+     */
     public function role(UserRole $role): static
     {
         return $this->state(fn (array $attributes) => [
@@ -42,7 +47,7 @@ class UserFactory extends Factory
     }
 
     /**
-     * Indicate that the model's email address should be unverified.
+     * Un compte dont l'adresse n'est pas vérifiée.
      */
     public function unverified(): static
     {

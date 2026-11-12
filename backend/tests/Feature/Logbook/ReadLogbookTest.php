@@ -11,17 +11,28 @@ use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * Lecture des fiches (#19, #141) : qui lit quoi, et ce que la réponse dit des droits.
+ */
 class ReadLogbookTest extends TestCase
 {
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
         $this->setUpSession();
     }
 
+    /**
+     * Les cas de « l administration lit toutes les fiches ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function readers(): array
     {
         return ['administratrice' => [UserRole::Admin], 'super-utilisatrice' => [UserRole::SuperUser]];

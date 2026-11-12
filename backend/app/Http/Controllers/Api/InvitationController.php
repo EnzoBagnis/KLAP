@@ -21,19 +21,23 @@ use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
- * Invitations (#126), portage n°2 de #121. Création par l'administratrice ; lecture et
- * activation publiques, par le jeton du mail. Les réponses publiques ne parlent que du
- * jeton, jamais de l'existence d'un compte.
+ * Invitations (#126), deuxième partie du portage de #121. L'administratrice les crée ; on
+ * les lit et on les active sans être connecté, avec le jeton du mail. Les réponses publiques
+ * ne parlent que du jeton, jamais de l'existence d'un compte.
  */
 class InvitationController extends Controller
 {
+    /**
+     * On crée une invitation et on envoie son mail. Si le mail ne part pas, on ne garde rien
+     * et on répond 503.
+     */
     public function store(StoreInvitationRequest $request): JsonResponse
     {
         $token = Str::random(64);
 
         try {
             $invitation = DB::transaction(function () use ($request, $token) {
-                // L'invitation en cours pour cette adresse est remplacée : son lien ne sert plus.
+                // On remplace l'invitation en cours pour cette adresse : son ancien lien ne sert plus.
                 $replaced = Invitation::query()->pending()->where('email', $request->validated('email'))
                     ->update(['expires_at' => now()]) > 0;
                 $invitation = Invitation::query()->create([
@@ -43,7 +47,7 @@ class InvitationController extends Controller
                     'sent_at' => now(),
                     'expires_at' => now()->addDays(Invitation::VALID_DAYS),
                 ]);
-                // Envoi dans la transaction : un mail qui ne part pas ne laisse pas d'invitation.
+                // On envoie dans la transaction : un mail qui ne part pas ne laisse pas d'invitation.
                 Mail::to($invitation->email)->send(new InvitationMail(
                     $invitation->load('inviter'),
                     rtrim(config('app.frontend_url'), '/').'/activation/'.$token,
@@ -54,7 +58,7 @@ class InvitationController extends Controller
                 return $invitation;
             });
         } catch (Throwable $exception) {
-            // Seul un échec d'envoi devient un 503 ; une erreur de base reste une erreur de base.
+            // On ne transforme en 503 qu'un échec d'envoi ; une erreur de base reste une erreur de base.
             if ($exception instanceof ValidationException || $exception instanceof QueryException) {
                 throw $exception;
             }
@@ -65,16 +69,28 @@ class InvitationController extends Controller
         return response()->json(['data' => [...$this->summary($invitation), 'replaced' => $invitation->replaced]], 201);
     }
 
+    /**
+     * On montre à la personne invitée ce que contient son invitation, avant qu'elle choisisse
+     * son mot de passe.
+     *
+     * @param  string  $token  le jeton du lien reçu par mail
+     */
     public function show(string $token): JsonResponse
     {
         return response()->json(['data' => $this->summary($this->usable($token))]);
     }
 
+    /**
+     * On crée le compte à partir de l'invitation, puis on prévient l'administratrice qui
+     * l'avait envoyée.
+     *
+     * @param  string  $token  le jeton du lien reçu par mail
+     */
     public function activate(ActivateInvitationRequest $request, string $token): JsonResponse
     {
         try {
             $user = DB::transaction(function () use ($request, $token) {
-                // Ligne verrouillée : un double clic ne crée pas deux comptes.
+                // On verrouille la ligne : un double clic ne crée pas deux comptes.
                 $invitation = $this->usable($token, lock: true);
                 abort_if(User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($invitation->email)])->exists(), 409,
                     'Un compte existe déjà pour cette invitation. Connectez-vous avec votre adresse.');
@@ -96,14 +112,19 @@ class InvitationController extends Controller
                 return $user;
             });
         } catch (UniqueConstraintViolationException) {
-            // Filet si deux activations passent malgré tout (SQLite ne verrouille pas).
+            // C'est notre filet si deux activations passent malgré tout (SQLite ne verrouille pas).
             abort(409, 'Un compte existe déjà pour cette invitation. Connectez-vous avec votre adresse.');
         }
 
         return response()->json(['data' => ['email' => $user->email, 'name' => $user->name]], 201);
     }
 
-    /** Invitation encore utilisable pour ce jeton : 404 si inconnu, 410 si expirée ou déjà acceptée. */
+    /**
+     * On retrouve l'invitation encore utilisable pour ce jeton : 404 s'il est inconnu, 410 si
+     * l'invitation a expiré ou a déjà servi.
+     *
+     * @param  bool  $lock  verrouiller la ligne, le temps de créer le compte
+     */
     private function usable(string $token, bool $lock = false): Invitation
     {
         $invitation = strlen($token) === 64
@@ -118,6 +139,11 @@ class InvitationController extends Controller
         return $invitation;
     }
 
+    /**
+     * Ce qu'on expose d'une invitation.
+     *
+     * @return array{full_name: string, email: string, role: string, expires_at: string}
+     */
     private function summary(Invitation $invitation): array
     {
         return [

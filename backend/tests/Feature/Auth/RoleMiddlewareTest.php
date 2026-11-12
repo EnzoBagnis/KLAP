@@ -8,16 +8,21 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
+/**
+ * Le middleware `role`, qui réserve une route à certains rôles.
+ */
 class RoleMiddlewareTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * On déclare deux routes de test : on vérifie ainsi le middleware seul, sans dépendre
+     * des règles d'une route métier.
+     */
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Route de test : le middleware est vérifié ici, pas sur les routes
-        // métier, qui n'existent pas encore (voir #55).
         Route::middleware(['auth:sanctum', 'role:admin'])
             ->get('/api/test-admin', fn () => response()->json(['ok' => true]));
 
@@ -25,6 +30,9 @@ class RoleMiddlewareTest extends TestCase
             ->get('/api/test-lecture', fn () => response()->json(['ok' => true]));
     }
 
+    /**
+     * On crée un compte du rôle donné et on renvoie son jeton.
+     */
     private function tokenPour(UserRole $role): string
     {
         $user = User::create([
@@ -67,5 +75,13 @@ class RoleMiddlewareTest extends TestCase
     public function test_sans_token_la_route_renvoie_401(): void
     {
         $this->getJson('/api/test-admin')->assertStatus(401);
+    }
+
+    public function test_sans_authentification_devant_lui_le_middleware_repond_401(): void
+    {
+        // Une route qu'on aurait oublié de protéger par auth:sanctum ne doit pas planter.
+        Route::middleware('role:admin')->get('/api/test-role-seul', fn () => response()->json(['ok' => true]));
+
+        $this->getJson('/api/test-role-seul')->assertUnauthorized();
     }
 }

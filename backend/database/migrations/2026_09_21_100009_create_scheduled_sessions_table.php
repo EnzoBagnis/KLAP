@@ -5,10 +5,15 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Planning. La séance existe avant la fiche et sert à la pré-remplir.
-// (pas "sessions" pour ne pas entrer en conflit avec la table sessions de Laravel)
+/**
+ * Planning. La séance existe avant la fiche et sert à la pré-remplir. On ne l'appelle pas
+ * « sessions » : ce nom est déjà pris par la table des sessions de Laravel.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('scheduled_sessions', function (Blueprint $table) {
@@ -37,6 +42,9 @@ return new class extends Migration
         }
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('scheduled_sessions');

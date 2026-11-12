@@ -2,12 +2,17 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Intervenants rattachés à un projet (principal ou ponctuel), sert à pré-remplir les artistes des fiches
+/**
+ * Équipe d'un projet : les intervenant·e·s qui y sont rattaché·e·s, en principal·e ou en
+ * ponctuel·le, avec leurs dates. On ne confie une séance qu'à un membre de l'équipe.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('project_user', function (Blueprint $table) {
@@ -20,6 +25,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('project_user');

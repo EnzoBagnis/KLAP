@@ -8,8 +8,10 @@ use App\Models\Invitation;
 use App\Models\KlapNotification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\TestCase;
@@ -19,12 +21,18 @@ class InvitationTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** Le jeton d'invitation des tests : 64 caractères. */
     private const TOKEN = 'jeton-de-test-0123456789-abcdefghijklmnopqrstuvwxyz-ABCDEFGHIJKL';
 
+    /** Un mot de passe qui respecte toutes les règles. */
     private const PASSWORD = 'Danse2026!';
 
+    /** L'administratrice. */
     private User $admin;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -32,7 +40,13 @@ class InvitationTest extends TestCase
         $this->admin = User::factory()->role(UserRole::Admin)->create(['name' => 'Mariette Travard']);
     }
 
-    private function invite(array $overrides = [])
+    /**
+     * L'administratrice invite Paul Martin, intervenant.
+     *
+     * @param  array<string, mixed>  $overrides  ce qu'on change dans la demande
+     * @return TestResponse<JsonResponse>
+     */
+    private function invite(array $overrides = []): TestResponse
     {
         return $this->actingAs($this->admin)->postJson('/api/invitations', [
             'full_name' => 'Paul Martin',
@@ -42,6 +56,11 @@ class InvitationTest extends TestCase
         ]);
     }
 
+    /**
+     * Une invitation en cours pour Paul Martin, avec le jeton TOKEN.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
     private function pending(array $attributes = []): Invitation
     {
         return Invitation::factory()->withToken(self::TOKEN)->create([
@@ -49,14 +68,20 @@ class InvitationTest extends TestCase
         ]);
     }
 
-    private function activate(array $body = [])
+    /**
+     * Paul active son compte avec le jeton TOKEN.
+     *
+     * @param  array<string, mixed>  $body  ce qu'on change dans la demande
+     * @return TestResponse<JsonResponse>
+     */
+    private function activate(array $body = []): TestResponse
     {
         return $this->postJson('/api/invitations/'.self::TOKEN.'/activate', [
             'password' => self::PASSWORD, 'password_confirmation' => self::PASSWORD, ...$body,
         ]);
     }
 
-    // Création
+    // --- Création : l'administratrice invite ---
 
     public function test_l_administratrice_invite_et_le_mail_part_avec_le_lien(): void
     {
@@ -77,7 +102,7 @@ class InvitationTest extends TestCase
                 && str_starts_with($mail->url, 'http://localhost:3000/activation/')
                 && Invitation::hashToken($token) === $invitation->token_hash;
         });
-        // Le jeton n'apparaît ni dans la réponse ni en clair en base.
+        // On vérifie que le jeton n'apparaît ni dans la réponse, ni en clair en base.
         $this->assertStringNotContainsString('token', $response->getContent());
     }
 
@@ -99,6 +124,11 @@ class InvitationTest extends TestCase
         $this->assertSame(0, Invitation::query()->count());
     }
 
+    /**
+     * Les cas de « seule l administratrice invite ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function forbidden(): array
     {
         return ['super-utilisatrice' => [UserRole::SuperUser], 'intervenant·e' => [UserRole::Contributor]];
@@ -115,6 +145,11 @@ class InvitationTest extends TestCase
         $this->postJson('/api/invitations', [])->assertUnauthorized();
     }
 
+    /**
+     * Les cas de « refuse une invitation invalide ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function invalid(): array
     {
         return [
@@ -127,6 +162,9 @@ class InvitationTest extends TestCase
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
     #[DataProvider('invalid')]
     public function test_refuse_une_invitation_invalide(array $overrides, string $field): void
     {
@@ -219,7 +257,7 @@ class InvitationTest extends TestCase
         }
     }
 
-    // Lecture publique
+    // --- Lecture publique : la personne invitée ouvre son lien ---
 
     public function test_lit_une_invitation_valide_sans_connexion(): void
     {
@@ -244,7 +282,7 @@ class InvitationTest extends TestCase
         $this->getJson('/api/invitations/'.self::TOKEN)->assertStatus(410);
     }
 
-    // Activation
+    // --- Activation : elle choisit son mot de passe ---
 
     public function test_active_le_compte_avec_le_nom_et_l_adresse_de_l_invitation(): void
     {
@@ -267,7 +305,7 @@ class InvitationTest extends TestCase
         $this->assertSame('invitation_accepted', $notification->type);
         $this->assertSame('Paul Martin a activé son compte.', $notification->message);
 
-        // Le compte se connecte ensuite normalement.
+        // On vérifie que le compte se connecte ensuite normalement.
         $this->app['auth']->forgetGuards();
         $this->postJson('/api/login', ['email' => 'paul.martin@example.org', 'password' => self::PASSWORD])->assertOk();
     }
@@ -292,6 +330,11 @@ class InvitationTest extends TestCase
         $this->assertSame(0, User::query()->where('email', 'paul.martin@example.org')->count());
     }
 
+    /**
+     * Les cas de « refuse un mot de passe trop faible ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function weakPasswords(): array
     {
         return [

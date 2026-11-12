@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Locations\StoreLocationRequest;
 use App\Http\Requests\Locations\UpdateLocationRequest;
@@ -13,18 +12,23 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Lieux proposés dans les menus (projet, séance, fiche). Ouvert à tous les rôles :
- * tout utilisateur peut choisir un lieu (contexte client). Seuls les lieux actifs
- * sont proposés, comme le veut la validation de la création d'un projet.
+ * Lieux qu'on propose dans les menus (projet, séance, fiche). C'est ouvert à tous les
+ * rôles : tout utilisateur peut choisir un lieu, et en ajouter un (contexte client : les
+ * projets en tournée). On ne propose que les lieux actifs, comme le veut la validation de
+ * la création d'un projet.
  */
 class LocationController extends Controller
 {
+    /** Ce qu'on expose d'un lieu dans l'écran de gestion de l'administratrice. */
     private const ADMIN_FIELDS = ['id', 'name', 'address', 'postal_code', 'city', 'is_klap', 'is_active'];
 
+    /**
+     * On liste les lieux actifs, pour les menus. Avec `?tous=1`, l'administratrice reçoit la
+     * liste complète, lieux désactivés compris, pour sa gestion (#249).
+     */
     public function index(Request $request): JsonResponse
     {
-        // ?tous=1 : la liste complète, lieux désactivés compris, pour la gestion (#249, administratrice).
-        if ($request->boolean('tous') && $request->user()->role === UserRole::Admin) {
+        if ($request->boolean('tous') && $request->user()->isAdmin()) {
             $all = Location::query()
                 ->orderByDesc('is_active')
                 ->orderBy('name')
@@ -41,7 +45,11 @@ class LocationController extends Controller
         return response()->json(['data' => $locations]);
     }
 
-    /** Corriger, désactiver ou réactiver un lieu (#249). Rien n'est effacé. */
+    /**
+     * On corrige, on désactive ou on réactive un lieu (#249). On n'efface rien.
+     *
+     * @throws ValidationException si un autre lieu porte déjà ce nom pour ce code postal
+     */
     public function update(UpdateLocationRequest $request, Location $location): JsonResponse
     {
         try {
@@ -53,7 +61,12 @@ class LocationController extends Controller
         return response()->json(['data' => $location->fresh()->only(self::ADMIN_FIELDS)]);
     }
 
-    /** Nouveau lieu, actif, jamais marqué lieu de KLAP (les trois studios viennent du seeder). */
+    /**
+     * On crée un lieu, actif, et jamais marqué « lieu de KLAP » : les trois studios viennent
+     * du seeder.
+     *
+     * @throws ValidationException si le lieu existe déjà
+     */
     public function store(StoreLocationRequest $request): JsonResponse
     {
         try {
@@ -64,7 +77,7 @@ class LocationController extends Controller
                 'created_by' => $request->user()->id,
             ]);
         } catch (UniqueConstraintViolationException) {
-            // Deux créations simultanées du même lieu : la seconde bute sur l'index unique.
+            // Si deux personnes créent le même lieu en même temps, la seconde bute sur l'index unique.
             throw ValidationException::withMessages(['name' => 'Ce lieu existe déjà pour ce code postal.']);
         }
 

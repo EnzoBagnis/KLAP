@@ -6,7 +6,9 @@ use App\Enums\UserRole;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -15,7 +17,13 @@ class LocationStoreTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function store(array $overrides = [], ?User $user = null)
+    /**
+     * On crée le Théâtre du Merlan, par défaut en tant qu'intervenant·e.
+     *
+     * @param  array<string, mixed>  $overrides  ce qu'on change dans la demande
+     * @return TestResponse<JsonResponse>
+     */
+    private function store(array $overrides = [], ?User $user = null): TestResponse
     {
         return $this->actingAs($user ?? User::factory()->role(UserRole::Contributor)->create())
             ->postJson('/api/locations', [
@@ -26,6 +34,11 @@ class LocationStoreTest extends TestCase
             ]);
     }
 
+    /**
+     * Les cas partagés par 2 tests, dont « chacun cree un lieu ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function roles(): array
     {
         return [
@@ -79,6 +92,11 @@ class LocationStoreTest extends TestCase
         $this->postJson('/api/locations', [])->assertUnauthorized();
     }
 
+    /**
+     * Les cas de « refuse un lieu invalide ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function invalid(): array
     {
         return [
@@ -97,6 +115,9 @@ class LocationStoreTest extends TestCase
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
     #[DataProvider('invalid')]
     public function test_refuse_un_lieu_invalide(array $overrides, string $field, ?string $message): void
     {

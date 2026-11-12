@@ -9,6 +9,9 @@ use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
+/**
+ * Lecture du planning (#102) : par projet, par période, selon les droits.
+ */
 class ReadSessionsTest extends TestCase
 {
     use RefreshDatabase;
@@ -32,6 +35,11 @@ class ReadSessionsTest extends TestCase
             ->assertJsonPath('data.1.session_date', '2026-10-12');
     }
 
+    /**
+     * Les cas de « l administration lit les seances de tout projet ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function readers(): array
     {
         return ['administratrice' => [UserRole::Admin], 'super-utilisatrice' => [UserRole::SuperUser]];
@@ -53,7 +61,7 @@ class ReadSessionsTest extends TestCase
         [$other] = $this->projectWithTeam();
         $this->sessionFor($project);
         Sanctum::actingAs($lead);
-        config(['app.debug' => false]); // comme en production : pas de trace qui distinguerait les deux 404
+        config(['app.debug' => false]); // comme en production : sans la trace, qui distinguerait les deux 404
 
         $this->getJson("/api/projects/{$project->id}/sessions")->assertOk()->assertJsonCount(1, 'data');
         $hidden = $this->getJson("/api/projects/{$other->id}/sessions")->assertNotFound()->getContent();
@@ -116,6 +124,11 @@ class ReadSessionsTest extends TestCase
         $this->assertSame(['2026-10-05', '2026-10-06'], $dates->all());
     }
 
+    /**
+     * Les cas de « refuse une periode invalide ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function invalidPeriods(): array
     {
         return [

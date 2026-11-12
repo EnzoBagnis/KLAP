@@ -1,13 +1,21 @@
 import Button from '../UI/Button.jsx';
 
-/*
- * Liste des exercices de la séance : de `min` à `max` lignes (2 à 10, contexte client).
- * L'ajout est bloqué au maximum ; les erreurs de l'API arrivent par position (exercises.N).
+/**
+ * La liste des exercices de la séance : de `min` à `max` lignes (2 à 10, contexte client). On
+ * bloque l'ajout au maximum ; les erreurs de l'API arrivent par position (exercises.N).
+ *
+ * @param {object} props
+ * @param {string[]} props.exercises
+ * @param {(exercises: string[]) => void} props.onChange
+ * @param {Object<string, string>} [props.errors]
+ * @param {number} [props.min=2]
+ * @param {number} [props.max=10]
+ * @param {boolean} [props.disabled=false]
  */
 export default function DynamicExerciseList({ exercises, onChange, errors = {}, min = 2, max = 10, disabled = false }) {
   const update = (index, value) => onChange(exercises.map((label, i) => (i === index ? value : label)));
   const remove = (index) => onChange(exercises.filter((_, i) => i !== index));
-  // Les lignes vides ne sont pas envoyées : l'erreur exercises.N de l'API vise la N-ième ligne remplie.
+  // On n'envoie pas les lignes vides : l'erreur exercises.N de l'API vise donc la N-ième ligne remplie.
   const filled = exercises.map((label) => label.trim() !== '');
   const apiIndex = (index) => (filled[index] ? filled.slice(0, index).filter(Boolean).length : -1);
   const errorOf = (index) => errors[`exercises.${apiIndex(index)}`];

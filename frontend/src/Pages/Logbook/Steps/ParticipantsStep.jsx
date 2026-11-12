@@ -4,7 +4,7 @@ import TextInput from '../../../Components/Form/TextInput.jsx';
 import useLogbook from '../../../Hooks/useLogbook.js';
 import { FEELINGS, INTERACTION_KEYWORDS, PROGRESS } from '../logbookModel.js';
 
-// Étape 4 : les participants (notes de 1 à 5, interaction, sensation, évolution, présents).
+/** Étape 4 : les participants (notes de 1 à 5, interaction, sensation, évolution, présents par groupe). */
 export default function ParticipantsStep() {
   const { entry, form, set, errors } = useLogbook();
   const evaluation = form.evaluation;

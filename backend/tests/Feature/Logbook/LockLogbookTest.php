@@ -13,12 +13,20 @@ class LockLogbookTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
         $this->setUpSession();
     }
 
+    /**
+     * Une fiche complète et soumise.
+     *
+     * @return int son identifiant
+     */
     private function submittedEntry(): int
     {
         $id = $this->createEntry($this->completePayload());
@@ -27,6 +35,9 @@ class LockLogbookTest extends TestCase
         return $id;
     }
 
+    /**
+     * Le statut d'une fiche, lu directement en base.
+     */
     private function statusOf(int $id): string
     {
         return DB::table('logbook_entries')->where('id', $id)->value('status');

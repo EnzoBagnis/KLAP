@@ -4,10 +4,10 @@ import logoClair from '../assets/images/KlapLogoClair.png';
 import '../assets/css/LayoutStyles.css';
 import '../assets/css/FormStyles.css';
 
-/*
- * Gabarit des écrans hors connexion (maquette, écrans 01 et M1).
- * Ordinateur : panneau noir de présentation à gauche, formulaire à droite.
- * Téléphone : le formulaire seul, avec le logo au-dessus.
+/**
+ * Le gabarit des écrans hors connexion (maquette, écrans 01 et M1).
+ * Sur ordinateur : un panneau noir de présentation à gauche, le formulaire à droite.
+ * Sur téléphone : le formulaire seul, avec le logo au-dessus.
  */
 export default function AuthLayout() {
   return (

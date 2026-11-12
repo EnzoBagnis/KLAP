@@ -7,10 +7,18 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Connexion, déconnexion et lecture de son compte (#70).
+ */
 class LoginTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * On crée Léa, avec le mot de passe de démonstration.
+     *
+     * @param  array<string, mixed>  $attributes  ce qu'on change par rapport à Léa
+     */
     private function user(array $attributes = []): User
     {
         return User::create(array_merge([
@@ -125,8 +133,8 @@ class LoginTest extends TestCase
 
         $this->assertSame(0, $user->tokens()->count());
 
-        // Le garde garde l'utilisateur en mémoire pour la durée du test,
-        // on le réinitialise pour rejouer la requête comme un vrai client.
+        // Le garde retient l'utilisateur pour la durée du test : on le vide pour rejouer la
+        // requête comme un vrai client.
         $this->app['auth']->forgetGuards();
 
         $this->withToken($token)->getJson('/api/me')->assertStatus(401);
@@ -140,6 +148,8 @@ class LoginTest extends TestCase
 
         $this->withToken($telephone)->postJson('/api/logout')->assertOk();
 
+        // On vide le garde : sinon la seconde requête réussirait avec l'utilisateur de la première.
+        $this->app['auth']->forgetGuards();
         $this->withToken($ordinateur)->getJson('/api/me')->assertOk();
         $this->assertSame(1, $user->tokens()->count());
     }

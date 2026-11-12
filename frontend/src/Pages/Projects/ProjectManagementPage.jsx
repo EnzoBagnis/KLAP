@@ -9,13 +9,12 @@ import { errorMessage } from './ProjectListPage.jsx';
 import { statusLabel } from './projectLabels.js';
 import '../../assets/css/ProjectStyles.css';
 
-/*
- * Gestion des projets (maquette, écran 07), réservée à l'administratrice.
- * Pas de bouton Modifier ni Supprimer : ces actions n'ont pas encore d'API, et la
- * suppression passera par un parcours long d'archivage (contexte client).
- * L'onglet Utilisateurs (écran 08) permet d'inviter une personne (#127).
- * Les projets archivés sont masqués par défaut ; la case « Afficher les projets archivés »
- * (?archives=1) les montre, pour ouvrir leur page et les restaurer (#196).
+/**
+ * Gestion, onglet Projets (maquette, écran 07), réservé à l'administratrice. On y crée un
+ * projet ; pour le modifier ou l'archiver, on ouvre sa page. On ne supprime jamais un projet :
+ * on l'archive (contexte client). On masque les projets archivés par défaut ; la case
+ * « Afficher les projets archivés » (?archives=1) les montre, pour ouvrir leur page et les
+ * restaurer (#196).
  */
 export default function ProjectManagementPage() {
   const { logout } = useAuth();

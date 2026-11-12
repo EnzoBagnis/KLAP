@@ -1,4 +1,9 @@
-// Indicateur d'attente accessible : le libellé est lu par les lecteurs d'écran.
+/**
+ * L'indicateur d'attente. On lui donne un rôle « status » : les lecteurs d'écran lisent son libellé.
+ *
+ * @param {object} props
+ * @param {string} [props.label='Chargement…']
+ */
 export default function LoadingSpinner({ label = 'Chargement…' }) {
   return (
     <div className="loading" role="status">

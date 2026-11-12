@@ -1,7 +1,7 @@
 import TextAreaInput from '../../../Components/Form/TextAreaInput.jsx';
 import useLogbook from '../../../Hooks/useLogbook.js';
 
-// Étape 2 : objectifs. Aucun pré-remplissage, à la demande de la cliente.
+/** Étape 2 : les objectifs. On ne pré-remplit rien, à la demande de la cliente (retour du 16/09). */
 export default function ObjectivesStep() {
   const { form, set, errors } = useLogbook();
 

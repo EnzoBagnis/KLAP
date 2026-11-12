@@ -8,11 +8,14 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * klap:demo (données datées du jour de la démo). La commande recrée la base : pas de
- * RefreshDatabase ici, et on laisse un schéma vide aux tests suivants.
+ * klap:demo (données datées du jour de la démo). La commande recrée la base : on n'utilise
+ * donc pas RefreshDatabase ici, et on laisse un schéma vide aux tests suivants.
  */
 class PrepareDemoTest extends TestCase
 {
+    /**
+     * On remet en état ce que les tests ont modifié.
+     */
     protected function tearDown(): void
     {
         $this->artisan('migrate:fresh');
@@ -20,6 +23,11 @@ class PrepareDemoTest extends TestCase
         parent::tearDown();
     }
 
+    /**
+     * Le statut de chaque fiche, par identifiant.
+     *
+     * @return array<int, string>
+     */
     private function statuses(): array
     {
         return DB::table('logbook_entries')->orderBy('id')->pluck('status', 'id')->all();
@@ -27,7 +35,7 @@ class PrepareDemoTest extends TestCase
 
     public function test_decale_les_donnees_au_jour_de_la_demo_sans_changer_leurs_etats(): void
     {
-        // Référence : le jeu de données tel qu'il est le 21/09/2026.
+        // Notre référence : le jeu de données tel qu'il est le 21/09/2026.
         $this->travelTo(now()->setDate(2026, 9, 21)->setTime(9, 0));
         $this->artisan('migrate:fresh', ['--seed' => true]);
         $this->artisan('logbook:lock-expired');
@@ -112,7 +120,8 @@ class PrepareDemoTest extends TestCase
         $this->artisan('klap:demo', ['--force' => true])
             ->expectsOutputToContain('refusé en production')
             ->assertFailed();
-        // Retour à l'environnement de test : le tearDown relance migrate:fresh, qui demanderait confirmation.
+        // On revient à l'environnement de test : le tearDown relance migrate:fresh, qui
+        // demanderait une confirmation en production.
         $this->app->detectEnvironment(fn () => 'testing');
     }
 }

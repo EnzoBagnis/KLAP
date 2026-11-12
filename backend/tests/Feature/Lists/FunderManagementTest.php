@@ -16,6 +16,9 @@ class FunderManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();

@@ -5,18 +5,28 @@ namespace Tests\Feature\Auth;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
-/** Changer son mot de passe depuis son profil (#71), avec de vrais jetons Bearer. */
+/**
+ * Changer son mot de passe depuis son profil (#71). On passe par de vrais jetons Bearer,
+ * pour vérifier ce qui arrive aux autres appareils.
+ */
 class ChangePasswordTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** L'intervenante qui change son mot de passe. */
     private User $lea;
 
+    /** Le jeton de son ordinateur. */
     private string $token;
 
+    /**
+     * On crée Léa, connectée depuis son ordinateur.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -24,7 +34,14 @@ class ChangePasswordTest extends TestCase
         $this->token = $this->lea->createToken('ordinateur')->plainTextToken;
     }
 
-    private function change(array $data, ?string $token = null)
+    /**
+     * On envoie le changement de mot de passe, avec la confirmation qui va avec.
+     *
+     * @param  array<string, string>  $data
+     * @param  string|null  $token  un autre jeton que celui de l'ordinateur
+     * @return TestResponse<JsonResponse>
+     */
+    private function change(array $data, ?string $token = null): TestResponse
     {
         $this->app['auth']->forgetGuards();
 

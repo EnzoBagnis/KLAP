@@ -10,10 +10,17 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
+ * Fabrique de tests : une séance prévue.
+ *
  * @extends Factory<ScheduledSession>
  */
 class ScheduledSessionFactory extends Factory
 {
+    /**
+     * Les valeurs par défaut.
+     *
+     * @return array<string, mixed>
+     */
     public function definition(): array
     {
         return [

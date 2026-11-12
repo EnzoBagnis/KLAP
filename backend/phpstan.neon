@@ -1,0 +1,17 @@
+# Analyse statique du backend (#258) : composer analyse
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 6
+    paths:
+        - app
+        - database
+        - routes
+        - tests
+    ignoreErrors:
+        # Dans les tests, on passe à collect() du JSON décodé : PHPStan ne peut pas en
+        # deviner les types, et les annoter un par un n'apporterait rien.
+        -
+            identifiers: [argument.templateType]
+            path: tests/*

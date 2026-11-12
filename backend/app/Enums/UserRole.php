@@ -2,12 +2,24 @@
 
 namespace App\Enums;
 
+/**
+ * Les trois rôles du cahier des charges. Chaque rôle a les droits de celui du dessous :
+ * on s'appuie là-dessus dans les contrôles d'accès (middleware `role`, scopes des modèles).
+ */
 enum UserRole: string
 {
-    case Admin = 'admin';               // Mariette : tout
-    case SuperUser = 'super_user';      // Emilie : consultation et exports
-    case Contributor = 'contributor';   // intervenants : leurs fiches
+    /** Mariette : elle peut tout faire. */
+    case Admin = 'admin';
 
+    /** Emilie : elle consulte tout, exporte, et peut corriger une fiche. */
+    case SuperUser = 'super_user';
+
+    /** Les intervenant·e·s : ils remplissent leurs fiches. */
+    case Contributor = 'contributor';
+
+    /**
+     * On donne le nom du rôle tel qu'on l'affiche dans l'interface et dans les mails.
+     */
     public function label(): string
     {
         return match ($this) {

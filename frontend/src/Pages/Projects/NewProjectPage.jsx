@@ -12,8 +12,10 @@ import { listContributors, listFunders, listLocations } from '../../Services/Ref
 import '../../assets/css/FormStyles.css';
 import '../../assets/css/ProjectStyles.css';
 
+/** Un code postal français : cinq chiffres. */
 const POSTAL_CODE = /^[0-9]{5}$/;
 
+/** Le formulaire d'un nouveau projet, avant toute saisie. */
 const EMPTY_FORM = {
   name: '',
   project_type_id: '',
@@ -26,26 +28,36 @@ const EMPTY_FORM = {
   default_location_id: '',
   principal_user_id: '',
   funder_ids: [],
-  // Projet non découpé (#244) : âge et effectif du groupe unique.
+  // Projet non découpé (#244) : l'âge et l'effectif de son groupe unique.
   age_range: '',
   expected_headcount: '',
   sub_projects: [],
 };
 
+/** Une ligne de sous-projet, avant toute saisie. */
 const EMPTY_SUB_PROJECT = { name: '', age_range: '', expected_headcount: '' };
 
-/** Effectif prévu : vide, ou un entier de 1 à 65535. Message, ou null s'il est valable. */
+/**
+ * On contrôle un effectif prévu : vide, ou un entier de 1 à 65535.
+ *
+ * @param {string} [value]
+ * @returns {string|null} le message, ou null si la valeur est valable
+ */
 function headcountError(value = '') {
   if (value === '') return null;
   const number = Number(value);
   return Number.isInteger(number) && number >= 1 && number <= 65535 ? null : 'Indiquez un nombre entier d’élèves, entre 1 et 65535.';
 }
+/** Le message d'une tranche d'âge trop longue. */
 const AGE_RANGE_ERROR = 'La tranche d’âge ne doit pas dépasser 30 caractères.';
 
-/*
- * Contrôles faits avant l'envoi. Ils reprennent ceux de l'API (qui reste juge) pour
- * répondre tout de suite. Les clés sont celles des erreurs de l'API, pour qu'une erreur
- * locale et une erreur 422 s'affichent au même endroit.
+/**
+ * Les contrôles qu'on fait avant l'envoi. On reprend ceux de l'API (qui reste juge), pour
+ * répondre tout de suite. Les clés sont celles des erreurs de l'API : une erreur locale et
+ * une erreur 422 s'affichent ainsi au même endroit.
+ *
+ * @param {object} form
+ * @returns {Object<string, string>}
  */
 export function validateProject(form) {
   const errors = {};
@@ -84,7 +96,12 @@ export function validateProject(form) {
   return errors;
 }
 
-/** Données envoyées à POST /api/projects : champs vides retirés, nombres convertis. */
+/**
+ * Ce qu'on envoie à POST /api/projects : on retire les champs vides et on convertit les nombres.
+ *
+ * @param {object} form
+ * @returns {object}
+ */
 export function toPayload(form) {
   const payload = { name: form.name.trim() };
   for (const key of ['organization', 'city', 'postal_code', 'start_date', 'end_date']) {
@@ -94,7 +111,7 @@ export function toPayload(form) {
     if (form[key] !== '') payload[key] = Number(form[key]);
   }
   payload.funder_ids = form.funder_ids.map(Number);
-  // Âge et effectif : sans eux, les statistiques n'ont ni tranche d'âge ni assiduité (#244).
+  // L'âge et l'effectif : sans eux, nos statistiques n'ont ni tranche d'âge ni assiduité (#244).
   const details = ({ age_range: age = '', expected_headcount: headcount = '' }) => ({
     ...(age.trim() ? { age_range: age.trim() } : {}),
     ...(headcount !== '' ? { expected_headcount: Number(headcount) } : {}),
@@ -108,7 +125,9 @@ export function toPayload(form) {
   return payload;
 }
 
-/** Champs affichés par le formulaire : une erreur sur une autre clé va dans l'alerte générale. */
+/**
+ * Les champs que le formulaire affiche : une erreur sur une autre clé va dans l'alerte générale.
+ */
 const DISPLAYED_FIELDS = new Set([
   'name', 'project_type_id', 'organization', 'city', 'postal_code', 'planned_sessions',
   'start_date', 'end_date', 'default_location_id', 'principal_user_id', 'funder_ids',
@@ -116,9 +135,11 @@ const DISPLAYED_FIELDS = new Set([
 ]);
 
 /**
- * Les erreurs 422 arrivent en tableaux par clé (`funder_ids.1`, `sub_projects.0.name`…).
- * Celles d'un financeur sont regroupées sous `funder_ids` ; celles d'un champ absent du
- * formulaire sont renvoyées à part, pour être lues dans l'alerte générale.
+ * On range les erreurs 422, qui arrivent en tableaux par clé (`funder_ids.1`,
+ * `sub_projects.0.name`…). On regroupe celles d'un financeur sous `funder_ids` ; celles d'un
+ * champ absent du formulaire, on les renvoie à part, pour l'alerte générale.
+ *
+ * @param {Object<string, string[]>} errors
  */
 export function mapServerErrors(errors) {
   const fields = {};
@@ -134,6 +155,7 @@ export function mapServerErrors(errors) {
   return { fields, others };
 }
 
+/** L'écran « Nouveau projet » (maquette, écran 58), réservé à l'administratrice. */
 export default function NewProjectPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -178,7 +200,7 @@ export default function NewProjectPage() {
   }, [loadReferences]);
 
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
-  // Lieu créé depuis le menu (#135) : ajouté à la liste, rangée par nom.
+  // Un lieu créé depuis le menu (#135) : on l'ajoute à la liste, qu'on garde rangée par nom.
   const addLocation = (place) =>
     setReferences((current) => ({
       ...current,
@@ -220,7 +242,7 @@ export default function NewProjectPage() {
 
     setSubmitting(true);
     try {
-      // Après un succès, le formulaire reste verrouillé : il ne doit pas repartir une seconde fois.
+      // Après un succès, on laisse le formulaire verrouillé : il ne doit pas repartir une seconde fois.
       setCreated(await createProject(toPayload(form)));
     } catch (error) {
       setSubmitting(false);
@@ -265,7 +287,7 @@ export default function NewProjectPage() {
       )}
 
       {references.status === 'ready' && (
-        // Pendant la modale « Projet créé », le formulaire est inerte : ni clic ni tabulation.
+        // Pendant la fenêtre « Projet créé », on rend le formulaire inerte : ni clic ni tabulation.
         <form ref={formRef} className="project-form" onSubmit={handleSubmit} noValidate inert={created !== null}>
           {formError && (
             <p className="form-alert" role="alert">

@@ -2,14 +2,19 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Groupes concernés par une séance (plusieurs = fiche transversale) + nb de présents par groupe.
-// (noms d'index raccourcis, sinon MySQL refuse : 64 caractères max)
-// project_id est là pour que les clés composites empêchent de mélanger des groupes de projets différents
+/**
+ * Groupes concernés par une séance (plusieurs groupes : c'est une séance transversale),
+ * avec le nombre de présents de chacun. On y répète project_id pour que les clés composites
+ * empêchent de mélanger des groupes de projets différents. On a raccourci les noms d'index :
+ * MySQL les refuse au-delà de 64 caractères.
+ */
 return new class extends Migration
 {
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         Schema::create('scheduled_session_sub_project', function (Blueprint $table) {
@@ -29,6 +34,9 @@ return new class extends Migration
         });
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         Schema::dropIfExists('scheduled_session_sub_project');

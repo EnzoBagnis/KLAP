@@ -18,6 +18,7 @@ import '../../assets/css/FormStyles.css';
 import '../../assets/css/ProjectStyles.css';
 import '../../assets/css/LogbookStyles.css';
 
+/** Le composant de chaque étape, par numéro. */
 const STEP_COMPONENTS = {
   1: GeneralStep,
   2: ObjectivesStep,
@@ -27,11 +28,15 @@ const STEP_COMPONENTS = {
   6: NextStepsStep,
 };
 
+/**
+ * La question qu'on pose avant de quitter une fiche qui a des modifications non enregistrées.
+ */
 const LEAVE_WARNING = 'Des modifications ne sont pas enregistrées. Quitter la fiche quand même ?';
 
+/** Les statuts d'une fiche, tels qu'on les affiche. */
 const STATUS_LABELS = { draft: 'Brouillon', submitted: 'Soumise', locked: 'Verrouillée' };
 
-/** Fiche de séance (maquette 09 à 14) : chargement, puis formulaire en six étapes. */
+/** La fiche de séance (maquette, écrans 09 à 14) : on la charge, puis on affiche le formulaire en six étapes. */
 export default function LogbookEntryPage() {
   const { id } = useParams();
   const { logout } = useAuth();
@@ -95,6 +100,10 @@ export default function LogbookEntryPage() {
   );
 }
 
+/**
+ * Le formulaire de la fiche : l'en-tête, la navigation entre les étapes, l'étape en cours et
+ * les actions (enregistrer, soumettre, rouvrir).
+ */
 function LogbookForm() {
   const { entry, errors, message, busy, dirty, readOnlyReason, save, submit, unlock, requestUnlock } = useLogbook();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -111,7 +120,7 @@ function LogbookForm() {
     document.title = `Fiche du ${dayTitle(entry.session.session_date).toLowerCase()} · KLAP`;
   }, [entry.session.session_date]);
 
-  // Saisie non enregistrée : on prévient avant de quitter (rechargement, menu, liens).
+  // S'il reste une saisie non enregistrée, on prévient avant de quitter (rechargement, menu, liens).
   useEffect(() => {
     if (!unsaved) return undefined;
     const onBeforeUnload = (event) => event.preventDefault();
@@ -128,7 +137,7 @@ function LogbookForm() {
     };
   }, [unsaved]);
 
-  // « Retour au planning » enregistre d'abord ; en cas d'échec, on reste sur la fiche.
+  // Avec « Retour au planning », on enregistre d'abord ; en cas d'échec, on reste sur la fiche.
   async function leave(event) {
     if (!unsaved) return;
     event.preventDefault();
@@ -137,8 +146,8 @@ function LogbookForm() {
 
   async function goTo(target) {
     if (target === step) return;
-    // Brouillon : enregistré à chaque changement d'étape. Une fiche soumise s'enregistre
-    // d'un bloc (elle doit rester complète), avec le bouton prévu.
+    // On enregistre un brouillon à chaque changement d'étape. Une fiche soumise, elle,
+    // s'enregistre d'un bloc (elle doit rester complète), avec le bouton prévu.
     if (entry.status === 'draft' && dirty && !readOnlyReason && !(await save())) return;
     setSearchParams({ etape: String(target) });
     headingRef.current?.focus();
@@ -158,7 +167,7 @@ function LogbookForm() {
       setSearchParams({ etape: String(message.steps[0]) });
       headingRef.current?.focus();
     }
-    // Uniquement quand un nouveau message arrive.
+    // On ne le fait que quand un nouveau message arrive.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message]);
 
@@ -178,7 +187,7 @@ function LogbookForm() {
       {!readOnlyReason && entry.edit_deadline && (
         <p className="form-hint">Modifiable jusqu’au {formatDate(entry.edit_deadline)} inclus.</p>
       )}
-      {/* Mineurs (document RGPD, #157) : les textes sont lus par l'équipe et en partie repris dans le pré-bilan. */}
+      {/* Mineurs (document RGPD, #157) : on rappelle que l'équipe lit ces textes, et que le pré-bilan en reprend une partie. */}
       {!readOnlyReason && (
         <p className="form-hint logbook-privacy">
           Ne citez pas d’élève par son nom : la fiche est lue par l’équipe, et une partie est reprise dans les bilans envoyés aux financeurs.

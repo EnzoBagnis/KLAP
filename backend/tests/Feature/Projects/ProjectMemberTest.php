@@ -17,12 +17,18 @@ class ProjectMemberTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** Le projet des tests. */
     private Project $project;
 
+    /** L'intervenante principale du projet. */
     private User $lead;
 
+    /** Marco, intervenant ponctuel. */
     private User $marco;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -35,11 +41,17 @@ class ProjectMemberTest extends TestCase
         $this->project->members()->attach($this->lead->id, ['member_role' => 'lead']);
     }
 
-    private function pivot(User $user)
+    /**
+     * La ligne d'appartenance d'un compte au projet, ou null.
+     */
+    private function pivot(User $user): ?object
     {
         return DB::table('project_user')->where('project_id', $this->project->id)->where('user_id', $user->id)->first();
     }
 
+    /**
+     * On programme une séance du projet pour un·e référent·e, à une date donnée.
+     */
     private function sessionFor(User $referent, string $date): ScheduledSession
     {
         return ScheduledSession::factory()->create(['project_id' => $this->project->id, 'referent_id' => $referent->id, 'session_date' => $date]);

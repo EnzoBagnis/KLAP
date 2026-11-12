@@ -3,9 +3,16 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
-// Vues pour les stats, calculées à partir des fiches rendues (rien n'est stocké)
+/**
+ * Vues des statistiques. On les calcule à partir des fiches rendues : on ne stocke rien.
+ */
 return new class extends Migration
 {
+    /**
+     * Les vues, dans l'ordre où on les supprime : celles qui dépendent des autres d'abord.
+     *
+     * @var list<string>
+     */
     private array $views = [
         'v_missing_entries',
         'v_project_indicators',
@@ -13,11 +20,15 @@ return new class extends Migration
         'v_sub_project_participants',
     ];
 
+    /**
+     * On applique la migration.
+     */
     public function up(): void
     {
         $this->dropViews();
 
-        // participants d'un sous-projet = max des présents sur ses séances (pas la somme, cf. retour de Mariette)
+        // Les participants d'un sous-projet : le maximum des présents sur ses séances, et non
+        // leur somme (retour de Mariette du 14/09).
         DB::statement("
             CREATE VIEW v_sub_project_participants AS
             SELECT sp.sub_project_id,
@@ -30,8 +41,8 @@ return new class extends Migration
             GROUP BY sp.sub_project_id, sp.project_id
         ");
 
-        // participants d'un projet = somme des max de chaque sous-projet
-        DB::statement("
+        // Les participants d'un projet : la somme des maximums de ses sous-projets.
+        DB::statement('
             CREATE VIEW v_project_participants AS
             SELECT p.id AS project_id,
                    p.name,
@@ -39,9 +50,9 @@ return new class extends Migration
             FROM projects p
             LEFT JOIN v_sub_project_participants v ON v.project_id = p.id
             GROUP BY p.id, p.name
-        ");
+        ');
 
-        // moyennes engagement / expression / autonomie par projet
+        // Les moyennes d'engagement, d'expression et d'autonomie, par projet.
         DB::statement("
             CREATE VIEW v_project_indicators AS
             SELECT s.project_id,
@@ -56,7 +67,7 @@ return new class extends Migration
             GROUP BY s.project_id
         ");
 
-        // séances passées dont la fiche n'a pas été rendue
+        // Les séances passées dont la fiche n'a pas été rendue.
         DB::statement("
             CREATE VIEW v_missing_entries AS
             SELECT s.id AS scheduled_session_id, s.project_id, s.session_date, s.referent_id
@@ -69,11 +80,17 @@ return new class extends Migration
         ");
     }
 
+    /**
+     * On annule la migration.
+     */
     public function down(): void
     {
         $this->dropViews();
     }
 
+    /**
+     * On supprime nos vues, si elles existent.
+     */
     private function dropViews(): void
     {
         foreach ($this->views as $view) {

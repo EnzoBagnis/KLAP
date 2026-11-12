@@ -2,17 +2,28 @@ import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import '../assets/css/ModalStyles.css';
 
-/*
- * Fenêtre modale de base, rendue hors de l'application (dans <body>).
- * Pendant qu'elle est ouverte, l'application (#root) est inerte : ni clic ni tabulation
- * derrière, menu latéral compris. Échap ferme (sauf si `closable` vaut false), le focus
- * entre dans la fenêtre et revient à l'élément d'origine à la fermeture.
+/**
+ * La fenêtre modale de base, qu'on rend hors de l'application (dans <body>). Tant qu'elle
+ * est ouverte, on rend l'application (#root) inerte : ni clic ni tabulation derrière, menu
+ * latéral compris. Échap ferme (sauf si `closable` vaut false) ; le focus entre dans la
+ * fenêtre, et on le rend à l'élément d'origine à la fermeture.
+ *
+ * @param {object} props
+ * @param {boolean} props.open
+ * @param {string} props.title
+ * @param {() => void} props.onClose
+ * @param {React.ReactNode} props.children
+ * @param {React.ReactNode} [props.actions]  les boutons du bas
+ * @param {boolean} [props.closable=true]  faux pendant un enregistrement, pour ne pas le perdre
  */
 export default function BaseModal({ open, title, onClose, children, actions, closable = true }) {
   const titleId = useId();
   const dialogRef = useRef(null);
   const closableRef = useRef(closable);
-  closableRef.current = closable;
+  // On garde la dernière valeur de `closable` sans relancer l'effet d'ouverture.
+  useEffect(() => {
+    closableRef.current = closable;
+  }, [closable]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -48,7 +59,11 @@ export default function BaseModal({ open, title, onClose, children, actions, clo
   );
 }
 
-/** Place le focus sur le premier élément interactif de la fenêtre. */
+/**
+ * On place le focus sur le premier élément interactif d'un conteneur.
+ *
+ * @param {HTMLElement|null} container
+ */
 export function focusFirst(container) {
   container?.querySelector('button:not([disabled]), a[href], input, select, textarea')?.focus();
 }

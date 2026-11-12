@@ -5,8 +5,16 @@ namespace App\Http\Requests\Projects;
 use App\Rules\UniqueProjectTypeName;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Renommer un type de projet, le désactiver ou le réactiver.
+ */
 class UpdateProjectTypeRequest extends FormRequest
 {
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -18,6 +26,11 @@ class UpdateProjectTypeRequest extends FormRequest
         ];
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [

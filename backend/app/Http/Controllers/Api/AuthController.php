@@ -11,18 +11,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Connexion, déconnexion et profil de la personne connectée (#70, #71). On s'authentifie
+ * par jeton Sanctum : il n'y a pas de session côté serveur.
+ */
 class AuthController extends Controller
 {
     /**
-     * Connexion par e-mail et mot de passe. Renvoie un token Sanctum
-     * que le front stocke et renvoie dans l'en-tête Authorization.
+     * On connecte par e-mail et mot de passe. On renvoie un jeton Sanctum, que le front
+     * stocke et renvoie dans l'en-tête Authorization.
+     *
+     * @throws ValidationException si les identifiants sont faux ou le compte désactivé
      */
     public function login(LoginRequest $request): JsonResponse
     {
         $user = User::where('email', $request->string('email'))->first();
 
         if (! $user || ! Hash::check($request->string('password'), $user->password)) {
-            // Même message dans les deux cas, pour ne pas révéler quelles
+            // On donne le même message dans les deux cas, pour ne pas révéler quelles
             // adresses existent dans la base.
             throw ValidationException::withMessages([
                 'email' => "L'adresse e-mail ou le mot de passe est incorrect.",
@@ -46,8 +52,8 @@ class AuthController extends Controller
     }
 
     /**
-     * Déconnexion : on supprime uniquement le token utilisé, pour ne pas
-     * déconnecter l'utilisateur de ses autres appareils.
+     * On déconnecte en supprimant uniquement le jeton utilisé, pour ne pas déconnecter
+     * l'utilisateur de ses autres appareils.
      */
     public function logout(Request $request): JsonResponse
     {
@@ -56,13 +62,16 @@ class AuthController extends Controller
         return response()->json(['message' => 'Déconnecté.']);
     }
 
+    /**
+     * On renvoie le compte connecté : le front s'en sert au chargement pour retrouver la session.
+     */
     public function me(Request $request): JsonResponse
     {
         return response()->json(['user' => $this->userPayload($request->user())]);
     }
 
     /**
-     * Changer son mot de passe depuis son profil (#71). Les autres appareils sont déconnectés ;
+     * On change son mot de passe depuis son profil (#71). On déconnecte les autres appareils ;
      * la session en cours reste ouverte.
      */
     public function changePassword(ChangePasswordRequest $request): JsonResponse
@@ -74,6 +83,11 @@ class AuthController extends Controller
         return response()->json(['message' => 'Mot de passe changé. Vos autres appareils sont déconnectés.']);
     }
 
+    /**
+     * Ce qu'on expose d'un compte au front.
+     *
+     * @return array{id: int, name: string, email: string, role: string, role_label: string, phone: string|null, last_login_at: string|null}
+     */
     private function userPayload(User $user): array
     {
         return [
@@ -82,7 +96,7 @@ class AuthController extends Controller
             'email' => $user->email,
             'role' => $user->role->value,
             'role_label' => $user->role->label(),
-            // Affichés sur le profil (#71).
+            // On affiche ces deux champs sur le profil (#71).
             'phone' => $user->phone,
             'last_login_at' => $user->last_login_at?->toIso8601String(),
         ];

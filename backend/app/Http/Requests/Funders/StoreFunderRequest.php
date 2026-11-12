@@ -7,9 +7,14 @@ use App\Rules\UniqueFunderName;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/** Nouveau financeur (#249) : un nom et une catégorie (État, collectivité, fondation, autre). */
+/**
+ * Nouveau financeur (#249) : un nom et une catégorie (État, collectivité, fondation, autre).
+ */
 class StoreFunderRequest extends FormRequest
 {
+    /**
+     * On réduit les espaces du nom, pour que « DRAC  PACA » et « DRAC PACA » soient le même financeur.
+     */
     protected function prepareForValidation(): void
     {
         if (is_string($this->input('name'))) {
@@ -17,6 +22,11 @@ class StoreFunderRequest extends FormRequest
         }
     }
 
+    /**
+     * Les règles qu'on applique à la saisie.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -25,11 +35,19 @@ class StoreFunderRequest extends FormRequest
         ];
     }
 
+    /**
+     * Le financeur qu'on ne compte pas dans le contrôle d'unicité : aucun à la création.
+     */
     protected function ignoreId(): ?int
     {
         return null;
     }
 
+    /**
+     * Les messages d'erreur, en français : le front les affiche tels quels.
+     *
+     * @return array<string, string|array<string, string>>
+     */
     public function messages(): array
     {
         return [

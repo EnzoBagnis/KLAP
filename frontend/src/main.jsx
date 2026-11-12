@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-// Polices de la maquette, embarquées dans le build (aucun appel à un CDN).
+// Les polices de la maquette : on les embarque dans le build, sans aucun appel à un CDN.
 import '@fontsource/archivo/400.css';
 import '@fontsource/archivo/500.css';
 import '@fontsource/archivo/600.css';

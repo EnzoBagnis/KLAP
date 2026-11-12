@@ -3,13 +3,15 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import TextInput from '../../Components/Form/TextInput.jsx';
 import Button from '../../Components/UI/Button.jsx';
 import useAuth from '../../Hooks/useAuth.js';
+import { EMAIL_PATTERN } from '../../Services/validation.js';
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/*
- * Traduit une erreur de l'API en message pour l'utilisateur.
- * Identifiants faux et compte désactivé arrivent tous deux en 422 avec un message
- * déjà en français dans `errors.email` : on l'affiche tel quel, sans l'interpréter.
+/**
+ * On traduit une erreur de l'API en message pour l'utilisateur. Des identifiants faux et un
+ * compte désactivé arrivent tous deux en 422, avec un message déjà en français dans
+ * `errors.email` : on l'affiche tel quel, sans l'interpréter.
+ *
+ * @param {import('../../Services/ApiClient.js').ApiError} error
+ * @returns {string}
  */
 export function loginErrorMessage(error) {
   if (error.status === 0) return error.message;
@@ -24,7 +26,12 @@ export function loginErrorMessage(error) {
   return 'Une erreur est survenue. Réessayez plus tard.';
 }
 
-// Contrôles faits avant l'envoi : réponse immédiate, sans aller-retour avec le serveur.
+/**
+ * Les contrôles qu'on fait avant l'envoi : la réponse est immédiate, sans aller-retour avec
+ * le serveur.
+ *
+ * @returns {{email?: string, password?: string}}
+ */
 function validate(email, password) {
   const errors = {};
   if (!email.trim()) errors.email = 'Saisissez votre adresse e-mail.';
@@ -33,13 +40,14 @@ function validate(email, password) {
   return errors;
 }
 
+/** L'écran de connexion (maquette, écrans 01 et M1). */
 export default function LoginPage() {
   const { status, login } = useAuth();
   const navigate = useNavigate();
-  // Après l'activation d'un compte (#127) : adresse pré-remplie et message d'accueil.
+  // Après l'activation d'un compte (#127), on pré-remplit l'adresse et on affiche un message d'accueil.
   const { state: arrival } = useLocation();
 
-  // Sans titre propre, l'onglet gardait celui de la page d'avant (« Activer mon compte »).
+  // On donne son titre à l'onglet : sinon il garde celui de la page d'avant (« Activer mon compte »).
   useEffect(() => {
     document.title = 'Connexion · KLAP';
   }, []);
@@ -50,7 +58,7 @@ export default function LoginPage() {
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Déjà connecté : rien à faire ici.
+  // Si on est déjà connecté, on n'a rien à faire ici.
   if (status === 'authenticated') {
     return <Navigate to="/" replace />;
   }
@@ -64,7 +72,7 @@ export default function LoginPage() {
     setFieldErrors(errors);
     const firstInvalid = Object.keys(errors)[0];
     if (firstInvalid) {
-      // Le focus sur le champ en erreur fait lire son message par les lecteurs d'écran.
+      // On met le focus sur le champ en erreur : les lecteurs d'écran lisent ainsi son message.
       event.currentTarget.elements[firstInvalid]?.focus();
       return;
     }

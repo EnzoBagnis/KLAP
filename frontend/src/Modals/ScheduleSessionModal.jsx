@@ -12,6 +12,7 @@ import { createSession, updateSession } from '../Services/SessionService.js';
 import BaseModal, { focusFirst } from './BaseModal.jsx';
 import '../assets/css/FormStyles.css';
 
+/** Le formulaire d'une nouvelle séance, avant toute saisie. */
 const EMPTY = {
   project_id: '',
   sub_project_ids: [],
@@ -25,9 +26,14 @@ const EMPTY = {
 };
 
 /**
- * Contrôles avant l'envoi ; l'API reste juge (mêmes clés que ses erreurs 422).
- * Tant que le projet choisi n'est pas chargé, groupes et intervenant·e ne sont pas
- * affichés : l'erreur va alors sur le champ Projet, pour rester visible.
+ * Les contrôles qu'on fait avant l'envoi ; l'API reste juge (on reprend les clés de ses
+ * erreurs 422). Tant que le projet choisi n'est pas chargé, on n'affiche ni ses groupes ni
+ * ses intervenant·e·s : on met alors l'erreur sur le champ Projet, pour qu'elle reste visible.
+ *
+ * @param {object} form
+ * @param {Array<{id: number}>} team  l'équipe du projet choisi
+ * @param {'none'|'loading'|'ready'|'error'} [projectStatus='ready']
+ * @returns {Object<string, string>}
  */
 export function validateSession(form, team, projectStatus = 'ready') {
   const errors = {};
@@ -52,6 +58,12 @@ export function validateSession(form, team, projectStatus = 'ready') {
   return errors;
 }
 
+/**
+ * Ce qu'on envoie à l'API pour créer ou modifier la séance.
+ *
+ * @param {object} form
+ * @returns {object}
+ */
 export function toSessionPayload(form) {
   const payload = {
     session_date: form.session_date,
@@ -66,12 +78,21 @@ export function toSessionPayload(form) {
   return payload;
 }
 
+/**
+ * Les champs du formulaire : une erreur de l'API sur une autre clé devient un message général.
+ */
 const FIELDS = new Set([
   'project_id', 'sub_project_ids', 'session_date', 'start_time', 'end_time',
   'session_type', 'session_type_detail', 'location_id', 'referent_id',
 ]);
 
-/** Erreurs 422 : `sub_project_ids.N` vont sous les groupes, les clés inconnues (dont `project`) en message général. */
+/**
+ * On range les erreurs 422 de l'API : `sub_project_ids.N` vont sous les groupes, et les clés
+ * inconnues (dont `project`) partent dans `others`, pour le message général.
+ *
+ * @param {Object<string, string[]>} errors
+ * @returns {{fields: Object<string, string>, others: string[]}}
+ */
 export function mapSessionErrors(errors) {
   const fields = {};
   const others = [];
@@ -83,8 +104,12 @@ export function mapSessionErrors(errors) {
   return { fields, others };
 }
 
-/** Modale « Programmer une séance » (maquette, écran 52), réservée à l'administratrice. */
-/** Formulaire prérempli avec une séance existante (#180). */
+/**
+ * Le formulaire prérempli avec une séance existante (#180).
+ *
+ * @param {object} session  la séance telle que l'API la renvoie
+ * @returns {object}
+ */
 export function sessionToForm(session) {
   return {
     project_id: String(session.project.id),
@@ -99,9 +124,16 @@ export function sessionToForm(session) {
   };
 }
 
-/*
- * Programmer une séance, ou modifier une séance sans fiche quand `session` est donnée (#180).
- * En modification, le projet ne change pas et les valeurs de la séance sont gardées.
+/**
+ * La fenêtre « Programmer une séance » (maquette, écran 52), réservée à l'administratrice. Avec
+ * `session`, on modifie une séance sans fiche (#180) : le projet ne change pas, et on garde
+ * les valeurs de la séance.
+ *
+ * @param {object} props
+ * @param {boolean} props.open
+ * @param {() => void} props.onClose
+ * @param {(session: object) => void} props.onCreated  on y reçoit la séance créée ou modifiée
+ * @param {object|null} [props.session=null]  la séance à modifier
  */
 export default function ScheduleSessionModal({ open, onClose, onCreated, session = null }) {
   const editing = session !== null;
@@ -115,7 +147,7 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
   const [submitting, setSubmitting] = useState(false);
   const projectRequest = useRef(0);
   const referencesRequest = useRef(0);
-  // Numéro d'ouverture : une réponse d'un envoi lancé avant la fermeture est ignorée.
+  // Le numéro d'ouverture : on ignore la réponse d'un envoi lancé avant la fermeture.
   const openCount = useRef(0);
 
   const loadReferences = useCallback(() => {
@@ -124,7 +156,7 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
     Promise.all([listProjects(), listLocations()])
       .then(([projects, locations]) => {
         if (request !== referencesRequest.current) return;
-        // En modification, le lieu actuel reste proposé même s'il a été désactivé depuis.
+        // En modification, on propose encore le lieu actuel, même s'il a été désactivé depuis.
         const place = session?.location;
         const withCurrent = place && !locations.some((item) => item.id === place.id) ? [...locations, place] : locations;
         setReferences({ status: 'ready', projects: projects.filter((p) => p.status !== 'archived'), locations: withCurrent });
@@ -151,6 +183,7 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
     loadReferences();
     if (session) loadProject(String(session.project.id), { keepValues: true });
     // loadProject est stable pour une ouverture donnée : seule l'ouverture relance le chargement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, loadReferences]);
 
   // Le formulaire arrive après le chargement des listes : on y place le focus.
@@ -165,23 +198,26 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
       .then((detail) => {
         if (request !== projectRequest.current) return;
         const active = (detail.sub_projects ?? []).filter((group) => group.is_active !== false);
-        // En modification, les groupes de la séance désactivés depuis restent affichés, pour pouvoir les décocher.
+        // En modification, on affiche encore les groupes de la séance retirés depuis, pour
+        // pouvoir les décocher.
         const kept = keepValues && session
           ? session.sub_projects
               .filter((group) => !active.some((item) => item.id === group.id))
               .map((group) => ({ ...group, name: `${group.name} (désactivé)` }))
           : [];
         const groups = [...active, ...kept];
-        // Les membres retiré·e·s de l'équipe (#251) ne reçoivent plus de séance, sauf celle qu'ils ont déjà.
+        // On ne confie plus de séance aux membres retiré·e·s de l'équipe (#251), sauf celle
+        // qu'ils ont déjà.
         const team = (detail.team ?? []).filter((member) => !member.end_date || (keepValues && session?.referent?.id === member.id));
         setProject({ status: 'ready', groups, team });
-        // En modification, les groupes, l'intervenant·e et le lieu de la séance sont gardés.
+        // En modification, on garde les groupes, l'intervenant·e et le lieu de la séance.
         if (keepValues) return;
         // Un seul groupe : il est forcément concerné.
         if (groups.length === 1) setForm((current) => ({ ...current, sub_project_ids: [groups[0].id] }));
         const lead = team.find((member) => member.member_role === 'lead');
         if (lead) setForm((current) => ({ ...current, referent_id: String(lead.id) }));
-        // Lieu par défaut du projet (#168), s'il est encore proposé et qu'aucun lieu n'est choisi.
+        // On propose le lieu par défaut du projet (#168), s'il est encore actif et qu'aucun
+        // lieu n'est choisi.
         const place = detail.default_location;
         setForm((current) =>
           place && !current.location_id && references.locations?.some((item) => item.id === place.id)
@@ -201,7 +237,7 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
 
   function chooseProject(event) {
     const projectId = event.target.value;
-    // Changer de projet vide les groupes et l'intervenant·e, qui en dépendent.
+    // En changeant de projet, on vide les groupes et l'intervenant·e, qui en dépendent.
     setForm((current) => ({ ...current, project_id: projectId, sub_project_ids: [], referent_id: '' }));
     if (!projectId) {
       projectRequest.current += 1;
@@ -211,7 +247,7 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
     loadProject(projectId);
   }
 
-  // Lieu créé depuis le menu (#135) : ajouté à la liste, rangée par nom.
+  // Un lieu créé depuis le menu (#135) : on l'ajoute à la liste, qu'on garde rangée par nom.
   const addLocation = (place) =>
     setReferences((current) => ({
       ...current,
@@ -285,7 +321,8 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
   }
 
   return (
-    // Pendant l'envoi, la fenêtre ne se ferme pas : la séance pourrait être créée sans qu'on le sache.
+    // Pendant l'envoi, on empêche de fermer la fenêtre : la séance pourrait être créée sans
+    // qu'on le sache.
     <BaseModal open={open} title={editing ? 'Modifier la séance' : 'Programmer une séance'} onClose={onClose} closable={!submitting}>
       <p>La fiche de la séance reprendra ces informations.</p>
 

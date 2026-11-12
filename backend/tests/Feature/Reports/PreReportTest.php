@@ -7,6 +7,7 @@ use App\Models\Funder;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use PhpOffice\PhpWord\Element\AbstractContainer;
 use PhpOffice\PhpWord\Element\Table;
 use PhpOffice\PhpWord\Element\Text;
@@ -14,6 +15,7 @@ use PhpOffice\PhpWord\Element\TextRun;
 use PhpOffice\PhpWord\Element\Title;
 use PhpOffice\PhpWord\IOFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\Feature\Logbook\LogbookTestHelpers;
 use Tests\TestCase;
 
@@ -23,10 +25,15 @@ class PreReportTest extends TestCase
     use LogbookTestHelpers;
     use RefreshDatabase;
 
+    /** L'administratrice. */
     private User $admin;
 
+    /** Le financeur du pré-bilan. */
     private Funder $funder;
 
+    /**
+     * On prépare ce que tous les tests de la classe partagent.
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,15 +44,25 @@ class PreReportTest extends TestCase
         $this->project->funders()->attach($this->funder->id);
     }
 
+    /**
+     * On remet en état ce que les tests ont modifié.
+     */
     protected function tearDown(): void
     {
-        // Réponses jamais envoyées en test : deleteFileAfterSend ne passe pas, on nettoie ici.
+        // En test, les réponses ne sont jamais envoyées : deleteFileAfterSend ne passe pas, on
+        // nettoie donc ici.
         foreach (glob(sys_get_temp_dir().'/prebilan*') ?: [] as $file) {
             @unlink($file);
         }
         parent::tearDown();
     }
 
+    /**
+     * Une fiche complète et soumise.
+     *
+     * @param  array<string, mixed>  $overrides  ce qu'on change dans la fiche
+     * @return int son identifiant
+     */
     private function submitted(array $overrides = []): int
     {
         $id = $this->createEntry($this->completePayload($overrides));
@@ -54,14 +71,24 @@ class PreReportTest extends TestCase
         return $id;
     }
 
-    private function download(array $query = [], ?User $user = null)
+    /**
+     * On télécharge le pré-bilan, par défaut en tant qu'administratrice.
+     *
+     * @param  array<string, mixed>  $query  les filtres de période
+     * @return TestResponse<Response>
+     */
+    private function download(array $query = [], ?User $user = null): TestResponse
     {
         return $this->actingAs($user ?? $this->admin)
             ->get("/api/projects/{$this->project->id}/pre-report?".http_build_query(['funder_id' => $this->funder->id, ...$query]));
     }
 
-    /** Texte du document, dans l'ordre, pour vérifier son contenu. */
-    private function text($response): string
+    /**
+     * Le texte du document, dans l'ordre, pour vérifier son contenu.
+     *
+     * @param  TestResponse<Response>  $response
+     */
+    private function text(TestResponse $response): string
     {
         $path = tempnam(sys_get_temp_dir(), 'test').'.docx';
         file_put_contents($path, $response->streamedContent());
@@ -113,7 +140,8 @@ class PreReportTest extends TestCase
         $this->assertStringContainsString('Séances documentées : 1', $text);
         $this->assertStringContainsString('Temps forts et anecdotes : Un duo improvisé très juste.', $text);
         $this->assertStringContainsString('Notes complémentaires : Salle trop petite.', $text);
-        // Remarques internes sur des mineurs : jamais envoyées au financeur sans l'accord de la cliente.
+        // Ce sont des remarques internes sur des mineurs : on ne les envoie jamais au financeur
+        // sans l'accord de la cliente.
         $this->assertStringNotContainsString('Écoute du groupe.', $text);
         $this->assertStringNotContainsString('Tensions entre deux élèves.', $text);
     }
@@ -157,6 +185,11 @@ class PreReportTest extends TestCase
         $this->assertStringContainsString('Séances documentées : 1', $text);
     }
 
+    /**
+     * Les cas de « les reponses vides sont ecartees quelle que soit leur ecriture ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function emptyAnswers(): array
     {
         return ['NÉANT' => ['NÉANT'], 'R.A.S.' => ['R.A.S.'], 'ras!' => ['ras!'], 'Rien à signaler !' => ['Rien à signaler !'], '.rien.' => ['.rien.']];
@@ -260,6 +293,11 @@ class PreReportTest extends TestCase
         $this->getJson("/api/projects/{$this->project->id}/pre-report?funder_id={$this->funder->id}")->assertUnauthorized();
     }
 
+    /**
+     * Les cas de « refuse des parametres invalides ».
+     *
+     * @return array<string, array<int, mixed>>
+     */
     public static function invalid(): array
     {
         return [
@@ -270,6 +308,9 @@ class PreReportTest extends TestCase
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $query
+     */
     #[DataProvider('invalid')]
     public function test_refuse_des_parametres_invalides(array $query, string $field, string $message): void
     {
