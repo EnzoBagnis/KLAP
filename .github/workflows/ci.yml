@@ -59,17 +59,18 @@ jobs:
       - name: Installer les dépendances
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Préparer l'environnement
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
       # Style (Pint) et analyse statique (PHPStan) : une erreur bloque la fusion (#258).
+      # On les lance une fois l'environnement prêt : PHPStan démarre l'application pour la lire.
       - name: Style du code
         run: composer style
 
       - name: Analyse statique
         run: composer analyse -- --no-progress
-
-      - name: Préparer l'environnement
-        run: |
-          cp .env.example .env
-          php artisan key:generate
 
       - name: Appliquer les migrations et les seeders
         run: php artisan migrate --seed --no-interaction

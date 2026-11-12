@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\UserRole;
 use App\Mail\AdminWelcomeMail;
 use App\Models\User;
+use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
@@ -64,7 +65,9 @@ class CreateAdmin extends Command
 
         $minutes = (int) config('auth.passwords.users.expire');
         $front = rtrim((string) config('app.frontend_url'), '/');
-        $token = Password::broker()->createToken($user);
+        /** @var PasswordBroker $broker */
+        $broker = Password::broker();
+        $token = $broker->createToken($user);
         Mail::to($user->email)->send(new AdminWelcomeMail(
             $user,
             $front.'/reinitialisation/'.$token.'?email='.rawurlencode($user->email),
