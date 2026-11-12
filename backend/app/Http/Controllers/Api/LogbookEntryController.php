@@ -117,7 +117,7 @@ class LogbookEntryController extends Controller
                 // l'ouvre à sa place.
                 $entry->author_id = $session->referent_id;
                 $entry->status = 'draft';
-                $entry->edit_deadline = $session->session_date->copy()->addDays(LogbookEntry::EDIT_DAYS);
+                $entry->edit_deadline = LogbookEntry::deadlineFor($session->session_date);
                 $this->apply($entry, $request->validated());
                 // On inscrit l'auteur comme artiste principal·e de la fiche (section 5).
                 $entry->artists()->attach($session->referent_id, ['member_role' => 'lead']);

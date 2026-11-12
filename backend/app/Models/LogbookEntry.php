@@ -69,6 +69,33 @@ class LogbookEntry extends Model
         return now(self::LOCAL_TIMEZONE);
     }
 
+    /**
+     * La date de rattrapage (#269), si on en a réglé une sur le serveur (KLAP_CATCH_UP_UNTIL).
+     * La cliente a demandé à pouvoir saisir, pendant le test, les fiches de séances déjà
+     * anciennes : jusqu'à cette date incluse, le délai de 10 jours ne ferme aucune fiche.
+     */
+    public static function catchUpUntil(): ?Carbon
+    {
+        $date = config('app.catch_up_until');
+        if (! is_string($date) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return null;
+        }
+
+        return Carbon::parse($date, self::LOCAL_TIMEZONE)->startOfDay();
+    }
+
+    /**
+     * Le dernier jour où on peut ouvrir et modifier la fiche d'une séance : 10 jours après la
+     * séance, ou la date de rattrapage si elle tombe plus tard.
+     */
+    public static function deadlineFor(Carbon $sessionDate): Carbon
+    {
+        $deadline = Carbon::parse($sessionDate->toDateString(), self::LOCAL_TIMEZONE)->addDays(self::EDIT_DAYS);
+        $catchUp = self::catchUpUntil();
+
+        return $catchUp !== null && $catchUp->gt($deadline) ? $catchUp : $deadline;
+    }
+
     /** @var list<string> */
     protected $fillable = self::FIELDS;
 

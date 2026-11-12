@@ -43,9 +43,10 @@ class DashboardController extends Controller
         return response()->json([
             'to_fill' => $this->toFill($user)->map(fn (ScheduledSession $session) => [
                 ...(new ScheduledSessionResource($session))->resolve(),
-                // Le dernier jour pour rendre la fiche : J+10, ou l'échéance d'un brouillon qu'on a rouvert.
+                // Le dernier jour pour rendre la fiche : celui de la séance (J+10, ou la date de
+                // rattrapage), ou l'échéance d'un brouillon qu'on a rouvert.
                 'deadline' => ($session->logbookEntry->edit_deadline
-                    ?? $session->session_date->copy()->addDays(LogbookEntry::EDIT_DAYS))->toDateString(),
+                    ?? LogbookEntry::deadlineFor($session->session_date))->toDateString(),
             ])->all(),
             'upcoming' => ScheduledSessionResource::collection($this->upcoming($user))->resolve(),
             'recent_entries' => $this->recentEntries($user),
@@ -68,6 +69,8 @@ class DashboardController extends Controller
     {
         $today = LogbookEntry::localNow()->toDateString();
         $oldest = LogbookEntry::localNow()->subDays(LogbookEntry::EDIT_DAYS)->toDateString();
+        // Pendant le rattrapage (#269), une séance ancienne sans fiche reste à remplir.
+        $catchingUp = LogbookEntry::catchUpUntil()?->toDateString() >= $today;
 
         return ScheduledSession::query()
             ->where('referent_id', $user->id)
@@ -75,8 +78,9 @@ class DashboardController extends Controller
             ->whereHas('project', fn (Builder $project) => $project->where('status', '<>', 'archived'))
             ->whereDate('session_date', '<=', $today)
             ->where(fn (Builder $open) => $open
-                // Pas encore de fiche : on peut l'ouvrir jusqu'à J+10.
-                ->where(fn (Builder $none) => $none->doesntHave('logbookEntry')->whereDate('session_date', '>=', $oldest))
+                // Pas encore de fiche : on peut l'ouvrir jusqu'à J+10, ou sans limite pendant le rattrapage.
+                ->where(fn (Builder $none) => $none->doesntHave('logbookEntry')
+                    ->when(! $catchingUp, fn (Builder $recent) => $recent->whereDate('session_date', '>=', $oldest)))
                 // Un brouillon, dans son délai (prolongé si on l'a rouvert).
                 ->orWhereHas('logbookEntry', fn (Builder $entry) => $entry->where('status', 'draft')
                     ->whereDate('edit_deadline', '>=', $today)))

@@ -38,8 +38,9 @@ class StoreLogbookEntryRequest extends FormRequest
             'Seul·e l’intervenant·e référent·e de la séance, l’administratrice ou la super-utilisatrice peut ouvrir sa fiche.');
         abort_if($this->scheduledSession->logbookEntry()->exists(), 409, 'Cette séance a déjà une fiche.');
 
-        // Après J+10, on ne pourrait plus ni modifier ni soumettre la fiche : on ne l'ouvre pas.
-        $deadline = $this->scheduledSession->session_date->copy()->addDays(LogbookEntry::EDIT_DAYS)->toDateString();
+        // Après le délai (J+10, ou la date de rattrapage), on ne pourrait plus ni modifier ni
+        // soumettre la fiche : on ne l'ouvre pas.
+        $deadline = LogbookEntry::deadlineFor($this->scheduledSession->session_date)->toDateString();
         abort_if(LogbookEntry::localNow()->toDateString() > $deadline, 403,
             'Le délai de 10 jours après la séance est passé : la fiche ne peut plus être ouverte.');
 

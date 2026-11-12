@@ -70,6 +70,18 @@ DB_USERNAME=moncompte_user              # Nom d'utilisateur Alwaysdata
 DB_PASSWORD=mot_de_passe_alwaysdata     # Mot de passe Alwaysdata
 ```
 
+**Rattrapage des fiches (#269).** Pendant le test de novembre, la cliente saisit des séances qui
+datent de juillet. Pour lui laisser ouvrir ces fiches malgré la règle des 10 jours, on ajoute au
+`.env` d'Alwaysdata :
+
+```dotenv
+KLAP_CATCH_UP_UNTIL=2026-11-30
+```
+
+Jusqu'à cette date incluse, la fiche de n'importe quelle séance passée peut s'ouvrir. Après, la
+règle des 10 jours reprend seule : on peut retirer la ligne, ou la laisser. Si la configuration
+est en cache, relancer `php artisan config:cache` après la modification.
+
 ---
 
 ### Étape 3 : Le déploiement et la commande magique via SSH
