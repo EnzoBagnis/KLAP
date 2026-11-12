@@ -1,7 +1,7 @@
 import TextAreaInput from '../../../Components/Form/TextAreaInput.jsx';
 import useLogbook from '../../../Hooks/useLogbook.js';
 
-// Étape 5 : les artistes (acquis, bilan de l'intervenant·e).
+/** Étape 5 : les artistes (les acquis, le bilan de l'intervenant·e). */
 export default function ArtistFeedbackStep() {
   const { form, set, errors } = useLogbook();
 

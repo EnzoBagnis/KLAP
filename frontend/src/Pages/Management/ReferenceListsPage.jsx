@@ -3,24 +3,26 @@ import ReferenceList from '../../Components/Management/ReferenceList.jsx';
 import { createProjectType, listProjectTypes, updateProjectType } from '../../Services/ProjectService.js';
 import { createFunder, createLocation, listAllLocations, listFunders, updateFunder, updateLocation } from '../../Services/ReferenceService.js';
 
-/*
- * Gestion › Listes (#249) : les listes que l'administratrice tient à jour elle-même.
- * Financeurs (destinataires du pré-bilan), types de projet et lieux.
- */
+/** Les catégories de financeur : valeur de l'API et libellé. */
 export const FUNDER_TYPES = [
   { value: 'state', label: 'État' },
   { value: 'local_authority', label: 'Collectivité' },
   { value: 'foundation', label: 'Fondation' },
   { value: 'other', label: 'Autre' },
 ];
+/** Le libellé d'une catégorie de financeur. */
 const typeLabel = (value) => FUNDER_TYPES.find((t) => t.value === value)?.label ?? 'Autre';
+/** « 3 projets », « 1 projet » ou « Aucun projet ». */
 const projects = (n) => (n > 0 ? `${n} projet${n > 1 ? 's' : ''}` : 'Aucun projet');
 
+/** Les champs du formulaire d'un financeur. */
 const FUNDER_FIELDS = [
   { key: 'name', label: 'Nom du financeur', required: true, maxLength: 150, requiredMessage: 'Indiquez le nom du financeur.' },
   { key: 'type', label: 'Catégorie', required: true, options: FUNDER_TYPES, requiredMessage: 'Choisissez la catégorie du financeur.' },
 ];
+/** Le champ du formulaire d'un type de projet. */
 const TYPE_FIELDS = [{ key: 'name', label: 'Nom du type de projet', required: true, maxLength: 100, requiredMessage: 'Indiquez le nom du type de projet.' }];
+/** Les champs du formulaire d'un lieu. */
 const LOCATION_FIELDS = [
   { key: 'name', label: 'Nom du lieu', required: true, maxLength: 150, requiredMessage: 'Indiquez le nom du lieu.' },
   { key: 'address', label: 'Adresse', maxLength: 255 },
@@ -28,6 +30,10 @@ const LOCATION_FIELDS = [
   { key: 'city', label: 'Ville', required: true, maxLength: 100, requiredMessage: 'Indiquez la ville.' },
 ];
 
+/**
+ * Gestion › Listes (#249) : les listes que l'administratrice tient à jour elle-même. Ce sont
+ * les financeurs (destinataires du pré-bilan), les types de projet et les lieux.
+ */
 export default function ReferenceListsPage() {
   return (
     <section className="page">

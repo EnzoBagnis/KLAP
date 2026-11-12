@@ -14,27 +14,42 @@ import '../../assets/css/FormStyles.css';
 import '../../assets/css/ProjectStyles.css';
 import '../../assets/css/StatisticsStyles.css';
 
+/** Les trois notes moyennes, avec leur libellé et leur couleur. */
 const RATINGS = [
   { key: 'avg_engagement', label: 'Engagement', tone: 'engagement' },
   { key: 'avg_expression', label: 'Expression', tone: 'expression' },
   { key: 'avg_autonomy', label: 'Autonomie', tone: 'autonomy' },
 ];
 
+/** Une moyenne sur 5, ou « Non renseigné » (jamais 0). */
 const formatAverage = (value) => (value === null ? 'Non renseigné' : `${value.toLocaleString('fr-FR')} / 5`);
+/** Un nombre, avec le séparateur de milliers français. */
 const formatCount = (value) => value.toLocaleString('fr-FR');
 
+/** Une date dans l'URL : AAAA-MM-JJ. */
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** Un identifiant de projet dans l'URL : des chiffres seulement. */
 const ID = /^\d+$/;
 
-/*
- * Filtres lus dans l'URL (?projet=3&du=2026-09-01&au=2026-12-31), pour survivre au rechargement.
- * Une valeur mal formée est ignorée : le champ date ne pourrait pas l'afficher.
+/**
+ * Les filtres, qu'on lit dans l'URL (?projet=3&du=2026-09-01&au=2026-12-31) pour qu'ils
+ * survivent au rechargement. On ignore une valeur mal formée : le champ date ne pourrait pas
+ * l'afficher.
+ *
+ * @param {URLSearchParams} searchParams
+ * @returns {{projectId: string, from: string, to: string}}
  */
 function filtersFrom(searchParams) {
   const read = (key, pattern) => (pattern.test(searchParams.get(key) ?? '') ? searchParams.get(key) : '');
   return { projectId: read('projet', ID), from: read('du', DATE), to: read('au', DATE) };
 }
 
+/**
+ * Les filtres, tels qu'on les écrit dans l'URL. On n'y met que ceux qui sont renseignés.
+ *
+ * @param {{projectId: string, from: string, to: string}} filters
+ * @returns {{projet?: string, du?: string, au?: string}}
+ */
 function paramsOf({ projectId, from, to }) {
   const params = {};
   if (projectId) params.projet = projectId;
@@ -43,9 +58,10 @@ function paramsOf({ projectId, from, to }) {
   return params;
 }
 
-/*
- * Statistiques (#74) : chiffres agrégés à partir des fiches rendues, filtrés par projet
- * et période. Participants : maximum des présents par groupe, somme par projet (pas un cumul).
+/**
+ * Les statistiques (#74) : des chiffres agrégés à partir des fiches rendues, qu'on filtre par
+ * projet et par période. Pour les participants, on prend le maximum des présents par groupe,
+ * puis la somme par projet (jamais un cumul des séances) : c'est la règle de la cliente.
  */
 export default function StatisticsPage() {
   const { logout } = useAuth();
@@ -69,7 +85,7 @@ export default function StatisticsPage() {
     const request = ++lastRequest.current;
     const outdated = () => request !== lastRequest.current;
     setState({ status: 'loading', data: null, error: '', fieldErrors: {} });
-    // Un message d'export porte sur les chiffres d'avant : il disparaît avec eux.
+    // Un message d'export porte sur les chiffres d'avant : on l'efface avec eux.
     setExportMessage(null);
     getStatistics({ projectId, from, to })
       .then((data) => !outdated() && setState({ status: 'ready', data, error: '', fieldErrors: {} }))
@@ -115,7 +131,7 @@ export default function StatisticsPage() {
 
   function go(next) {
     const params = paramsOf(next);
-    // Sans changement, pas de nouvelle entrée d'historique (Retour semblerait ne rien faire).
+    // Sans changement, on n'ajoute pas d'entrée à l'historique (Retour semblerait ne rien faire).
     setSearchParams(params, { replace: new URLSearchParams(params).toString() === urlKey });
   }
 
@@ -124,7 +140,7 @@ export default function StatisticsPage() {
     go(draft);
   }
 
-  // Export Excel (#219) : les filtres appliqués, donc les chiffres affichés.
+  // L'export Excel (#219) : on exporte avec les filtres appliqués, donc les chiffres affichés.
   async function exportExcel() {
     if (exporting) return;
     setExporting(true);
@@ -155,7 +171,7 @@ export default function StatisticsPage() {
 
   const { data, fieldErrors } = state;
 
-  // Projets du menu : ceux de l'API projets, plus ceux des statistiques (archivés compris),
+  // Les projets du menu : ceux de l'API projets, plus ceux des statistiques (archivés compris),
   // plus celui de l'URL s'il est inconnu, pour que le menu montre toujours le filtre appliqué.
   const options = new Map(projects.map((project) => [String(project.id), project.name]));
   data?.projects.forEach((project) => options.has(String(project.id)) || options.set(String(project.id), project.name));
@@ -172,7 +188,7 @@ export default function StatisticsPage() {
           {exporting ? 'Préparation du fichier…' : 'Exporter en Excel'}
         </Button>
       </div>
-      {/* Zone d'annonce toujours présente : un lecteur d'écran annonce mieux un texte qui y change. */}
+      {/* On garde cette zone d'annonce toujours présente : un lecteur d'écran annonce mieux un texte qui y change. */}
       <div role="status" aria-live="polite" className={exportMessage?.tone === 'success' ? 'form-success' : undefined}>
         {exportMessage?.tone === 'success' ? exportMessage.text : ''}
       </div>
@@ -286,7 +302,7 @@ export default function StatisticsPage() {
               />
             )}
             <AttendanceChart projects={data.projects} />
-            {/* Nom distinct de la section : deux repères de même nom gênent la navigation au lecteur d’écran. */}
+            {/* On lui donne un nom distinct de la section : deux repères de même nom gênent la navigation au lecteur d’écran. */}
             <div className="statistics-table-wrapper" role="region" aria-label="Tableau : par projet" tabIndex={0}>
               <table className="statistics-table" aria-labelledby="projets-titre">
                 <thead>
@@ -331,7 +347,7 @@ export default function StatisticsPage() {
                         <td>{formatCount(group.participants)}</td>
                         <td>{formatCount(group.sessions_documented)}</td>
                         <td>{formatAttendance(group)}</td>
-                        {/* Fiches et moyennes : comptées par projet (une fiche couvre parfois plusieurs groupes). */}
+                        {/* Les fiches et les moyennes : on les compte par projet (une fiche couvre parfois plusieurs groupes). */}
                         {Array.from({ length: RATINGS.length + 2 }, (_, index) => (
                           <td key={index} />
                         ))}
@@ -353,6 +369,15 @@ export default function StatisticsPage() {
   );
 }
 
+/**
+ * Une carte de chiffre clé.
+ *
+ * @param {object} props
+ * @param {string} props.label
+ * @param {string|number} props.value
+ * @param {string} [props.hint]  une précision sous le chiffre
+ * @param {boolean} [props.alert=false]  en rouge, pour un chiffre qui demande une action
+ */
 function StatCard({ label, value, hint, alert = false }) {
   return (
     <li className={`stat-card${alert ? ' is-alert' : ''}`}>
@@ -363,13 +388,18 @@ function StatCard({ label, value, hint, alert = false }) {
   );
 }
 
-/** « 15-16 ans · Marseille (13003) », à partir de ce qui est renseigné sur le groupe. */
+/**
+ * Le détail d'un groupe, « 15-16 ans · Marseille (13003) », à partir de ce qui est renseigné.
+ */
 function groupDetails(group) {
   const place = group.city ? `${group.city}${group.postal_code ? ` (${group.postal_code})` : ''}` : group.postal_code;
   return [group.age_range, place].filter(Boolean).join(' · ');
 }
 
-/** « 11 présents en moyenne, 73 % des 15 prévus » ; sans effectif prévu, la moyenne seule. */
+/**
+ * L'assiduité d'un groupe : « 11 présents en moyenne, 73 % des 15 prévus ». Sans effectif
+ * prévu, on ne donne que la moyenne.
+ */
 function formatAttendance(group) {
   if (group.average_attendees == null) return 'Non renseignée';
   const average = `${group.average_attendees.toLocaleString('fr-FR')} présents en moyenne`;
@@ -378,7 +408,17 @@ function formatAttendance(group) {
     : `${average}, ${group.attendance_rate} % des ${group.expected_headcount} prévus`;
 }
 
-/** Participants répartis par provenance ou par âge (somme des groupes concernés). */
+/**
+ * Les participants répartis par provenance ou par âge (la somme des groupes concernés) : un
+ * graphique, puis son tableau.
+ *
+ * @param {object} props
+ * @param {string} props.id
+ * @param {string} props.title
+ * @param {string} props.chartTitle
+ * @param {object[]} props.rows
+ * @param {Array<[string, (row: object) => string]>} props.columns  les colonnes de libellé : [titre, valeur d'une ligne]
+ */
 function Breakdown({ id, title, chartTitle, rows, columns }) {
   const keyOf = (row) => columns.map(([, value]) => value(row)).join('|');
   return (
@@ -436,9 +476,12 @@ function Breakdown({ id, title, chartTitle, rows, columns }) {
   );
 }
 
-/*
- * Assiduité par groupe, quand un seul projet est affiché (filtre) : taux de présence par
- * rapport à l'effectif prévu. Les groupes sans effectif prévu ou sans fiche sont absents.
+/**
+ * L'assiduité par groupe, quand on n'affiche qu'un projet (filtre) : le taux de présence par
+ * rapport à l'effectif prévu. On n'y met pas les groupes sans effectif prévu ou sans fiche.
+ *
+ * @param {object} props
+ * @param {object[]} props.projects
  */
 function AttendanceChart({ projects }) {
   if (projects.length !== 1) return null;
@@ -457,7 +500,12 @@ function AttendanceChart({ projects }) {
   );
 }
 
-/** Trois barres horizontales, avec la valeur écrite (la couleur n'est jamais la seule information). */
+/**
+ * Trois barres horizontales, avec la valeur écrite : la couleur n'est jamais la seule information.
+ *
+ * @param {object} props
+ * @param {object} props.values  les moyennes (avg_engagement, avg_expression, avg_autonomy)
+ */
 function Ratings({ values }) {
   return (
     <ul className="ratings">
@@ -477,12 +525,18 @@ function Ratings({ values }) {
   );
 }
 
+/** Les libellés des sensations, par valeur de l'API. */
 const FEELING_LABELS = Object.fromEntries(FEELINGS);
+/** Les libellés des évolutions, par valeur de l'API. */
 const PROGRESS_LABELS = Object.fromEntries(PROGRESS);
 
-/*
- * Ce que notent les intervenant·e·s sur les fiches rendues : sensations (bleu), interaction
- * (ambre), couleurs choisies par la cliente, et évolution. Chaque graphique a son tableau.
+/**
+ * Ce que notent les intervenant·e·s sur les fiches rendues : les sensations (bleu),
+ * l'interaction (ambre) — des couleurs que la cliente a choisies — et l'évolution. Chaque
+ * graphique a son tableau.
+ *
+ * @param {object} props
+ * @param {object} props.data  le bloc `observations` des statistiques
  */
 function Observations({ data }) {
   const blocks = [

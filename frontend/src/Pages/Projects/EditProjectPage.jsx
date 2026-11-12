@@ -19,17 +19,17 @@ import { mapServerErrors, validateProject } from './NewProjectPage.jsx';
 import '../../assets/css/FormStyles.css';
 import '../../assets/css/ProjectStyles.css';
 
-/*
- * Modifier, archiver et restaurer un projet (#154), administratrice. API : #152.
- * Mêmes champs et contrôles qu'à la création, sauf les sous-projets (lecture seule).
- * Seuls les champs modifiés partent en PATCH. Un projet n'est jamais effacé : archiver
- * demande le nom exact, et un projet archivé se restaure.
- */
-
+/** Les champs qu'on peut modifier ici. */
 const FIELDS = ['name', 'project_type_id', 'planned_sessions', 'start_date', 'end_date', 'default_location_id', 'principal_user_id'];
+/** Ceux qu'on envoie à l'API sous forme de nombre. */
 const NUMBERS = new Set(['project_type_id', 'planned_sessions', 'default_location_id', 'principal_user_id']);
 
-/** Formulaire prérempli à partir du détail renvoyé par l'API. */
+/**
+ * Le formulaire prérempli, à partir du détail que l'API renvoie.
+ *
+ * @param {object} project
+ * @returns {object}
+ */
 export function projectToForm(project) {
   const lead = project.team?.find((member) => member.member_role === 'lead');
   return {
@@ -41,7 +41,8 @@ export function projectToForm(project) {
     default_location_id: project.default_location ? String(project.default_location.id) : '',
     principal_user_id: lead ? String(lead.id) : '',
     funder_ids: (project.funders ?? []).map((funder) => funder.id),
-    // Champs de la création absents ici : vides, pour réutiliser validateProject tel quel.
+    // Ces champs de la création n'existent pas ici : on les laisse vides, pour réutiliser
+    // validateProject tel quel.
     organization: '',
     city: '',
     postal_code: '',
@@ -49,7 +50,14 @@ export function projectToForm(project) {
   };
 }
 
-/** Champs modifiés seulement, au format de l'API : vide devient null, nombres convertis. */
+/**
+ * Les champs modifiés seulement, au format de l'API : un champ vide devient null, et on
+ * convertit les nombres.
+ *
+ * @param {object} initial  le formulaire au chargement
+ * @param {object} form  le formulaire actuel
+ * @returns {object}
+ */
 export function toChanges(initial, form) {
   const changes = {};
   for (const key of FIELDS) {
@@ -63,11 +71,23 @@ export function toChanges(initial, form) {
   return changes;
 }
 
-/** Ajoute à une liste l'élément actuel du projet s'il n'y figure plus (désactivé depuis). */
+/**
+ * On ajoute à une liste l'élément actuel du projet, s'il n'y figure plus (désactivé depuis).
+ *
+ * @param {object[]} list
+ * @param {object|null} current
+ * @returns {object[]}
+ */
 function withCurrent(list, current) {
   return current && !list.some((item) => item.id === current.id) ? [...list, current] : list;
 }
 
+/**
+ * Modifier, archiver et restaurer un projet (#154), pour l'administratrice (API : #152). On
+ * reprend les champs et les contrôles de la création, sauf les groupes, qui se gèrent sur la
+ * page du projet. On n'envoie en PATCH que les champs modifiés. On n'efface jamais un projet :
+ * archiver demande son nom exact, et un projet archivé se restaure.
+ */
 export default function EditProjectPage() {
   const { id } = useParams();
   const { logout } = useAuth();
@@ -83,7 +103,7 @@ export default function EditProjectPage() {
 
   const lastRequest = useRef(0);
 
-  // Message d'erreur à afficher, ou null après une 401 (déconnexion).
+  // Le message d'erreur à afficher, ou null après une 401 (on déconnecte).
   const fail = useCallback(
     (error, fallback) => {
       if (error.status === 401) {
@@ -120,7 +140,7 @@ export default function EditProjectPage() {
     Promise.all([getProject(id), listProjectTypes(), listLocations(), listContributors(), listFunders()])
       .then(([project, types, locations, contributors, funders]) => {
         if (outdated()) return;
-        // Financeurs actifs, plus ceux déjà rattachés au projet même désactivés (#249).
+        // On propose les financeurs actifs, plus ceux déjà rattachés au projet, même désactivés (#249).
         const attached = new Set((project.funders ?? []).map((funder) => funder.id));
         showProject(project, { types: types.filter((type) => type.is_active), locations, contributors, funders: funders.filter((funder) => funder.is_active !== false || attached.has(funder.id)) });
       })

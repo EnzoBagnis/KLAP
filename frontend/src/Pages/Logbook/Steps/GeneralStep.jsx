@@ -4,11 +4,11 @@ import useLogbook from '../../../Hooks/useLogbook.js';
 import { listLocations } from '../../../Services/ReferenceService.js';
 import { dayTitle, sessionTypeLabel } from '../../Planning/sessionLabels.js';
 
-/*
- * Étape 1 : généralités, héritées de la séance programmée. Seul le lieu se corrige ici (#215) :
- * « le lieu est modifiable par tout utilisateur » (projets en tournée). Il est enregistré avec
- * le brouillon et s'applique à la séance. Le reste ne se modifie plus une fois la fiche ouverte
- * (le planning refuse de modifier une séance qui a une fiche).
+/**
+ * Étape 1 : les généralités, qu'on reprend de la séance programmée. Seul le lieu se corrige ici
+ * (#215) : « le lieu est modifiable par tout utilisateur » (projets en tournée). On l'enregistre
+ * avec le brouillon, et il s'applique à la séance. Le reste ne se modifie plus une fois la
+ * fiche ouverte (le planning refuse de modifier une séance qui a une fiche).
  */
 export default function GeneralStep() {
   const { entry, form, set, errors, readOnlyReason } = useLogbook();
@@ -19,7 +19,7 @@ export default function GeneralStep() {
   useEffect(() => {
     if (!editable) return undefined;
     let current = true;
-    // En cas d'échec, le menu garde au moins le lieu actuel : la fiche reste utilisable.
+    // En cas d'échec, on garde au moins le lieu actuel dans le menu : la fiche reste utilisable.
     listLocations()
       .then((list) => current && setLocations(list))
       .catch(() => {});
@@ -28,7 +28,7 @@ export default function GeneralStep() {
     };
   }, [editable]);
 
-  // Le lieu actuel reste proposé, même s'il n'est plus dans la liste des lieux actifs.
+  // On propose toujours le lieu actuel, même s'il n'est plus dans la liste des lieux actifs.
   const choices = locations.some((place) => place.id === session.location.id) ? locations : [session.location, ...locations];
 
   return (

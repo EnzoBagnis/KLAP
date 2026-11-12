@@ -12,11 +12,10 @@ import ReferenceList from '../../Components/Management/ReferenceList.jsx';
 import { commonLocality, formatPeriod, statusLabel } from './projectLabels.js';
 import '../../assets/css/ProjectStyles.css';
 
-/*
- * Détail d'un projet (maquette, écrans 04 et M4), en lecture seule.
- * Seules les données que l'API fournit aujourd'hui sont affichées : les indicateurs
- * (participants, présence…), la frise des séances et le nombre de séances réalisées
- * attendent les API de séances et de fiches. Aucun chiffre n'est inventé en attendant.
+/**
+ * Le détail d'un projet (maquette, écrans 04 et M4). Tout le monde le lit ; l'administratrice
+ * y gère aussi les groupes (#250) et l'équipe (#251). Les chiffres du projet (participants,
+ * présence…) sont sur l'écran Statistiques : on n'en invente aucun ici.
  */
 export default function ProjectDetailsPage() {
   const { id } = useParams();
@@ -24,8 +23,8 @@ export default function ProjectDetailsPage() {
   const [state, setState] = useState({ status: 'loading', project: null, error: '' });
   const [tabs, setTabs] = useState([]);
 
-  // Numéro de la dernière requête : une réponse plus ancienne (autre projet, ou essai
-  // précédent avant « Réessayer ») est ignorée et ne peut pas écraser la page.
+  // Le numéro de la dernière requête : on ignore une réponse plus ancienne (autre projet, ou
+  // essai précédent avant « Réessayer »), qui ne peut donc pas écraser la page.
   const lastRequest = useRef(0);
 
   const load = useCallback(() => {
@@ -60,7 +59,7 @@ export default function ProjectDetailsPage() {
     else if (state.status === 'missing') document.title = 'Projet introuvable · KLAP';
   }, [state]);
 
-  // Onglets de la maquette : les autres projets visibles. Un échec ici ne bloque pas la page.
+  // Les onglets de la maquette : les autres projets visibles. Un échec ici ne bloque pas la page.
   useEffect(() => {
     let cancelled = false;
     listProjects()
@@ -121,17 +120,25 @@ export default function ProjectDetailsPage() {
   );
 }
 
+/**
+ * Le contenu de la page, une fois le projet chargé.
+ *
+ * @param {object} props
+ * @param {object} props.project
+ * @param {boolean} props.canEdit  l'administratrice : elle modifie le projet, ses groupes et son équipe
+ * @param {boolean} props.canReport  administratrice ou super-utilisatrice : le bouton « Pré-bilan »
+ */
 function ProjectDetails({ project, canEdit, canReport }) {
-  // L'équipe suit les ajouts et retraits de la section Équipe (#251), en-tête compris.
+  // On garde l'équipe ici : l'en-tête suit ainsi les ajouts et les retraits de la section Équipe (#251).
   const [team, setTeam] = useState(project.team ?? []);
   const lead = team.filter((member) => member.member_role === 'lead');
-  // Les membres retiré·e·s de l'équipe (#251) ne figurent plus parmi les ponctuel·le·s actuel·le·s.
+  // On ne compte plus les membres retiré·e·s de l'équipe (#251) parmi les ponctuel·le·s actuel·le·s.
   const occasional = team.filter((member) => member.member_role === 'occasional' && !member.end_date);
   const subProjects = project.sub_projects ?? [];
   const locality = commonLocality(subProjects);
   const period = formatPeriod(project.start_date, project.end_date);
-  // Un projet non découpé a un seul sous-projet qui porte son nom : pas de découpage à montrer.
-  // Seuls les groupes actifs comptent (#250) : un groupe retiré ne fait pas un découpage.
+  // Un projet non découpé a un seul sous-projet, qui porte son nom : on n'a pas de découpage à
+  // montrer. On ne compte que les groupes actifs (#250) : un groupe retiré ne fait pas un découpage.
   const isSplit = subProjects.filter((sub) => sub.is_active !== false).length > 1;
 
   return (
@@ -150,7 +157,7 @@ function ProjectDetails({ project, canEdit, canReport }) {
                 {project.status === 'archived' ? 'Restaurer' : 'Modifier'}
               </Link>
             )}
-            {/* Pré-bilan Word (#144) : administratrice et super-utilisatrice. */}
+            {/* Le pré-bilan Word (#144) : pour l'administratrice et la super-utilisatrice. */}
             {canReport && (
               <Link to={`/pre-bilan?projet=${project.id}`} className="btn btn-line">
                 Pré-bilan
@@ -237,8 +244,9 @@ function ProjectDetails({ project, canEdit, canReport }) {
   );
 }
 
-// ---------- Groupes du projet, gérés par l'administratrice (#250) ----------
+// ---------- Les groupes du projet, que l'administratrice gère elle-même (#250) ----------
 
+/** Les champs du formulaire d'un groupe. */
 const GROUP_FIELDS = [
   { key: 'name', label: 'Nom du groupe', required: true, maxLength: 150, requiredMessage: 'Indiquez le nom du groupe.' },
   { key: 'class_group', label: 'Classe ou groupe', maxLength: 100 },
@@ -249,6 +257,7 @@ const GROUP_FIELDS = [
   { key: 'postal_code', label: 'Code postal', inputMode: 'numeric', pattern: /^\d{5}$/, patternMessage: 'Le code postal doit compter 5 chiffres.' },
 ];
 
+/** Les mots de la liste des groupes : on « retire » et on « remet » un groupe. */
 const GROUP_WORDING = {
   off: 'Retirer',
   on: 'Remettre',
@@ -259,6 +268,9 @@ const GROUP_WORDING = {
   askOn: (n) => `Remettre le groupe « ${n} » ? Il sera de nouveau proposé pour les séances.`,
 };
 
+/**
+ * La ligne d'information sous le nom d'un groupe : classe, âge, effectif, structure, ville.
+ */
 const groupMeta = (g) =>
   [
     g.class_group,
@@ -270,6 +282,12 @@ const groupMeta = (g) =>
     .filter(Boolean)
     .join(' · ') || 'Âge et effectif à compléter';
 
+/**
+ * La gestion des groupes d'un projet. On réutilise la liste de Gestion › Listes.
+ *
+ * @param {object} props
+ * @param {number} props.projectId
+ */
 function GroupManager({ projectId }) {
   const load = useCallback(() => getProject(projectId).then((project) => project.sub_projects ?? []), [projectId]);
   const create = useCallback((payload) => createSubProject(projectId, payload), [projectId]);
@@ -289,8 +307,17 @@ function GroupManager({ projectId }) {
   );
 }
 
-// ---------- Équipe du projet, gérée par l'administratrice (#251) ----------
+// ---------- L'équipe du projet, que l'administratrice gère elle-même (#251) ----------
 
+/**
+ * La gestion de l'équipe d'un projet : on ajoute un·e intervenant·e ponctuel·le, ou on le ou
+ * la retire.
+ *
+ * @param {object} props
+ * @param {object} props.project
+ * @param {object[]} props.team  l'équipe, telle que l'API la renvoie
+ * @param {(team: object[]) => void} props.onTeamChange
+ */
 function TeamManager({ project, team, onTeamChange: setTeam }) {
   const { logout } = useAuth();
   const [contributors, setContributors] = useState([]);
@@ -323,7 +350,7 @@ function TeamManager({ project, team, onTeamChange: setTeam }) {
       logout();
       return;
     }
-    // Équipe changée entre-temps (retrait déjà fait ailleurs…) : on la relit.
+    // L'équipe a changé entre-temps (retrait déjà fait ailleurs…) : on la relit.
     if (failure.status === 404) {
       getProject(project.id)
         .then((fresh) => setTeam(fresh.team ?? []))

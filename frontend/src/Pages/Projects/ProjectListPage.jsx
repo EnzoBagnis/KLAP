@@ -8,14 +8,14 @@ import { statusLabel } from './projectLabels.js';
 import '../../assets/css/ProjectStyles.css';
 
 /**
- * Liste des projets visibles (tous pour l'administratrice et la super-utilisatrice,
- * ceux où il est affecté pour un intervenant). Point d'entrée vers le détail.
+ * La liste des projets qu'on peut voir : tous pour l'administratrice et la super-utilisatrice,
+ * ceux où il est affecté pour un intervenant. C'est le point d'entrée vers le détail.
  */
 export default function ProjectListPage() {
   const { logout } = useAuth();
   const [state, setState] = useState({ status: 'loading', projects: [], error: '' });
 
-  // Numéro de la dernière requête : une réponse plus ancienne est ignorée.
+  // Le numéro de la dernière requête : on ignore une réponse plus ancienne.
   const lastRequest = useRef(0);
 
   const load = useCallback(() => {
@@ -37,7 +37,7 @@ export default function ProjectListPage() {
   useEffect(() => {
     document.title = 'Projets · KLAP';
     load();
-    // Au démontage, toute réponse en cours devient obsolète.
+    // Au démontage, on rend obsolète toute réponse encore en route.
     return () => {
       lastRequest.current += 1;
     };
@@ -87,6 +87,12 @@ export default function ProjectListPage() {
   );
 }
 
+/**
+ * Le message à afficher quand les projets ne se chargent pas.
+ *
+ * @param {import('../../Services/ApiClient.js').ApiError} error
+ * @returns {string}
+ */
 export function errorMessage(error) {
   if (error.status === 0) return error.message;
   return 'Les projets n’ont pas pu être chargés. Réessayez dans un instant.';

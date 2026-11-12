@@ -3,7 +3,7 @@ import TextAreaInput from '../../../Components/Form/TextAreaInput.jsx';
 import useLogbook from '../../../Hooks/useLogbook.js';
 import { MAX_EXERCISES, MIN_EXERCISES } from '../logbookModel.js';
 
-// Étape 3 : la séance (exercices, ajustement, temps forts, ressources).
+/** Étape 3 : la séance (exercices, ajustement, temps forts, outils et ressources). */
 export default function SessionStep() {
   const { form, set, errors } = useLogbook();
 
