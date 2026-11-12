@@ -59,6 +59,13 @@ jobs:
       - name: Installer les dépendances
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      # Style (Pint) et analyse statique (PHPStan) : une erreur bloque la fusion (#258).
+      - name: Style du code
+        run: composer style
+
+      - name: Analyse statique
+        run: composer analyse -- --no-progress
+
       - name: Préparer l'environnement
         run: |
           cp .env.example .env
@@ -111,6 +118,9 @@ jobs:
 
       - name: Installer les dépendances
         run: npm ci
+
+      - name: Analyse statique
+        run: npm run lint
 
       - name: Tests
         run: npm test
