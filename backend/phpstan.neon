@@ -1,0 +1,13 @@
+# Analyse statique du backend (#258) : composer analyse
+# phpstan-baseline.neon : les remarques connues au 12/11, qu'on résorbe fichier par fichier.
+includes:
+    - phpstan-baseline.neon
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 6
+    paths:
+        - app
+        - database
+        - routes
+        - tests
