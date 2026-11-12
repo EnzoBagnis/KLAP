@@ -8,41 +8,52 @@ use App\Models\Project;
 use App\Support\LogbookRules;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use PhpOffice\PhpWord\Element\Section;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\Shared\Converter;
+use Throwable;
 
 /**
- * Pré-bilan Word d'un projet pour un financeur (#143). Uniquement des titres et des données
- * saisies : aucune phrase rédigée par l'application (contexte client). Mariette le retravaille
- * avant envoi, d'où un vrai Word avec des styles de titres. Chiffres tirés de StatisticsService,
- * donc identiques à l'écran Statistiques. Structure reprise de la branche de Lucas (#121).
+ * Pré-bilan Word d'un projet pour un financeur (#143). On n'y met que des titres et des
+ * données saisies : l'application ne rédige aucune phrase (contexte client). Mariette le
+ * retravaille avant envoi, d'où un vrai Word avec des styles de titres. On tire les chiffres
+ * de StatisticsService : ils sont donc identiques à ceux de l'écran Statistiques. On a repris
+ * la structure de la branche de Lucas (#121).
  */
 class PreReportService
 {
     /**
-     * Réponses qui ne disent rien : on ne les reprend pas dans le pré-bilan. Comparées sous leur
-     * forme simple (LogbookRules::plain : sans accent, minuscules, sans ponctuation aux bouts).
+     * Les réponses qui ne disent rien : on ne les reprend pas dans le pré-bilan. On les compare
+     * sous leur forme simple (LogbookRules::plain : sans accent, minuscules, sans ponctuation
+     * aux bouts).
      */
     private const EMPTY_ANSWERS = ['rien', 'aucun', 'aucune', 'rien a signaler', 'ras', 'r.a.s', 'neant', 'non', '-', '/', ''];
 
+    /** Le nom de notre style de paragraphe courant. */
     private const BODY = 'Corps';
 
-    /** Largeur utile d'une page A4 aux marges par défaut de phpword (2,54 cm), en twips, arrondie. */
+    /** La largeur utile d'une page A4 aux marges par défaut de phpword (2,54 cm), en twips, arrondie. */
     private const USABLE_WIDTH = 9000;
 
+    /** La largeur qu'une colonne de tableau ne dépasse pas, en twips. */
     private const MAX_COLUMN_WIDTH = 2600;
 
     /**
-     * Champs de la fiche repris (contexte client) : les temps forts et les notes complémentaires.
-     * Le bilan de l'intervenant·e et « à reprendre » restent internes : ce sont des remarques sur
-     * des mineurs. À élargir seulement avec l'accord de la cliente (questions-cliente.md, §9).
+     * Les champs de la fiche qu'on reprend (contexte client) : les temps forts et les notes
+     * complémentaires. On garde en interne le bilan de l'intervenant·e et « à reprendre » : ce
+     * sont des remarques sur des mineurs. On n'élargira qu'avec l'accord de la cliente
+     * (questions-cliente.md, §9).
      */
     private const FIELDS = [
         'highlights' => 'Temps forts et anecdotes',
         'additional_notes' => 'Notes complémentaires',
     ];
 
+    /**
+     * @param  string|null  $from  le début de la période (AAAA-MM-JJ), ou null pour ne pas borner
+     * @param  string|null  $to  la fin de la période (AAAA-MM-JJ), ou null pour ne pas borner
+     */
     public function __construct(
         private readonly Project $project,
         private readonly Funder $funder,
@@ -50,10 +61,16 @@ class PreReportService
         private readonly ?string $to = null,
     ) {}
 
-    /** Écrit le document dans un fichier temporaire et renvoie son chemin (à supprimer par l'appelant). */
+    /**
+     * On écrit le document dans un fichier temporaire et on renvoie son chemin. C'est à
+     * l'appelant de le supprimer une fois envoyé.
+     *
+     * @throws Throwable si phpword n'arrive pas à écrire le fichier
+     */
     public function write(): string
     {
-        // Sans cela, phpword écrit le texte tel quel dans le XML : un « & » rend le fichier illisible.
+        // Sans ce réglage, phpword écrit le texte tel quel dans le XML : un « & » dans un nom
+        // de projet rend le fichier illisible.
         Settings::setOutputEscapingEnabled(true);
         $word = new PhpWord;
         $word->setDefaultFontName('Arial');
@@ -63,7 +80,8 @@ class PreReportService
         $word->addTitleStyle(2, ['size' => 12, 'bold' => true], ['spaceBefore' => Converter::pointToTwip(10), 'spaceAfter' => Converter::pointToTwip(4)]);
         $table = ['borderSize' => 6, 'borderColor' => '999999', 'cellMargin' => 60];
         $word->addTableStyle('Grille', $table);
-        // Style de paragraphe nommé partout : phpword cherche sinon un style « null » (dépréciation PHP 8.5).
+        // On nomme le style de paragraphe partout : sinon phpword cherche un style « null »
+        // (dépréciation de PHP 8.5).
         $word->addParagraphStyle(self::BODY, ['spaceAfter' => Converter::pointToTwip(4)]);
         $section = $word->addSection();
 
@@ -75,7 +93,7 @@ class PreReportService
             'Financeur' => $this->funder->name,
             'Période' => $this->period(),
             'Dates du projet' => $this->projectDates(),
-            'Édité le' => now('Europe/Paris')->format('d/m/Y'),
+            'Édité le' => LogbookEntry::localNow()->format('d/m/Y'),
         ]);
 
         $section->addTitle('1. Le projet en chiffres', 1);
@@ -88,7 +106,9 @@ class PreReportService
         ]);
 
         $section->addTitle('2. Les groupes', 1);
-        $groups = collect($row['sub_projects'] ?? []);
+        /** @var iterable<int, array<string, mixed>> $subProjects */
+        $subProjects = $row['sub_projects'] ?? [];
+        $groups = collect($subProjects);
         $this->table($section, ['Groupe', 'Âge', 'Ville', 'Participants', 'Séances'], $groups->map(fn ($g) => [
             $g['name'], $g['age_range'] ?? '', trim(($g['city'] ?? '').' '.($g['postal_code'] ? '('.$g['postal_code'].')' : '')),
             (string) $g['participants'], (string) $g['sessions_documented'],
@@ -111,7 +131,7 @@ class PreReportService
         }
         $written = 0;
         foreach ($entries as $entry) {
-            // Une fiche qui ne dit que « Rien » n'a pas de titre sans contenu dessous (#240).
+            // Pour une fiche qui ne dit que « Rien », on n'écrit pas un titre sans contenu dessous (#240).
             $lines = collect(self::FIELDS)
                 ->map(fn ($label, $field) => [$label, $this->meaningful($entry->{$field})])
                 ->filter(fn ($line) => $line[1] !== null);
@@ -136,7 +156,7 @@ class PreReportService
         $path = tempnam(sys_get_temp_dir(), 'prebilan');
         try {
             $word->save($path, 'Word2007');
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             @unlink($path);
             throw $e;
         }
@@ -144,7 +164,12 @@ class PreReportService
         return $path;
     }
 
-    /** Fiches rendues des séances non annulées du projet, sur la période, dans l'ordre. */
+    /**
+     * Les fiches rendues des séances non annulées du projet, sur la période, dans l'ordre
+     * chronologique.
+     *
+     * @return Collection<int, LogbookEntry>
+     */
     private function entries(): Collection
     {
         return LogbookEntry::query()
@@ -160,6 +185,9 @@ class PreReportService
             ->get();
     }
 
+    /**
+     * On renvoie le texte s'il dit quelque chose, null si c'est une réponse vide (« rien », « RAS »…).
+     */
     private function meaningful(?string $text): ?string
     {
         $text = trim((string) $text);
@@ -167,7 +195,12 @@ class PreReportService
         return in_array(LogbookRules::plain($text), self::EMPTY_ANSWERS, true) ? null : $text;
     }
 
-    private function facts($section, array $facts): void
+    /**
+     * On écrit une suite de lignes « libellé : valeur ».
+     *
+     * @param  array<string, string>  $facts
+     */
+    private function facts(Section $section, array $facts): void
     {
         foreach ($facts as $label => $value) {
             $run = $section->addTextRun(self::BODY);
@@ -176,15 +209,21 @@ class PreReportService
         }
     }
 
-    private function table($section, array $header, array $rows): void
+    /**
+     * On écrit un tableau, ou une phrase s'il n'y a aucune ligne.
+     *
+     * @param  list<string>  $header
+     * @param  list<list<string>>  $rows
+     */
+    private function table(Section $section, array $header, array $rows): void
     {
         if ($rows === []) {
             $section->addText('Aucune donnée sur la période.', null, self::BODY);
 
             return;
         }
-        // Colonnes réparties sur la largeur utile de la page : à 2 600 twips chacune, un tableau de
-        // 5 colonnes débordait de la marge droite et la dernière était coupée.
+        // On répartit les colonnes sur la largeur utile de la page : à 2 600 twips chacune, un
+        // tableau de 5 colonnes débordait de la marge droite et la dernière était coupée.
         $width = min(self::MAX_COLUMN_WIDTH, intdiv(self::USABLE_WIDTH, max(1, count($header))));
         $table = $section->addTable('Grille');
         $table->addRow();
@@ -199,11 +238,17 @@ class PreReportService
         }
     }
 
+    /**
+     * Une moyenne sur 5 avec une virgule, ou « Non renseigné » sans aucune note.
+     */
     private function average(?float $value): string
     {
         return $value === null ? 'Non renseigné' : str_replace('.', ',', (string) $value);
     }
 
+    /**
+     * La période du pré-bilan, en toutes lettres.
+     */
     private function period(): string
     {
         $date = fn (?string $d) => $d ? Carbon::parse($d)->format('d/m/Y') : null;
@@ -218,6 +263,9 @@ class PreReportService
         };
     }
 
+    /**
+     * Les dates du projet, en toutes lettres.
+     */
     private function projectDates(): string
     {
         $start = $this->project->start_date?->format('d/m/Y');

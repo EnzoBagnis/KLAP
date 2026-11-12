@@ -2,35 +2,44 @@
 
 namespace App\Services;
 
+use App\Models\LogbookEntry;
 use App\Support\XlsxWriter;
 use Illuminate\Support\Carbon;
 
 /**
- * Export Excel de l'écran Statistiques (#219) : les mêmes chiffres, avec les mêmes filtres,
- * rangés en onglets. Les nombres restent des nombres (Excel peut calculer).
+ * Export Excel de l'écran Statistiques (#219) : on y met les mêmes chiffres, avec les mêmes
+ * filtres, rangés en onglets. Les nombres restent des nombres (Excel peut calculer).
  */
 class StatisticsExport
 {
+    /** Les sensations, telles qu'on les nomme à l'écran. */
     private const FEELINGS = [
         'well_being' => 'Bien-être', 'discomfort' => 'Mal-être', 'tension' => 'Tensions', 'buy_in' => 'Adhésion',
         'enthusiasm' => 'Enthousiasme', 'shyness' => 'Timidité', 'other' => 'Autre',
     ];
 
+    /** Les évolutions, telles qu'on les nomme à l'écran. */
     private const PROGRESS = [
         'first_session' => 'Première séance', 'improvement' => 'Amélioration',
         'stagnation' => 'Stagnation', 'regression' => 'Retour en arrière',
     ];
 
-    /** @param array<string, mixed> $data résultat de StatisticsService::compute() */
+    /**
+     * @param  array<string, mixed>  $data  le résultat de StatisticsService::compute()
+     * @param  string|null  $projectName  le projet filtré, ou null pour tous les projets
+     */
     public function __construct(private readonly array $data, private readonly ?string $projectName) {}
 
+    /**
+     * On écrit le classeur à l'emplacement donné, un onglet par tableau de l'écran.
+     */
     public function write(string $path): void
     {
         [$summary, $notes] = $this->summary();
         (new XlsxWriter)
             ->sheet('Synthèse', $summary, [0], $notes)
-            // Projets et groupes séparés : une somme d'une colonne ne compte rien deux fois
-            // (les participants d'un projet sont déjà la somme de ses groupes).
+            // On sépare les projets et les groupes : ainsi, la somme d'une colonne ne compte rien
+            // deux fois (les participants d'un projet sont déjà la somme de ses groupes).
             ->sheet('Projets', $this->projects())
             ->sheet('Groupes', $this->groups())
             ->sheet('Provenance', $this->breakdown('by_city', ['Ville', 'Code postal'], fn ($row) => [($row['city'] ?? '') ?: 'Non renseignée', ($row['postal_code'] ?? '') ?: 'Non renseigné']))
@@ -39,13 +48,19 @@ class StatisticsExport
             ->save($path);
     }
 
-    /** Moyenne sur 5, ou « Non renseigné » sans aucune note (jamais 0, comme à l'écran). */
+    /**
+     * Une moyenne sur 5, ou « Non renseigné » sans aucune note (jamais 0, comme à l'écran).
+     */
     private static function average(?float $value): float|string
     {
         return $value ?? 'Non renseigné';
     }
 
-    /** @return array{0: list<list<string|int|float|null>>, 1: list<int>} lignes, et lignes de note */
+    /**
+     * L'onglet Synthèse : les filtres, les totaux, puis nos notes de lecture.
+     *
+     * @return array{0: list<list<string|int|float|null>>, 1: list<int>} les lignes, et les indices des lignes de note
+     */
     private function summary(): array
     {
         $filters = $this->data['filters'];
@@ -57,7 +72,7 @@ class StatisticsExport
             ['Projet', $this->projectName ?? 'Tous les projets'],
             ['Du', $date($filters['from']) ?? 'Début des projets'],
             ['Au', $date($filters['to']) ?? 'Aujourd’hui'],
-            ['Exporté le', now('Europe/Paris')->format('d/m/Y à H:i')],
+            ['Exporté le', LogbookEntry::localNow()->format('d/m/Y à H:i')],
             [],
             ['Participants', $totals['participants']],
             ['Séances documentées', $totals['sessions_documented']],
@@ -76,6 +91,11 @@ class StatisticsExport
         return [$rows, [count($rows) - 4, count($rows) - 3, count($rows) - 2, count($rows) - 1]];
     }
 
+    /**
+     * L'onglet Projets : une ligne par projet.
+     *
+     * @return list<list<string|int|float|null>>
+     */
     private function projects(): array
     {
         $rows = [['Projet', 'Participants', 'Séances documentées', 'Fiches en retard', 'dont hors délai', 'Engagement', 'Expression', 'Autonomie']];
@@ -89,11 +109,16 @@ class StatisticsExport
         return $rows;
     }
 
+    /**
+     * L'onglet Groupes : une ligne par groupe.
+     *
+     * @return list<list<string|int|float|null>>
+     */
     private function groups(): array
     {
         $rows = [['Projet', 'Groupe', 'Tranche d’âge', 'Ville', 'Code postal', 'Effectif prévu', 'Participants', 'Séances documentées', 'Présents en moyenne', 'Assiduité (%)']];
         foreach ($this->data['projects'] as $project) {
-            // Le nom du projet est répété sur chaque groupe : le filtre d'Excel garde le lien.
+            // On répète le nom du projet sur chaque groupe : le filtre d'Excel garde ainsi le lien.
             foreach ($project['sub_projects'] as $group) {
                 $rows[] = [
                     $project['name'], $group['name'], $group['age_range'], $group['city'], $group['postal_code'], $group['expected_headcount'],
@@ -105,6 +130,14 @@ class StatisticsExport
         return $rows;
     }
 
+    /**
+     * Un onglet de répartition (provenance, âge).
+     *
+     * @param  string  $key  la clé du résultat à lire : by_city ou by_age_range
+     * @param  list<string>  $columns  les titres des colonnes de libellé
+     * @param  callable(array<string, mixed>): list<string>  $labels  les libellés d'une ligne
+     * @return list<list<string|int|float|null>>
+     */
     private function breakdown(string $key, array $columns, callable $labels): array
     {
         $rows = [[...$columns, 'Groupes documentés', 'Participants']];
@@ -115,7 +148,11 @@ class StatisticsExport
         return $rows;
     }
 
-    /** @return array{0: list<list<string|int|null>>, 1: list<int>} lignes, et lignes d'en-tête en gras */
+    /**
+     * L'onglet Observations : trois tableaux à la suite (sensation, interaction, évolution).
+     *
+     * @return array{0: list<list<string|int|null>>, 1: list<int>} les lignes, et les indices des lignes d'en-tête en gras
+     */
     private function observations(): array
     {
         $observations = $this->data['observations'];

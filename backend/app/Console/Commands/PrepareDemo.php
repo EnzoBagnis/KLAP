@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Données de démonstration datées du jour de la démo (soutenance, rendez-vous cliente).
  *
- * Le jeu de données décrit la situation au 21/09/2026 : fiches rendues, verrouillées, en
+ * Notre jeu de données décrit la situation au 21/09/2026 : fiches rendues, verrouillées, en
  * brouillon, demande de réouverture en attente. La commande recrée la base, décale toutes
  * ces dates pour que le 21/09/2026 devienne le jour choisi (les états restent les mêmes),
  * puis ajoute une séance de Léa Fournier ce jour-là, sans fiche : c'est elle qu'on remplit
@@ -21,29 +21,37 @@ use Illuminate\Support\Facades\Schema;
  *   php artisan klap:demo                     (jour de la démo : aujourd'hui, heure de Paris)
  *   php artisan klap:demo --date=2026-11-19
  *
- * EFFACE TOUTE LA BASE : confirmation demandée, sauf avec --force.
+ * ELLE EFFACE TOUTE LA BASE : on demande une confirmation, sauf avec --force, et on refuse
+ * de la lancer en production.
  */
 class PrepareDemo extends Command
 {
+    /** @var string le nom de la commande et ses arguments */
     protected $signature = 'klap:demo {--date= : Jour de la démo (AAAA-MM-JJ), aujourd\'hui par défaut} {--force : Ne pas demander de confirmation}';
 
+    /** @var string ce qu'affiche `php artisan list` */
     protected $description = 'Recrée la base avec les données de démonstration, datées du jour de la démo';
 
-    /** Jour décrit par le jeu de données (DatabaseSeeder). */
+    /** Le jour que décrit le jeu de données (DatabaseSeeder). */
     public const REFERENCE_DAY = '2026-09-21';
 
-    /** Tables techniques, ou dont les dates ne racontent rien. */
+    /** Les tables techniques, ou dont les dates ne racontent rien : on ne les décale pas. */
     private const SKIPPED_TABLES = ['migrations', 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs', 'sessions', 'password_reset_tokens', 'personal_access_tokens'];
 
     /**
-     * Dates qui ne bougent pas : un projet garde son année scolaire (septembre à juin), et les
-     * séances décalées y restent comprises.
+     * Les dates qu'on ne décale pas : un projet garde son année scolaire (septembre à juin),
+     * et les séances décalées y restent comprises.
      */
     private const FIXED_COLUMNS = ['projects.start_date', 'projects.end_date', 'project_user.start_date', 'project_user.end_date'];
 
+    /**
+     * On recrée la base, on décale les dates, puis on ajoute la séance du jour.
+     *
+     * @return int le code de sortie de la commande
+     */
     public function handle(): int
     {
-        // Garde-fou (#255) : la démonstration efface toute la base, jamais en production.
+        // Notre garde-fou (#255) : la démonstration efface toute la base, on la refuse en production.
         if (app()->isProduction()) {
             $this->error('klap:demo efface toute la base : refusé en production (APP_ENV=production). Pour le premier compte, utilisez klap:admin.');
 
@@ -73,7 +81,7 @@ class PrepareDemo extends Command
             $this->rewriteNotificationMessages();
             $this->addTodaySession();
         });
-        // États cohérents avec la nouvelle date (verrouillage à J+10).
+        // On remet les états en accord avec la nouvelle date (verrouillage à J+10).
         $this->call('logbook:lock-expired');
 
         $this->newLine();
@@ -87,15 +95,19 @@ class PrepareDemo extends Command
     }
 
     /**
-     * Décale de $days jours chaque date écrite en dur dans le jeu de données. Les valeurs posées
-     * à l'instant du remplissage (created_at = now()) restent telles quelles.
+     * On décale de $days jours chaque date écrite en dur dans le jeu de données. Les valeurs
+     * posées à l'instant du remplissage (created_at = now()) restent telles quelles.
+     *
+     * @param  int  $days  le nombre de jours, négatif pour reculer
+     * @param  Carbon  $seededAt  l'instant où on a lancé le remplissage
      */
     private function shiftDates(int $days, Carbon $seededAt): void
     {
         if ($days === 0) {
             return;
         }
-        // Schéma courant seulement : sous MariaDB, getTables() liste aussi les autres bases visibles.
+        // On se limite au schéma courant : sous MariaDB, getTables() liste aussi les autres
+        // bases visibles.
         foreach (Schema::getTables(Schema::getCurrentSchemaName()) as $table) {
             $name = $table['name'];
             if (in_array($name, self::SKIPPED_TABLES, true) || str_starts_with($name, 'sqlite_')) {
@@ -119,7 +131,7 @@ class PrepareDemo extends Command
                     }
                     $moment = Carbon::parse($value);
                     if (! $isDate && abs($moment->diffInSeconds($seededAt)) < 120) {
-                        continue; // posé par now() au remplissage
+                        continue; // une valeur posée par now() au remplissage : on n'y touche pas
                     }
                     $shifted = $moment->addDays($days);
                     $changes[$column] = $isDate ? $shifted->toDateString() : $shifted->toDateTimeString();
@@ -132,8 +144,8 @@ class PrepareDemo extends Command
     }
 
     /**
-     * Les messages citent la date de la séance en toutes lettres : réécrits après le décalage,
-     * au format de l'application, pour que la cloche dise la même chose que le planning.
+     * Les messages citent la date de la séance en toutes lettres : on les réécrit après le
+     * décalage, au format de l'application, pour que la cloche dise la même chose que le planning.
      */
     private function rewriteNotificationMessages(): void
     {
@@ -145,14 +157,17 @@ class PrepareDemo extends Command
         foreach ($notifications as $notification) {
             $entry = $notification->logbookEntry;
             if ($entry?->author !== null) {
-                // Requête directe : les dates de la notification ne changent pas.
+                // On passe par une requête directe, pour ne pas toucher aux dates de la notification.
                 DB::table('klap_notifications')->where('id', $notification->id)
                     ->update(['message' => KlapNotification::messageFor($notification->type, $entry->author->name, $entry)]);
             }
         }
     }
 
-    /** Séance du jour de Léa, sans fiche : remplie en direct pendant la démo. */
+    /**
+     * On ajoute la séance du jour de Léa, sans fiche : c'est celle qu'on remplit en direct
+     * pendant la démo.
+     */
     private function addTodaySession(): void
     {
         $project = DB::table('projects')->where('name', 'Arts Danse au Lycée Charles')->first();
@@ -178,10 +193,12 @@ class PrepareDemo extends Command
     }
 
     /**
-     * Horaire de la séance du jour (#182). Une fiche ne se soumet qu'après la fin de la séance :
-     * la séance doit donc être terminée au moment de la démo. Lancée l'après-midi, la commande
-     * garde 10 h - 12 h ; lancée avant midi, la séance se termine au quart d'heure qui précède.
-     * Pour une démo un autre jour (--date), on garde 10 h - 12 h.
+     * L'horaire de la séance du jour (#182). Une fiche ne se soumet qu'après la fin de la
+     * séance : la séance doit donc être terminée au moment de la démo. Si on lance la commande
+     * l'après-midi, on garde 10 h - 12 h ; avant midi, la séance se termine au quart d'heure qui
+     * précède. Pour une démo un autre jour (--date), on garde 10 h - 12 h.
+     *
+     * @return array{0: string, 1: string} le début et la fin, au format « HH:MM »
      */
     private function todaySlot(): array
     {
@@ -193,13 +210,16 @@ class PrepareDemo extends Command
         if ($end->format('H:i') >= '12:00') {
             return ['10:00', '12:00'];
         }
-        // Au moins 15 minutes de séance, sans passer avant minuit.
+        // On garde au moins 15 minutes de séance, sans remonter avant minuit.
         $end = $end->max($now->copy()->setTime(0, 15));
         $start = $end->copy()->subHours(2)->max($now->copy()->startOfDay());
 
         return [$start->format('H:i'), $end->format('H:i')];
     }
 
+    /**
+     * Le jour de la démo : celui de --date, sinon aujourd'hui à l'heure de Paris.
+     */
     private function demoDay(): string
     {
         return $this->option('date') ?: LogbookEntry::localNow()->toDateString();

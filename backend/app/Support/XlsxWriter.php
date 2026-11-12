@@ -7,28 +7,37 @@ use RuntimeException;
 use ZipArchive;
 
 /**
- * Classeur Excel (.xlsx) minimal, sans dépendance (#219) : un .xlsx est une archive zip de
- * fichiers XML (format Office Open XML). ext-zip est déjà requis par phpword.
+ * Classeur Excel (.xlsx) minimal, qu'on écrit sans dépendance (#219) : un .xlsx est une
+ * archive zip de fichiers XML (format Office Open XML). ext-zip est déjà requis par phpword.
  *
- * - Les nombres sont de vraies cellules numériques : Excel peut trier, filtrer et calculer.
- * - Les textes sont des chaînes « en ligne », jamais des formules : un texte saisi qui commence
+ * - On écrit les nombres en vraies cellules numériques : Excel peut trier, filtrer et calculer.
+ * - On écrit les textes en chaînes « en ligne », jamais en formules : un texte saisi qui commence
  *   par « = » reste un texte (pas d'injection de formule, à la différence d'un CSV).
- * - Les lignes d'en-tête indiquées sont en gras ; la largeur des colonnes suit leur contenu.
+ * - On met en gras les lignes d'en-tête indiquées ; la largeur des colonnes suit leur contenu.
  */
 final class XlsxWriter
 {
-    /** @var list<array{name: string, rows: list<list<string|int|float|bool|null>>, bold: list<int>, notes: list<int>}> */
+    /**
+     * Les feuilles du classeur, dans l'ordre des onglets.
+     *
+     * @var list<array{name: string, rows: list<array<int|string, string|int|float|bool|null>>, bold: list<int>, notes: list<int>}>
+     */
     private array $sheets = [];
 
     /**
-     * @param  list<list<string|int|float|null>>  $rows
-     * @param  list<int>  $boldRows  indices (à partir de 0) des lignes en gras
-     * @param  list<int>  $noteRows  lignes de texte long, ignorées pour la largeur des colonnes
+     * On ajoute une feuille au classeur.
+     *
+     * @param  array<int|string, array<int|string, string|int|float|bool|null>>  $rows  les lignes, cellule par cellule
+     * @param  list<int>  $boldRows  les indices (à partir de 0) des lignes en gras
+     * @param  list<int>  $noteRows  les lignes de texte long, qu'on ignore pour la largeur des colonnes
+     *
+     * @throws InvalidArgumentException si Excel refuserait le nom de l'onglet
      */
     public function sheet(string $name, array $rows, array $boldRows = [0], array $noteRows = []): self
     {
-        // Nom d'onglet (règles d'Excel) : 31 caractères au plus, sans : \ / ? * [ ], sans
-        // apostrophe au début ni à la fin, unique sans tenir compte de la casse, pas « History ».
+        // On applique les règles d'Excel pour un nom d'onglet : 31 caractères au plus, sans
+        // : \ / ? * [ ], sans apostrophe au début ni à la fin, unique sans tenir compte de la
+        // casse, et pas « History ».
         $name = trim(preg_replace('/[:\\\\\/?*\[\]]/', ' ', self::clean($name)), " '");
         $name = rtrim(mb_substr($name, 0, 31), " '");
         if ($name === '' || mb_strtolower($name) === 'history') {
@@ -44,6 +53,11 @@ final class XlsxWriter
         return $this;
     }
 
+    /**
+     * On écrit le classeur à l'emplacement donné.
+     *
+     * @throws RuntimeException si le classeur est vide ou si le fichier ne s'écrit pas
+     */
     public function save(string $path): void
     {
         if ($this->sheets === []) {
@@ -72,14 +86,21 @@ final class XlsxWriter
         foreach ($this->sheets as $index => $sheet) {
             $zip->addFromString('xl/worksheets/sheet'.($index + 1).'.xml', $this->worksheet($sheet));
         }
-        // Un échec d'écriture du zip ne lève qu'un avertissement : on ne livre pas un fichier vide.
+        // Un échec d'écriture du zip ne lève qu'un avertissement : on le transforme en
+        // exception, pour ne pas livrer un fichier vide.
         if ($zip->close() !== true) {
             throw new RuntimeException("Impossible d'écrire {$path}.");
         }
     }
 
+    /** L'en-tête de chaque fichier XML de l'archive. */
     private const XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'."\n";
 
+    /**
+     * Le sommaire de l'archive : le type de chaque fichier qu'elle contient.
+     *
+     * @param  int  $count  le nombre de feuilles
+     */
     private function contentTypes(int $count): string
     {
         $sheets = '';
@@ -95,6 +116,9 @@ final class XlsxWriter
             .$sheets.'</Types>';
     }
 
+    /**
+     * La liste des onglets du classeur.
+     */
     private function workbook(): string
     {
         $sheets = '';
@@ -106,6 +130,11 @@ final class XlsxWriter
             .'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'.$sheets.'</sheets></workbook>';
     }
 
+    /**
+     * Les liens du classeur vers ses feuilles et sa feuille de styles.
+     *
+     * @param  int  $count  le nombre de feuilles
+     */
     private function workbookRels(int $count): string
     {
         $rels = '';
@@ -119,7 +148,11 @@ final class XlsxWriter
             .'</Relationships>';
     }
 
-    /** @param array{rows: list<list<string|int|float|null>>, bold: list<int>, notes: list<int>} $sheet */
+    /**
+     * Le XML d'une feuille : ses cellules et la largeur de ses colonnes.
+     *
+     * @param  array{name: string, rows: list<array<int|string, string|int|float|bool|null>>, bold: list<int>, notes: list<int>}  $sheet
+     */
     private function worksheet(array $sheet): string
     {
         $widths = [];
@@ -140,8 +173,8 @@ final class XlsxWriter
                     $cells .= '<c r="'.$ref.'"'.$style.'><v>'.$number.'</v></c>';
                     $length = strlen($number);
                 } else {
-                    // Une cellule contient au plus 32 767 caractères. « _x0041_ » serait décodé
-                    // par Excel (« A ») : le tiret bas est lui-même codé pour rester tel quel.
+                    // Une cellule contient au plus 32 767 caractères. Excel décoderait
+                    // « _x0041_ » en « A » : on code le tiret bas lui-même pour qu'il reste tel quel.
                     $text = mb_substr(self::clean((string) $value), 0, 32767);
                     $text = preg_replace('/_(x[0-9A-Fa-f]{4}_)/', '_x005F_$1', $text);
                     $cells .= '<c r="'.$ref.'" t="inlineStr"'.$style.'><is><t xml:space="preserve">'.self::escape($text).'</t></is></c>';
@@ -164,7 +197,9 @@ final class XlsxWriter
             .($cols === '' ? '' : '<cols>'.$cols.'</cols>').'<sheetData>'.$rows.'</sheetData></worksheet>';
     }
 
-    /** Colonne 0 → A, 25 → Z, 26 → AA. */
+    /**
+     * Le nom d'une colonne : 0 → A, 25 → Z, 26 → AA.
+     */
     private static function column(int $index): string
     {
         $name = '';
@@ -175,14 +210,17 @@ final class XlsxWriter
         return $name;
     }
 
+    /**
+     * On échappe un texte pour l'écrire dans du XML.
+     */
     private static function escape(string $text): string
     {
         return htmlspecialchars($text, ENT_XML1 | ENT_QUOTES, 'UTF-8');
     }
 
     /**
-     * Ne garde que les caractères permis en XML 1.0 (un texte collé peut contenir des caractères
-     * de contrôle) ; un texte en UTF-8 invalide est d'abord réparé, au lieu d'être perdu.
+     * On ne garde que les caractères permis en XML 1.0 (un texte collé peut contenir des
+     * caractères de contrôle). Un texte en UTF-8 invalide, on le répare d'abord, au lieu de le perdre.
      */
     private static function clean(string $text): string
     {
