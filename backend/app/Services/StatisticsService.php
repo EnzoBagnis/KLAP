@@ -60,6 +60,7 @@ class StatisticsService
             ->get(['id', 'project_id', 'name', 'age_range', 'city', 'postal_code', 'expected_headcount'])
             ->groupBy('project_id');
 
+        /** @var Collection<int, array<string, mixed>> $rows */
         $rows = $projects->map(function ($project) use ($groups, $indicators, $documented, $missing, $subProjects) {
             $children = ($subProjects[$project->id] ?? collect())
                 ->map(fn ($group) => $this->groupRow($group, $groups[$group->id] ?? null))
