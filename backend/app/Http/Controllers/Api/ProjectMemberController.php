@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProjectResource;
 use App\Models\LogbookEntry;
@@ -38,11 +37,11 @@ class ProjectMemberController extends Controller
     {
         $data = $request->validate([
             'user_id' => ['bail', 'required', 'integer',
-                Rule::exists('users', 'id')->where('role', UserRole::Contributor->value)->where('is_active', true)],
+                Rule::exists('users', 'id')->where('is_active', true)],
         ], [
             'user_id.required' => 'Choisissez l’intervenant·e à ajouter.',
             'user_id.integer' => 'Choisissez l’intervenant·e à ajouter.',
-            'user_id.exists' => 'Seul un compte intervenant actif peut rejoindre l’équipe.',
+            'user_id.exists' => 'Seul un compte actif peut rejoindre l’équipe.',
         ]);
 
         $found = DB::transaction(function () use ($project, $data) {
