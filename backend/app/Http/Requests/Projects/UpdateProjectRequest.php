@@ -62,7 +62,7 @@ class UpdateProjectRequest extends FormRequest
             'default_location_id' => ['sometimes', 'required', 'integer', Rule::exists('locations', 'id')
                 ->where(fn ($query) => $query->where('is_active', true)->orWhere('id', $project->default_location_id))],
             // On accepte encore le ou la principal·e actuel·le, même si son compte a été désactivé (#148).
-            'principal_user_id' => ['sometimes', 'required', 'integer', Rule::exists('users', 'id')->where('role', 'contributor')
+            'principal_user_id' => ['sometimes', 'required', 'integer', Rule::exists('users', 'id')
                 ->where(fn ($query) => $query->where('is_active', true)->orWhereIn('id', $this->currentLeadIds()))],
             'funder_ids' => ['sometimes', 'nullable', 'array'],
             // On accepte encore un financeur désactivé (#249) sur un projet qui l'a déjà.

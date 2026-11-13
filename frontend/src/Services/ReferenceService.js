@@ -14,9 +14,12 @@ export async function createLocation(payload) {
   return (await apiRequest('/locations', { method: 'POST', body: payload, token: getToken() })).data;
 }
 
-/** GET /users?role=contributor : les intervenant·e·s actif·ve·s. */
+/**
+ * GET /users?equipe=1 : les comptes actifs qu'on peut mettre dans une équipe. On y trouve
+ * aussi l'administratrice et la super-utilisatrice, qui peuvent intervenir elles aussi (#272).
+ */
 export async function listContributors() {
-  return (await apiRequest('/users?role=contributor', { token: getToken() })).data;
+  return (await apiRequest('/users?equipe=1', { token: getToken() })).data;
 }
 
 /** GET /funders : les financeurs, avec leur état et le nombre de projets qu'ils financent. */

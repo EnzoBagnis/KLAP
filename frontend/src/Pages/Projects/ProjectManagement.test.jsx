@@ -238,7 +238,7 @@ describe('Nouveau projet', () => {
         jsonResponse(
           {
             errors: {
-              principal_user_id: ['L’intervenant·e principal·e doit être un compte intervenant actif.'],
+              principal_user_id: ['L’intervenant·e principal·e doit être un compte actif.'],
               'funder_ids.0': ['Le financeur choisi n’existe pas.'],
               status: ['Le statut choisi n’est pas valide à la création.'],
             },

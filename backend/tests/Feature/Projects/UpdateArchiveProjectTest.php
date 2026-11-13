@@ -87,7 +87,7 @@ class UpdateArchiveProjectTest extends TestCase
             ->assertJsonPath('errors.status.0', 'Ce statut n’est pas possible ici : un projet s’archive avec la confirmation de son nom.');
         $this->edit(['default_location_id' => Location::factory()->create(['is_active' => false])->id])->assertJsonValidationErrors('default_location_id');
         $this->edit(['project_type_id' => ProjectType::factory()->create(['is_active' => false])->id])->assertJsonValidationErrors('project_type_id');
-        $this->edit(['principal_user_id' => $this->admin->id])->assertJsonValidationErrors('principal_user_id');
+        $this->edit(['principal_user_id' => User::factory()->create(['is_active' => false])->id])->assertJsonValidationErrors('principal_user_id');
         $this->edit(['funder_ids' => [999]])->assertJsonValidationErrors('funder_ids.0');
     }
 

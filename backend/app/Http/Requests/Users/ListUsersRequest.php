@@ -19,8 +19,10 @@ class ListUsersRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // On l'exige : un menu ne doit jamais proposer tous les comptes, administratrices comprises.
-            'role' => ['required', Rule::enum(UserRole::class)],
+            // On exige l'un ou l'autre : un menu ne propose jamais tous les comptes par oubli.
+            'role' => ['required_without:equipe', Rule::enum(UserRole::class)],
+            // Les comptes qu'on peut mettre dans une équipe : tous les actifs (#272).
+            'equipe' => ['sometimes', 'accepted'],
         ];
     }
 
@@ -32,8 +34,9 @@ class ListUsersRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'role.required' => 'Précisez le rôle des comptes à lister.',
+            'role.required_without' => 'Précisez le rôle des comptes à lister.',
             'role' => 'Le rôle demandé n’existe pas.',
+            'equipe' => 'Le filtre demandé n’existe pas.',
         ];
     }
 }

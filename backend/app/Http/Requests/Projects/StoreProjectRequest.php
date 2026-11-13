@@ -40,13 +40,14 @@ class StoreProjectRequest extends FormRequest
                 Rule::exists('locations', 'id')->where('is_active', true),
             ],
 
-            // L'intervenant·e principal·e doit être un compte intervenant actif. On ne saisit pas
+            // L'intervenant·e principal·e doit être un compte actif, quel que soit son rôle (#272) :
+            // l'administratrice intervient elle aussi. On ne saisit pas
             // les ponctuel·le·s ici (demande de la cliente, 16/09/2026) : l'administratrice les
             // ajoute ensuite depuis la page du projet (#251).
             'principal_user_id' => [
                 'required',
                 'integer',
-                Rule::exists('users', 'id')->where('role', 'contributor')->where('is_active', true),
+                Rule::exists('users', 'id')->where('is_active', true),
             ],
             // Les financeurs : aucun, un ou plusieurs.
             'funder_ids' => ['nullable', 'array'],
@@ -98,7 +99,7 @@ class StoreProjectRequest extends FormRequest
             'sub_projects.*.name.distinct' => 'Deux sous-projets portent le même nom.',
             'funder_ids.*.distinct' => 'Un même financeur est choisi deux fois.',
             'funder_ids.*.exists' => 'Le financeur choisi n’existe pas ou n’est plus actif.',
-            'principal_user_id.exists' => 'L’intervenant·e principal·e doit être un compte intervenant actif.',
+            'principal_user_id.exists' => 'L’intervenant·e principal·e doit être un compte actif.',
             'exists' => 'Le :attribute choisi n’existe pas ou n’est plus actif.',
             'in' => 'Le :attribute choisi n’est pas valide à la création.',
             'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
