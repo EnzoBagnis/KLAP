@@ -1,28 +1,28 @@
-/**
- * @file Footer.jsx
- * @description Composant Footer officiel du projet KLAP.
- * 100% sémantique HTML5 — STRICTEMENT AUCUNE BALISE <div>.
- */
+import { Link } from 'react-router-dom';
+import useAuth from '../../Hooks/useAuth.js';
+import { navItemsForRole } from './navigation.js';
 
+/** Le tutoriel vidéo de l'application : le seul guide qu'on a à proposer pour l'instant. */
+const GUIDE_URL = 'https://drive.google.com/file/d/1f6ANKz2Tft5s51lcYvOVgsPL_abmQTwh/view?usp=sharing';
+
+/**
+ * Le pied de page de l'application, sous chaque écran connecté : les réseaux sociaux de KLAP,
+ * un rappel de la navigation et le guide d'utilisation. Sémantique HTML5, sans balise <div>.
+ *
+ * On n'y met que des liens qui mènent quelque part : pas de lien vers une page qu'on n'a pas.
+ * La navigation reprend le menu de la personne connectée, pour ne pas proposer aux
+ * intervenant·e·s un écran qui leur est fermé.
+ */
 export const Footer = () => {
+  const { user } = useAuth();
   // L'année se met à jour automatiquement chaque année
   const currentYear = new Date().getFullYear();
 
   return (
     <footer className="klap-footer" role="contentinfo">
-      {/* Rangée supérieure : Newsletter / Programme & Réseaux sociaux officiels */}
+      {/* Rangée supérieure : réseaux sociaux officiels */}
       <section className="footer-top-bar">
         <section className="footer-top-inner">
-          <section className="footer-quick-links" aria-label="Liens rapides">
-            <a href="#newsletter" className="footer-quick-link">
-              Abonnez-vous à la newsletter
-            </a>
-            <span className="footer-quick-separator" aria-hidden="true">·</span>
-            <a href="#programme" className="footer-quick-link">
-              Téléchargez le programme
-            </a>
-          </section>
-
           <section className="footer-socials" aria-label="Réseaux sociaux KLAP">
             <span className="socials-label">Rejoignez-nous sur</span>
             <ul className="socials-list">
@@ -85,10 +85,11 @@ export const Footer = () => {
           <section className="footer-col" aria-label="Navigation secondaire">
             <h3 className="footer-col-title">NAVIGATION</h3>
             <ul className="footer-links-list">
-              <li><a href="/" className="footer-link">Tableau de bord</a></li>
-              <li><a href="/projets" className="footer-link">Projets en cours</a></li>
-              <li><a href="/planning" className="footer-link">Planning</a></li>
-              <li><a href="/statistiques" className="footer-link">Statistiques & bilans</a></li>
+              {navItemsForRole(user?.role).map((item) => (
+                <li key={item.path}>
+                  <Link to={item.path} className="footer-link">{item.label}</Link>
+                </li>
+              ))}
             </ul>
           </section>
 
@@ -96,8 +97,11 @@ export const Footer = () => {
           <section className="footer-col" aria-label="Ressources et aide">
             <h3 className="footer-col-title">RESSOURCES</h3>
             <ul className="footer-links-list">
-              <li><a href="#guide" className="footer-link">Guide d’utilisation</a></li>
-              <li><a href="#support" className="footer-link">Support & assistance</a></li>
+              <li>
+                <a href={GUIDE_URL} target="_blank" rel="noopener noreferrer" className="footer-link">
+                  Guide d’utilisation (vidéo)
+                </a>
+              </li>
             </ul>
           </section>
         </section>
@@ -106,19 +110,9 @@ export const Footer = () => {
       {/* Ligne séparatrice fine */}
       <hr className="footer-divider" />
 
-      {/* Rangée inférieure : Liens légaux & copyright */}
+      {/* Rangée inférieure : copyright */}
       <section className="footer-bottom">
         <section className="footer-bottom-inner">
-          <section aria-label="Liens institutionnels et légaux">
-            <ul className="footer-legal-links">
-              <li><a href="#contact" className="footer-legal-link">CONTACT & ACCÈS</a></li>
-              <li><a href="#partenaires" className="footer-legal-link">PARTENAIRES</a></li>
-              <li><a href="#plan-du-site" className="footer-legal-link">PLAN DU SITE</a></li>
-              <li><a href="#mentions-legales" className="footer-legal-link">MENTIONS LÉGALES</a></li>
-              <li><a href="#credits" className="footer-legal-link">CRÉDITS</a></li>
-            </ul>
-          </section>
-
           <small className="footer-copyright">
             © {currentYear} KLAP — Tous droits réservés.
           </small>
