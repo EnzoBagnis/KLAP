@@ -66,14 +66,11 @@ class ProjectMemberTest extends TestCase
         $this->assertSame('occasional', $this->pivot($this->marco)->member_role);
     }
 
-    public function test_refuse_un_compte_inactif_un_non_intervenant_et_un_doublon(): void
+    public function test_refuse_un_compte_inactif_et_un_doublon(): void
     {
         $inactive = User::factory()->role(UserRole::Contributor)->create(['is_active' => false]);
-        $admin = User::factory()->role(UserRole::Admin)->create();
-        foreach ([$inactive, $admin] as $user) {
-            $this->postJson("/api/projects/{$this->project->id}/members", ['user_id' => $user->id])->assertUnprocessable()
-                ->assertJsonPath('errors.user_id.0', 'Seul un compte intervenant actif peut rejoindre l’équipe.');
-        }
+        $this->postJson("/api/projects/{$this->project->id}/members", ['user_id' => $inactive->id])->assertUnprocessable()
+            ->assertJsonPath('errors.user_id.0', 'Seul un compte actif peut rejoindre l’équipe.');
         $this->postJson("/api/projects/{$this->project->id}/members", ['user_id' => $this->lead->id])->assertUnprocessable()
             ->assertJsonPath('errors.user_id.0', 'Cette personne fait déjà partie de l’équipe.');
         $this->postJson("/api/projects/{$this->project->id}/members", [])->assertUnprocessable()

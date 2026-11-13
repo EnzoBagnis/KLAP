@@ -15,13 +15,15 @@ use Illuminate\Http\JsonResponse;
 class UserController extends Controller
 {
     /**
-     * On liste les comptes actifs du rôle demandé, par nom.
+     * On liste les comptes actifs, par nom : ceux du rôle demandé, ou, avec `equipe=1`, tous
+     * ceux qu'on peut mettre dans l'équipe d'un projet (#272). L'administratrice intervient
+     * elle aussi : le rôle décide des droits, pas de qui anime une séance.
      */
     public function index(ListUsersRequest $request): JsonResponse
     {
         $users = User::query()
             ->where('is_active', true)
-            ->where('role', $request->validated('role'))
+            ->when(! $request->boolean('equipe'), fn ($query) => $query->where('role', $request->validated('role')))
             ->orderBy('name')
             ->get(['id', 'name']);
 

@@ -333,16 +333,15 @@ class StoreProjectTest extends TestCase
     }
 
     /**
-     * Les cas de « le principal doit etre un intervenant actif ».
+     * Les cas de « le principal doit etre un compte actif » : le rôle ne compte pas (#272).
      *
      * @return array<string, array<int, mixed>>
      */
     public static function invalidPrincipals(): array
     {
         return [
-            'administratrice' => [['role' => UserRole::Admin]],
-            'super-utilisatrice' => [['role' => UserRole::SuperUser]],
             'intervenant désactivé' => [['role' => UserRole::Contributor, 'is_active' => false]],
+            'administratrice désactivée' => [['role' => UserRole::Admin, 'is_active' => false]],
         ];
     }
 
@@ -350,13 +349,13 @@ class StoreProjectTest extends TestCase
      * @param  array<string, mixed>  $attributes
      */
     #[DataProvider('invalidPrincipals')]
-    public function test_le_principal_doit_etre_un_intervenant_actif(array $attributes): void
+    public function test_le_principal_doit_etre_un_compte_actif(array $attributes): void
     {
         $principal = User::factory()->create($attributes);
 
         $this->postJson('/api/projects', $this->payload(['principal_user_id' => $principal->id]))
             ->assertUnprocessable()
-            ->assertJsonPath('errors.principal_user_id.0', 'L’intervenant·e principal·e doit être un compte intervenant actif.');
+            ->assertJsonPath('errors.principal_user_id.0', 'L’intervenant·e principal·e doit être un compte actif.');
 
         $this->assertSame(0, Project::count());
     }
