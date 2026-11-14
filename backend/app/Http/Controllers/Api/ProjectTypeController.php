@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Projects\StoreProjectTypeRequest;
 use App\Http\Requests\Projects\UpdateProjectTypeRequest;
 use App\Models\ProjectType;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Types de projet, une liste que l'administratrice tient elle-même : création, renommage,
@@ -35,7 +37,7 @@ class ProjectTypeController extends Controller
      */
     public function store(StoreProjectTypeRequest $request): JsonResponse
     {
-        $type = ProjectType::create($request->validated());
+        $type = $this->saving(fn () => ProjectType::create($request->validated()));
 
         return response()->json(['data' => $type->only(['id', 'name', 'is_active'])], 201);
     }
@@ -45,8 +47,29 @@ class ProjectTypeController extends Controller
      */
     public function update(UpdateProjectTypeRequest $request, ProjectType $projectType): JsonResponse
     {
-        $projectType->update($request->validated());
+        $this->saving(fn () => $projectType->update($request->validated()));
 
         return response()->json(['data' => $projectType->only(['id', 'name', 'is_active'])]);
+    }
+
+    /**
+     * On écrit en base ; si l'index unique refuse le nom, on répond comme la validation.
+     * Deux créations du même nom arrivées en même temps passent toutes les deux la règle
+     * `unique` : la seconde bute sur l'index, et sans ce filet elle renvoyait une erreur 500.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $write
+     * @return T
+     *
+     * @throws ValidationException si le nom est déjà pris
+     */
+    private function saving(callable $write): mixed
+    {
+        try {
+            return $write();
+        } catch (UniqueConstraintViolationException) {
+            throw ValidationException::withMessages(['name' => 'Ce type de projet existe déjà.']);
+        }
     }
 }

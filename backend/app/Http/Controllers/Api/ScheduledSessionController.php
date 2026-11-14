@@ -9,6 +9,7 @@ use App\Http\Requests\Sessions\UpdateScheduledSessionRequest;
 use App\Http\Resources\ScheduledSessionResource;
 use App\Models\Project;
 use App\Models\ScheduledSession;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -76,7 +77,10 @@ class ScheduledSessionController extends Controller
         $project = $request->project();
         $data = $request->validated();
 
+        // Trois essais : si une autre requête a écrit entre-temps, MariaDB demande de rejouer la
+        // transaction (« try restarting transaction ») ; au second essai, on voit son écriture.
         $session = DB::transaction(function () use ($project, $data, $request) {
+            $this->ensureReferentFree($data);
             $session = new ScheduledSession(collect($data)->except('sub_project_ids')->all());
             $session->project_id = $project->id;
             $session->status = 'planned';
@@ -86,7 +90,7 @@ class ScheduledSessionController extends Controller
             $session->subProjects()->attach($this->groupRows($data['sub_project_ids'], $project->id));
 
             return $session;
-        });
+        }, attempts: 3);
 
         return (new ScheduledSessionResource($session->fresh(self::RELATIONS)))
             ->response()
@@ -101,12 +105,15 @@ class ScheduledSessionController extends Controller
     {
         $data = $request->validated();
 
+        // Trois essais : si une autre requête a écrit entre-temps, MariaDB demande de rejouer la
+        // transaction (« try restarting transaction ») ; au second essai, on voit son écriture.
         $session = DB::transaction(function () use ($request, $data) {
             // On relit la séance en la verrouillant : une fiche ou une annulation arrivée
             // depuis les contrôles de la requête bloque la modification.
             $session = $this->lockedSession((string) $request->scheduledSession()->id);
             abort_if($session->status === 'cancelled', 409, 'Cette séance vient d’être annulée.');
             abort_if($session->logbookEntry()->exists(), 409, 'Cette séance a déjà une fiche : elle ne se modifie plus.');
+            $this->ensureReferentFree($data, $session->id);
             $session->fill(collect($data)->except('sub_project_ids')->all());
             // Le détail ne sert qu'au type « autre » : on l'efface si le type a changé.
             if ($session->session_type !== 'other') {
@@ -116,7 +123,7 @@ class ScheduledSessionController extends Controller
             $session->subProjects()->sync($this->groupRows($data['sub_project_ids'], $session->project_id));
 
             return $session;
-        });
+        }, attempts: 3);
 
         return new ScheduledSessionResource($session->fresh(self::RELATIONS));
     }
@@ -177,6 +184,27 @@ class ScheduledSessionController extends Controller
         });
 
         return new ScheduledSessionResource($found->fresh(self::RELATIONS));
+    }
+
+    /**
+     * On revérifie le chevauchement dans la transaction, après avoir verrouillé la ligne de
+     * l'intervenant·e : la requête l'a déjà contrôlé, mais deux programmations du même créneau
+     * arrivées en même temps (double appui, deux onglets) passaient toutes les deux ce contrôle.
+     * Le verrou les fait passer l'une après l'autre ; la seconde voit la séance de la première.
+     *
+     * @param  array<string, mixed>  $data  la saisie validée
+     * @param  int|null  $ignoredId  la séance qu'on modifie, qui ne se chevauche pas elle-même
+     *
+     * @throws ValidationException si l'intervenant·e a déjà une séance sur ce créneau
+     */
+    private function ensureReferentFree(array $data, ?int $ignoredId = null): void
+    {
+        User::query()->whereKey($data['referent_id'])->lockForUpdate()->first();
+        $clash = ScheduledSession::overlapping((int) $data['referent_id'], (string) $data['session_date'],
+            (string) $data['start_time'], (string) $data['end_time'], $ignoredId, latest: true);
+        if ($clash !== null) {
+            throw ValidationException::withMessages(['start_time' => ScheduledSession::overlapMessage($clash)]);
+        }
     }
 
     /**

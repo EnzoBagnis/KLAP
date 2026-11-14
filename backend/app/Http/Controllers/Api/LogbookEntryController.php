@@ -105,6 +105,8 @@ class LogbookEntryController extends Controller
         $session = $request->scheduledSession();
 
         try {
+            // Trois essais : plusieurs fiches créées au même instant peuvent se bloquer mutuellement
+            // en base (interblocage) ; MariaDB annule alors l'une des transactions, qu'on rejoue.
             $entry = DB::transaction(function () use ($request, $session) {
                 // On relit la séance en la verrouillant : une annulation ou une modification
                 // concurrente (#180) ne peut pas passer entre les contrôles de la requête et la
@@ -123,7 +125,7 @@ class LogbookEntryController extends Controller
                 $entry->artists()->attach($session->referent_id, ['member_role' => 'lead']);
 
                 return $entry;
-            });
+            }, attempts: 3);
         } catch (UniqueConstraintViolationException) {
             // Si deux personnes ouvrent la fiche en même temps, la seconde bute sur l'index
             // unique de la séance.
@@ -139,7 +141,7 @@ class LogbookEntryController extends Controller
     public function update(UpdateLogbookEntryRequest $request): LogbookEntryResource
     {
         $entry = $request->entry();
-        DB::transaction(fn () => $this->apply($entry, $request->payload()));
+        DB::transaction(fn () => $this->apply($entry, $request->payload()), attempts: 3);
 
         return new LogbookEntryResource($entry->fresh(self::RELATIONS));
     }
@@ -172,7 +174,7 @@ class LogbookEntryController extends Controller
             if ($first) {
                 $this->notifySubmitted($entry, $actor);
             }
-        });
+        }, attempts: 3);
 
         return new LogbookEntryResource($entry->fresh(self::RELATIONS));
     }
@@ -299,7 +301,12 @@ class LogbookEntryController extends Controller
             $entry->evaluation()->updateOrCreate([], $data['evaluation']);
         }
         if (array_key_exists('exercises', $data)) {
-            $entry->exercises()->delete();
+            // Une fiche qu'on vient de créer n'a pas encore d'exercices : on ne lance pas de
+            // suppression à vide. En base, elle verrouille tout l'intervalle après le dernier
+            // exercice, et deux fiches créées au même instant se bloquaient l'une l'autre.
+            if (! $entry->wasRecentlyCreated) {
+                $entry->exercises()->delete();
+            }
             foreach (array_values($data['exercises']) as $index => $label) {
                 $entry->exercises()->create(['position' => $index + 1, 'label' => $label]);
             }
