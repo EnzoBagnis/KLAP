@@ -37,6 +37,10 @@ class InvitationController extends Controller
 
         try {
             $invitation = DB::transaction(function () use ($request, $token) {
+                // On verrouille le compte de l'administratrice : deux invitations envoyées en même
+                // temps à la même adresse (double appui) passent l'une après l'autre, au lieu de
+                // se bloquer mutuellement en base (erreur 500).
+                User::query()->whereKey($request->user()->id)->lockForUpdate()->first();
                 // On remplace l'invitation en cours pour cette adresse : son ancien lien ne sert plus.
                 $replaced = Invitation::query()->pending()->where('email', $request->validated('email'))
                     ->update(['expires_at' => now()]) > 0;
