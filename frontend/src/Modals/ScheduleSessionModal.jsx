@@ -235,8 +235,14 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
       });
   }
 
+  // Dès qu'on corrige un champ, son message d'erreur disparaît : on ne laisse pas « Choisissez
+  // le projet. » sous un projet choisi jusqu'au prochain envoi.
+  const clearErrors = (...keys) =>
+    setErrors((current) => (keys.some((key) => current[key]) ? Object.fromEntries(Object.entries(current).filter(([key]) => !keys.includes(key))) : current));
+
   function chooseProject(event) {
     const projectId = event.target.value;
+    clearErrors('project_id', 'sub_project_ids', 'referent_id');
     // En changeant de projet, on vide les groupes et l'intervenant·e, qui en dépendent.
     setForm((current) => ({ ...current, project_id: projectId, sub_project_ids: [], referent_id: '' }));
     if (!projectId) {
@@ -256,6 +262,8 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
 
   const update = (key) => (event) => {
     const value = event.target.value;
+    // L'heure de fin se juge par rapport au début, et la précision par rapport au type.
+    clearErrors(key, ...(key === 'start_time' ? ['end_time'] : []), ...(key === 'session_type' ? ['session_type_detail'] : []));
     setForm((current) => ({
       ...current,
       [key]: value,
@@ -265,6 +273,7 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
   };
 
   function toggleGroup(id) {
+    clearErrors('sub_project_ids');
     setForm((current) => ({
       ...current,
       sub_project_ids: current.sub_project_ids.includes(id)
@@ -435,7 +444,10 @@ export default function ScheduleSessionModal({ open, onClose, onCreated, session
             name="location_id"
             required
             value={String(form.location_id)}
-            onChange={(value) => setForm((current) => ({ ...current, location_id: value }))}
+            onChange={(value) => {
+              clearErrors('location_id');
+              setForm((current) => ({ ...current, location_id: value }));
+            }}
             onCreated={addLocation}
             error={errors.location_id}
             locations={references.locations}
