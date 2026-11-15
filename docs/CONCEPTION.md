@@ -38,18 +38,77 @@ elle est la référente. Les droits sont vérifiés par le serveur à chaque req
 
 ```mermaid
 classDiagram
-    class User { name; email; role; is_active }
-    class Invitation { email; role; expires_at }
-    class Project { name; status; start_date; end_date; planned_sessions }
-    class ProjectType { name; is_active }
-    class SubProject { name; age_range; city; postal_code; expected_headcount; is_active }
-    class Funder { name; type; is_active }
-    class Location { name; city; postal_code; is_active }
-    class ScheduledSession { session_date; start_time; end_time; session_type; status }
-    class LogbookEntry { status; edit_deadline; objectives; highlights; next_steps }
-    class ParticipantEvaluation { engagement; expression; autonomy; interaction; feeling; progress }
-    class Exercise { position; label }
-    class KlapNotification { type; read_at }
+    class User {
+        name
+        email
+        role
+        is_active
+    }
+    class Invitation {
+        email
+        role
+        expires_at
+    }
+    class Project {
+        name
+        status
+        start_date
+        end_date
+        planned_sessions
+    }
+    class ProjectType {
+        name
+        is_active
+    }
+    class SubProject {
+        name
+        age_range
+        city
+        postal_code
+        expected_headcount
+        is_active
+    }
+    class Funder {
+        name
+        type
+        is_active
+    }
+    class Location {
+        name
+        city
+        postal_code
+        is_active
+    }
+    class ScheduledSession {
+        session_date
+        start_time
+        end_time
+        session_type
+        status
+    }
+    class LogbookEntry {
+        status
+        edit_deadline
+        objectives
+        highlights
+        next_steps
+    }
+    class ParticipantEvaluation {
+        engagement
+        expression
+        autonomy
+        interaction
+        feeling
+        progress
+    }
+    class Exercise {
+        position
+        label
+    }
+    class KlapNotification {
+        type
+        read_at
+    }
 
     ProjectType "1" --> "*" Project
     Project "1" --> "*" SubProject : groupes
@@ -101,22 +160,22 @@ Un projet archivé fige ses séances et ses fiches.
 
 ```mermaid
 sequenceDiagram
-    actor Léa as Intervenante (téléphone)
+    actor Lea as Intervenante, sur son téléphone
     participant Front as Interface React
     participant API as API Laravel
     participant Base as MariaDB
     actor Mariette as Administratrice
 
-    Léa->>Front: « Remplir la fiche »
+    Lea->>Front: « Remplir la fiche »
     Front->>API: POST /sessions/{id}/logbook-entry
     API->>Base: verrouille la séance, crée le brouillon
     API-->>Front: 201, la fiche
     loop à chaque étape
-        Léa->>Front: saisit une étape
+        Lea->>Front: saisit une étape
         Front->>API: PATCH /logbook-entries/{id}
         API->>Base: enregistre le brouillon
     end
-    Léa->>Front: « Soumettre la fiche »
+    Lea->>Front: « Soumettre la fiche »
     Front->>API: POST /logbook-entries/{id}/submit
     API->>API: vérifie que la fiche est complète
     alt fiche incomplète
