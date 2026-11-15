@@ -77,15 +77,22 @@ aucun élève.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Brouillon : ouverte à partir du jour de la séance
-    Brouillon --> Brouillon : enregistrement
-    Brouillon --> Soumise : soumission, après la fin de la séance, fiche complète
-    Soumise --> Soumise : modification avant l'échéance
-    Soumise --> Verrouillée : échéance dépassée (10 jours après la séance)
-    Brouillon --> Verrouillée : échéance dépassée
-    Verrouillée --> Soumise : réouverture par l'administratrice, 10 jours de plus
-    Verrouillée --> Brouillon : réouverture d'un brouillon hors délai
+    state "Brouillon" as B
+    state "Brouillon hors délai" as BH
+    state "Soumise" as S
+    state "Verrouillée" as V
+    [*] --> B : ouverte à partir du jour de la séance
+    B --> B : enregistrement
+    B --> S : soumission, fiche complète
+    S --> S : modification avant l'échéance
+    S --> V : échéance dépassée, tâche de chaque nuit
+    B --> BH : échéance dépassée
+    V --> S : réouverture par l'administratrice
+    BH --> B : réouverture par l'administratrice
 ```
+
+L'échéance tombe 10 jours après la séance. Un brouillon hors délai garde son statut : c'est la date
+qui le ferme. Une réouverture donne 10 jours à partir du jour où elle est accordée.
 
 Une séance annulée n'a pas de fiche, et une séance qui a une fiche ne s'annule plus ni ne se modifie.
 Un projet archivé fige ses séances et ses fiches.
@@ -111,7 +118,7 @@ sequenceDiagram
     end
     Léa->>Front: « Soumettre la fiche »
     Front->>API: POST /logbook-entries/{id}/submit
-    API->>API: vérifie que la fiche est complète et la séance terminée
+    API->>API: vérifie que la fiche est complète
     alt fiche incomplète
         API-->>Front: 422, les champs à corriger, par étape
     else fiche complète
