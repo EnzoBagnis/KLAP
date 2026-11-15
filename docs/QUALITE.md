@@ -22,10 +22,13 @@ Rien n'est fusionné dans `premain` sans CI verte.
 
 | | Fichiers | Tests | Résultat | Couverture |
 |---|---|---|---|---|
-| Backend (PHPUnit) | 47 | 604, dont 13 propres à MariaDB | tous passent sur SQLite et MariaDB | 98,7 % des lignes |
-| Frontend (Vitest) | 27 | 386 | tous passent | 93,8 % des lignes |
+| Backend (PHPUnit) | 49 | 615, dont 13 propres à MariaDB | tous passent sur SQLite et MariaDB | 98,7 % des lignes |
+| Frontend (Vitest) | 28 | 388 | tous passent | 93,8 % des lignes |
 
 À chaque push, la CI passe toute la suite sur SQLite, et sur MariaDB les 13 tests qui lui sont propres.
+
+Ces tests ne couvrent pas les accès simultanés : ils ont été vérifiés à part, par des requêtes
+envoyées en parallèle sur MariaDB (voir [CAMPAGNE_DE_TESTS.md](CAMPAGNE_DE_TESTS.md)).
 La suite complète a aussi été passée à la main sur MariaDB avant chaque fusion.
 
 Les tests backend passent par l'API, comme le ferait le frontend :
