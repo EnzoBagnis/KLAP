@@ -142,7 +142,7 @@ stateDiagram-v2
     state "Verrouillée" as V
     [*] --> B : ouverte à partir du jour de la séance
     B --> B : enregistrement
-    B --> S : soumission, fiche complète
+    B --> S : soumission, séance terminée et fiche complète
     S --> S : modification avant l'échéance
     S --> V : échéance dépassée, tâche de chaque nuit
     B --> BH : échéance dépassée
@@ -177,7 +177,7 @@ sequenceDiagram
     end
     Lea->>Front: « Soumettre la fiche »
     Front->>API: POST /logbook-entries/{id}/submit
-    API->>API: vérifie que la fiche est complète
+    API->>API: vérifie que la séance est terminée et la fiche complète
     alt fiche incomplète
         API-->>Front: 422, les champs à corriger, par étape
     else fiche complète
