@@ -104,9 +104,10 @@ class ScheduledSession extends Model
      * @param  string  $start  « HH:MM » ou « HH:MM:SS »
      * @param  string  $end  « HH:MM » ou « HH:MM:SS »
      * @param  int|null  $ignoredId  la séance qu'on est en train de modifier
+     * @param  bool  $latest  lire l'état validé le plus récent en verrouillant les lignes (dans une transaction)
      * @return object{start_time: string, end_time: string, project_name: string}|null
      */
-    public static function overlapping(int $referentId, string $date, string $start, string $end, ?int $ignoredId = null): ?object
+    public static function overlapping(int $referentId, string $date, string $start, string $end, ?int $ignoredId = null, bool $latest = false): ?object
     {
         $start = substr($start, 0, 5);
         $end = substr($end, 0, 5);
@@ -117,6 +118,7 @@ class ScheduledSession extends Model
             ->whereDate('s.session_date', $date)
             ->where('s.status', '<>', 'cancelled')
             ->when($ignoredId, fn ($query, $id) => $query->where('s.id', '<>', $id))
+            ->when($latest, fn ($query) => $query->lockForUpdate())
             ->get(['s.start_time', 's.end_time', 'p.name as project_name'])
             ->first(fn ($other) => substr((string) $other->start_time, 0, 5) < $end && $start < substr((string) $other->end_time, 0, 5));
     }

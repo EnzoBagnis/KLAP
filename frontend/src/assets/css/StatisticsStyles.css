@@ -158,6 +158,23 @@
   color: var(--color-mute);
 }
 
+/* Le tableau par projet a neuf colonnes : on laisse ses en-têtes et la phrase d'assiduité passer
+   à la ligne, pour qu'il tienne sur un écran d'ordinateur portable sans défilement. */
+.statistics-table-projects thead th,
+.statistics-table-projects td:nth-child(4) {
+  white-space: normal;
+}
+
+.statistics-table-projects th,
+.statistics-table-projects td {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.statistics-table-projects td:nth-child(4) {
+  min-width: 11rem;
+}
+
 .statistics-project th,
 .statistics-project td {
   font-weight: 600;

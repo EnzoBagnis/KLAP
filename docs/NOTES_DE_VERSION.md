@@ -110,9 +110,23 @@ Ces points sont réglés de façon provisoire. Dites-nous si vous voulez les cha
 
 ## Avant l'ouverture aux intervenant·e·s
 
-Trois réglages restent à faire sur le serveur en ligne :
-- **l'envoi des mails** (serveur d'envoi et adresse d'expédition). Sans lui, ni les invitations ni
-  les mails de mot de passe oublié ne partent ;
-- **la connexion sécurisée** (le cadenas dans la barre d'adresse) ;
-- **la tâche automatique de chaque nuit**, qui passe au statut « verrouillée » les fiches de plus de
-  10 jours.
+Les trois réglages du serveur en ligne sont faits, et vérifiés le 14 novembre 2026 :
+- **l'envoi des mails** passe par le serveur d'envoi d'Alwaysdata : les invitations et les mails de
+  mot de passe oublié partent ;
+- **la connexion sécurisée** est en place (le cadenas dans la barre d'adresse) ;
+- **la tâche automatique de chaque nuit** tourne : elle passe au statut « verrouillée » les fiches
+  dont le délai de modification est dépassé.
+
+L'hébergeur sauvegarde la base chaque jour.
+
+## Corrections depuis la version 1.0
+
+- **13 novembre** : une administratrice peut être intervenante principale d'un projet ou rejoindre
+  une équipe (#272). Sans cela, il fallait attendre qu'une personne invitée active son compte pour
+  créer un premier projet.
+- **14 novembre** : le tableau « Par projet » des statistiques tient sur un écran d'ordinateur
+  portable, et les messages d'erreur de « Programmer une séance » disparaissent dès qu'on corrige
+  le champ (#275).
+- **14 novembre** : la même action envoyée plusieurs fois au même instant ne crée plus de séance ni
+  de groupe en double, et ne provoque plus d'erreur du serveur (#277). Le détail est dans
+  [CAMPAGNE_DE_TESTS.md](CAMPAGNE_DE_TESTS.md).

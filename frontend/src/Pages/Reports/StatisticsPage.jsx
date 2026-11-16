@@ -304,7 +304,7 @@ export default function StatisticsPage() {
             <AttendanceChart projects={data.projects} />
             {/* On lui donne un nom distinct de la section : deux repères de même nom gênent la navigation au lecteur d’écran. */}
             <div className="statistics-table-wrapper" role="region" aria-label="Tableau : par projet" tabIndex={0}>
-              <table className="statistics-table" aria-labelledby="projets-titre">
+              <table className="statistics-table statistics-table-projects" aria-labelledby="projets-titre">
                 <thead>
                   <tr>
                     <th scope="col">Projet et groupes</th>

@@ -261,6 +261,22 @@ describe('Programmer une séance', () => {
     expect(fetchMock.mock.calls.some(([, options]) => options?.method === 'POST')).toBe(false);
   });
 
+  it('le message d’erreur d’un champ disparaît dès qu’on le corrige', async () => {
+    const { user, dialog } = await openModal(routes());
+
+    await user.click(within(dialog).getByRole('button', { name: 'Programmer la séance' }));
+    expect(within(dialog).getByText('Choisissez le projet.')).toBeInTheDocument();
+    expect(within(dialog).getByText('Choisissez le type de séance.')).toBeInTheDocument();
+
+    await user.selectOptions(within(dialog).getByLabelText(/Projet/), '5');
+    expect(within(dialog).queryByText('Choisissez le projet.')).not.toBeInTheDocument();
+    // Les autres champs gardent leur message tant qu'on ne les a pas corrigés.
+    expect(within(dialog).getByText('Choisissez le type de séance.')).toBeInTheDocument();
+
+    await user.selectOptions(within(dialog).getByLabelText(/Type de séance/), 'practice_workshop');
+    expect(within(dialog).queryByText('Choisissez le type de séance.')).not.toBeInTheDocument();
+  });
+
   it('la précision n’apparaît que pour le type « autre »', async () => {
     const { user, dialog } = await openModal(routes());
 
